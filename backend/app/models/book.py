@@ -1,0 +1,205 @@
+"""
+Book Model
+
+Stores complete books assembled from chapters.
+"""
+
+import uuid
+from datetime import datetime
+from enum import Enum
+from typing import TYPE_CHECKING, List, Optional
+
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from app.core.database import Base
+
+if TYPE_CHECKING:
+    from app.models.chapter import Chapter
+    from app.models.user import User
+
+
+class BookStatus(str, Enum):
+    """Book status."""
+
+    DRAFT = "draft"
+    IN_PROGRESS = "in_progress"
+    REVIEW = "review"
+    COMPLETED = "completed"
+    PUBLISHED = "published"
+    ARCHIVED = "archived"
+
+
+class Book(Base):
+    """Book model."""
+
+    __tablename__ = "books"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+
+    # Book metadata
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    subtitle: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    author_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    # Cover and visuals
+    cover_image_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+
+    # Book type and genre
+    book_type: Mapped[Optional[str]] = mapped_column(
+        String(50),
+        nullable=True,
+    )  # memoir, autobiography, biography, fiction
+    genres: Mapped[Optional[list]] = mapped_column(
+        ARRAY(String),
+        default=list,
+        nullable=True,
+    )
+    tags: Mapped[Optional[list]] = mapped_column(
+        ARRAY(String),
+        default=list,
+        nullable=True,
+    )
+
+    # Front matter
+    dedication: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    acknowledgments: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    preface: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    introduction: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    # Back matter
+    epilogue: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    afterword: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    about_author: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    # Status
+    status: Mapped[str] = mapped_column(
+        String(20),
+        default=BookStatus.DRAFT.value,
+        nullable=False,
+    )
+    is_public: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    # Export settings
+    export_settings: Mapped[Optional[dict]] = mapped_column(
+        JSONB,
+        default=dict,
+        nullable=True,
+    )
+
+    # Last export info
+    last_exported_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    last_export_format: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+
+    # Owner
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    # Timestamps
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+
+    # Relationships
+    user: Mapped["User"] = relationship("User", back_populates="books")
+    chapter_associations: Mapped[List["BookChapter"]] = relationship(
+        "BookChapter",
+        back_populates="book",
+        cascade="all, delete-orphan",
+        order_by="BookChapter.order_index",
+    )
+
+    def __repr__(self) -> str:
+        return f"<Book {self.title}>"
+
+    @property
+    def chapters(self) -> List["Chapter"]:
+        """Return list of chapters in this book."""
+        return [assoc.chapter for assoc in self.chapter_associations]
+
+    @property
+    def word_count(self) -> int:
+        """Return total word count of the book."""
+        count = 0
+        for chapter in self.chapters:
+            count += chapter.word_count
+        # Add front/back matter
+        for text in [
+            self.dedication,
+            self.acknowledgments,
+            self.preface,
+            self.introduction,
+            self.epilogue,
+            self.afterword,
+            self.about_author,
+        ]:
+            if text:
+                count += len(text.split())
+        return count
+
+    @property
+    def chapter_count(self) -> int:
+        """Return number of chapters."""
+        return len(self.chapter_associations)
+
+
+class BookChapter(Base):
+    """Association table for Book-Chapter many-to-many relationship."""
+
+    __tablename__ = "book_chapters"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+
+    book_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("books.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    chapter_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("chapters.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+
+    # Order within the book
+    order_index: Mapped[int] = mapped_column(Integer, default=0)
+
+    # Part/section grouping (optional)
+    part_number: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    part_title: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+
+    # Timestamps
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+    )
+
+    # Relationships
+    book: Mapped["Book"] = relationship("Book", back_populates="chapter_associations")
+    chapter: Mapped["Chapter"] = relationship(
+        "Chapter",
+        back_populates="book_associations",
+    )
