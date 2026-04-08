@@ -5,21 +5,60 @@ Handles extracting narrative events from transcriptions using AI.
 """
 
 import asyncio
+import uuid
 from datetime import datetime, timezone
+from typing import Any, Dict, List
 
 from celery import shared_task
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import async_session_maker
+from app.core.config import settings
 from app.models.audio import AudioFile, AudioStatus
+from app.models.book import Book, BookChapter
+from app.models.chapter import Chapter, ChapterEvent
 from app.models.event import Event, EventStatus
 from app.models.transcription import Transcription
 from app.models.user import User
 from app.services.llm.gemini_service import get_gemini_service
 
 
-async def _extract_events_async(transcription_id: str, user_id: str) -> dict:
+def _fallback_events_from_text(transcription_text: str) -> List[Dict[str, Any]]:
+    """Create deterministic event slices when AI extraction is disabled/unavailable."""
+    chunks = [part.strip() for part in transcription_text.split("\n\n") if part.strip()]
+    if not chunks:
+        cleaned = transcription_text.strip()
+        if cleaned:
+            chunks = [cleaned]
+
+    events: List[Dict[str, Any]] = []
+    for index, chunk in enumerate(chunks[:12], start=1):
+        title_seed = " ".join(chunk.replace("\n", " ").split()[:8]).strip()
+        title = title_seed if title_seed else f"Event {index}"
+        if len(title) > 80:
+            title = f"{title[:77]}..."
+        events.append(
+            {
+                "title": title,
+                "summary": chunk[:220],
+                "content": chunk,
+                "category": "other",
+                "tags": ["transcript"],
+                "location": None,
+                "people": [],
+                "sentiment": "neutral",
+                "emotions": [],
+            }
+        )
+
+    return events
+
+
+async def _extract_events_async(
+    transcription_id: str,
+    user_id: str,
+    chapter_id: str | None = None,
+) -> dict:
     """
     Async implementation of event extraction.
 
@@ -53,6 +92,48 @@ async def _extract_events_async(transcription_id: str, user_id: str) -> dict:
                 "preferences": user.writing_preferences,
             }
 
+        chapter = None
+        if chapter_id:
+            chapter_uuid = None
+            try:
+                chapter_uuid = uuid.UUID(str(chapter_id))
+            except (TypeError, ValueError):
+                chapter_uuid = None
+
+            if chapter_uuid is not None:
+                chapter_result = await db.execute(
+                    select(Chapter).where(
+                        Chapter.id == chapter_uuid,
+                        Chapter.user_id == user_id,
+                    )
+                )
+                chapter = chapter_result.scalar_one_or_none()
+
+        if chapter and isinstance(chapter.generation_settings, dict):
+            workspace = chapter.generation_settings.get("workspace")
+            if isinstance(workspace, dict) and workspace.get("base_context"):
+                if user_context is None:
+                    user_context = {}
+                user_context["chapter_base_context"] = workspace.get("base_context")
+                user_context["chapter_writing_form"] = workspace.get("writing_form")
+                user_context["chapter_title"] = chapter.title
+
+        ai_enabled = bool(user.ai_assist_enabled) if user else True
+        if chapter is not None:
+            if chapter.ai_enhancement_enabled is not None:
+                ai_enabled = bool(chapter.ai_enhancement_enabled)
+            else:
+                book_result = await db.execute(
+                    select(Book)
+                    .join(BookChapter, BookChapter.book_id == Book.id)
+                    .where(BookChapter.chapter_id == chapter.id)
+                    .order_by(BookChapter.order_index.asc())
+                    .limit(1)
+                )
+                book = book_result.scalar_one_or_none()
+                if book is not None:
+                    ai_enabled = bool(book.ai_enhancement_enabled)
+
         try:
             # Update audio file status if exists
             audio_result = await db.execute(
@@ -63,14 +144,17 @@ async def _extract_events_async(transcription_id: str, user_id: str) -> dict:
                 audio_file.status = AudioStatus.PROCESSING.value
                 await db.commit()
 
-            # Get Gemini service
-            gemini = get_gemini_service()
-
-            # Extract events
-            extracted_events = await gemini.extract_events(
-                transcription=transcription.text,
-                user_context=user_context,
-            )
+            if ai_enabled:
+                try:
+                    gemini = get_gemini_service()
+                    extracted_events = await gemini.extract_events(
+                        transcription=transcription.text,
+                        user_context=user_context,
+                    )
+                except Exception:
+                    extracted_events = _fallback_events_from_text(transcription.text)
+            else:
+                extracted_events = _fallback_events_from_text(transcription.text)
 
             # Get current max order index
             max_order_result = await db.execute(
@@ -96,7 +180,7 @@ async def _extract_events_async(transcription_id: str, user_id: str) -> dict:
                     sentiment=event_data.get("sentiment"),
                     emotions=event_data.get("emotions"),
                     extraction_confidence=0.8,  # Default confidence
-                    extraction_model="gemini-1.5-flash",
+                    extraction_model=settings.GOOGLE_GEMINI_MODEL,
                     status=EventStatus.EXTRACTED.value,
                     order_index=max_order + i + 1,
                     transcription_id=transcription.id,
@@ -104,6 +188,26 @@ async def _extract_events_async(transcription_id: str, user_id: str) -> dict:
                 )
                 db.add(event)
                 created_events.append(event)
+
+            await db.flush()
+
+            if chapter and created_events:
+                current_order_result = await db.execute(
+                    select(ChapterEvent.order_index)
+                    .where(ChapterEvent.chapter_id == chapter.id)
+                    .order_by(ChapterEvent.order_index.desc())
+                    .limit(1)
+                )
+                current_order = current_order_result.scalar()
+                current_order = current_order if current_order is not None else -1
+
+                for index, event in enumerate(created_events):
+                    chapter_event = ChapterEvent(
+                        chapter_id=chapter.id,
+                        event_id=event.id,
+                        order_index=current_order + index + 1,
+                    )
+                    db.add(chapter_event)
 
             # Update audio file status
             if audio_file:
@@ -117,6 +221,7 @@ async def _extract_events_async(transcription_id: str, user_id: str) -> dict:
                 "transcription_id": transcription_id,
                 "events_created": len(created_events),
                 "event_ids": [str(e.id) for e in created_events],
+                "chapter_id": chapter_id,
             }
 
         except Exception as e:
@@ -139,7 +244,12 @@ async def _extract_events_async(transcription_id: str, user_id: str) -> dict:
     retry_backoff=True,
     retry_kwargs={"max_retries": 3},
 )
-def extract_events(self, transcription_id: str, user_id: str) -> dict:
+def extract_events(
+    self,
+    transcription_id: str,
+    user_id: str,
+    chapter_id: str | None = None,
+) -> dict:
     """
     Celery task to extract events from a transcription.
 
@@ -153,7 +263,9 @@ def extract_events(self, transcription_id: str, user_id: str) -> dict:
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
-        return loop.run_until_complete(_extract_events_async(transcription_id, user_id))
+        return loop.run_until_complete(
+            _extract_events_async(transcription_id, user_id, chapter_id)
+        )
     finally:
         loop.close()
 
@@ -181,7 +293,11 @@ def process_audio_complete(audio_id: str, user_id: str) -> dict:
     # Then extract events
     transcription_id = transcribe_result.get("transcription_id")
     if transcription_id:
-        extract_result = extract_events(transcription_id, user_id)
+        extract_result = extract_events(
+            transcription_id,
+            user_id,
+            transcribe_result.get("chapter_id"),
+        )
         return {
             "transcription": transcribe_result,
             "extraction": extract_result,

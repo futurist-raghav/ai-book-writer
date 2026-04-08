@@ -1,0 +1,265 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-aibook}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-aibook_password}
+      POSTGRES_DB: ${POSTGRES_DB:-aibook}
+    command:
+      - postgres
+      - -c
+      - max_connections=${POSTGRES_MAX_CONNECTIONS:-2000}
+      - -c
+      - shared_buffers=${POSTGRES_SHARED_BUFFERS:-4GB}
+      - -c
+      - effective_cache_size=${POSTGRES_EFFECTIVE_CACHE_SIZE:-12GB}
+      - -c
+      - work_mem=${POSTGRES_WORK_MEM:-16MB}
+      - -c
+      - maintenance_work_mem=${POSTGRES_MAINTENANCE_WORK_MEM:-1GB}
+      - -c
+      - wal_buffers=${POSTGRES_WAL_BUFFERS:-32MB}
+      - -c
+      - max_wal_size=${POSTGRES_MAX_WAL_SIZE:-8GB}
+      - -c
+      - min_wal_size=${POSTGRES_MIN_WAL_SIZE:-1GB}
+      - -c
+      - checkpoint_completion_target=0.9
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    shm_size: "2gb"
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-aibook}"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+    restart: unless-stopped
+    networks:
+      - aibook-network
+
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    environment:
+      - DB_USER=${POSTGRES_USER:-aibook}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-aibook_password}
+      - DB_HOST=postgres
+      - DB_NAME=${POSTGRES_DB:-aibook}
+      - POOL_MODE=transaction
+      - MAX_CLIENT_CONN=10000
+      - DEFAULT_POOL_SIZE=200
+      - MIN_POOL_SIZE=50
+      - RESERVE_POOL_SIZE=50
+      - SERVER_IDLE_TIMEOUT=60
+    ports:
+      - "6432:5432"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - aibook-network
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "2gb", "--maxmemory-policy", "allkeys-lru"]
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - aibook-network
+
+  chromadb:
+    image: chromadb/chroma:latest
+    volumes:
+      - chroma_data:/chroma/chroma
+    environment:
+      - IS_PERSISTENT=TRUE
+      - ANONYMIZED_TELEMETRY=False
+    ports:
+      - "8001:8000"
+    healthcheck:
+      disable: true
+    restart: unless-stopped
+    networks:
+      - aibook-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    deploy:
+      replicas: 4
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+    env_file:
+      - .env
+    environment:
+      - ENVIRONMENT=production
+      - DEBUG=false
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-aibook}:${POSTGRES_PASSWORD:-aibook_password}@pgbouncer:5432/${POSTGRES_DB:-aibook}
+      - REDIS_URL=redis://redis:6379
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - CHROMA_HOST=chromadb
+      - CHROMA_PORT=8000
+      - WEB_CONCURRENCY=${WEB_CONCURRENCY:-8}
+      - UVICORN_TIMEOUT=${UVICORN_TIMEOUT:-120}
+      - UVICORN_GRACEFUL_TIMEOUT=${UVICORN_GRACEFUL_TIMEOUT:-30}
+      - UVICORN_KEEPALIVE=${UVICORN_KEEPALIVE:-5}
+      - DB_POOL_SIZE=${DB_POOL_SIZE:-50}
+      - DB_MAX_OVERFLOW=${DB_MAX_OVERFLOW:-100}
+      - DB_POOL_TIMEOUT=${DB_POOL_TIMEOUT:-30}
+      - DB_POOL_RECYCLE=${DB_POOL_RECYCLE:-1800}
+      - DB_STATEMENT_TIMEOUT_MS=${DB_STATEMENT_TIMEOUT_MS:-30000}
+    command:
+      - gunicorn
+      - app.main:app
+      - -k
+      - uvicorn.workers.UvicornWorker
+      - --bind
+      - 0.0.0.0:8000
+      - --workers
+      - ${WEB_CONCURRENCY:-4}
+      - --timeout
+      - ${UVICORN_TIMEOUT:-120}
+      - --graceful-timeout
+      - ${UVICORN_GRACEFUL_TIMEOUT:-30}
+      - --keep-alive
+      - ${UVICORN_KEEPALIVE:-5}
+      - --max-requests
+      - ${GUNICORN_MAX_REQUESTS:-2000}
+      - --max-requests-jitter
+      - ${GUNICORN_MAX_REQUESTS_JITTER:-200}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      chromadb:
+        condition: service_started
+    volumes:
+      - ./storage:/app/storage
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    networks:
+      - aibook-network
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+    env_file:
+      - .env
+    environment:
+      - ENVIRONMENT=production
+      - DEBUG=false
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-aibook}:${POSTGRES_PASSWORD:-aibook_password}@pgbouncer:5432/${POSTGRES_DB:-aibook}
+      - REDIS_URL=redis://redis:6379
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - CHROMA_HOST=chromadb
+      - CHROMA_PORT=8000
+    command: celery -A app.tasks.celery_app worker --loglevel=info --concurrency=${CELERY_CONCURRENCY:-16} --prefetch-multiplier=${CELERY_PREFETCH_MULTIPLIER:-4}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      chromadb:
+        condition: service_started
+    volumes:
+      - ./storage:/app/storage
+    healthcheck:
+      disable: true
+    restart: unless-stopped
+    networks:
+      - aibook-network
+
+  beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    env_file:
+      - .env
+    environment:
+      - ENVIRONMENT=production
+      - DEBUG=false
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-aibook}:${POSTGRES_PASSWORD:-aibook_password}@pgbouncer:5432/${POSTGRES_DB:-aibook}
+      - REDIS_URL=redis://redis:6379
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    command: celery -A app.tasks.celery_app beat --loglevel=info
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      disable: true
+    restart: unless-stopped
+    networks:
+      - aibook-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          cpus: '1'
+          memory: 2G
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-/api/v1}
+      - NEXT_PUBLIC_WS_URL=${NEXT_PUBLIC_WS_URL:-/ws}
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - aibook-network
+
+  nginx:
+    image: nginx:alpine
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - frontend
+      - backend
+    restart: unless-stopped
+    networks:
+      - aibook-network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  chroma_data:
+    driver: local
+
+networks:
+  aibook-network:
+    driver: bridge

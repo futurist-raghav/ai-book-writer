@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
-import { Sidebar } from '@/components/layout/sidebar';
+import { Sidebar, BottomBar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
 
 export const metadata: Metadata = {
-  title: 'Dashboard | AI Book Writer',
+  title: 'Dashboard | The Editorial Sanctuary',
 };
 
 export default function DashboardLayout({
@@ -12,12 +12,15 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen">
-      <Sidebar />
-      <div className="flex flex-1 flex-col">
-        <Header />
-        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+    <div className="flex h-screen flex-col overflow-hidden bg-surface">
+      <Header />
+      <div className="flex flex-1 overflow-hidden pt-20">
+        <Sidebar />
+        <main className="flex-grow overflow-y-auto px-4 py-8 md:px-8 bg-surface pb-28 md:pb-8">
+          {children}
+        </main>
       </div>
+      <BottomBar />
     </div>
   );
 }

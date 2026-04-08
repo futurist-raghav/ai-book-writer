@@ -31,16 +31,44 @@ class Settings(BaseSettings):
     # API
     API_V1_PREFIX: str = "/api/v1"
 
+    # Runtime concurrency (used by gunicorn/uvicorn workers in production)
+    WEB_CONCURRENCY: int = 4
+    UVICORN_TIMEOUT: int = 120
+    UVICORN_GRACEFUL_TIMEOUT: int = 30
+    UVICORN_KEEPALIVE: int = 5
+
     # CORS
     ALLOWED_ORIGINS: str = "http://localhost:3000,http://localhost:3001"
 
     @property
     def allowed_origins_list(self) -> List[str]:
         """Parse ALLOWED_ORIGINS into a list."""
-        return [origin.strip() for origin in self.ALLOWED_ORIGINS.split(",")]
+        parsed = [origin.strip() for origin in self.ALLOWED_ORIGINS.split(",") if origin.strip()]
+
+        # Keep local development reliable even when environment overrides are incomplete.
+        if self.ENVIRONMENT.lower() == "development":
+            dev_defaults = [
+                "http://localhost:3000",
+                "http://127.0.0.1:3000",
+                "http://localhost:3001",
+                "http://127.0.0.1:3001",
+                "capacitor://localhost",
+                "ionic://localhost",
+            ]
+            merged = parsed + dev_defaults
+        else:
+            merged = parsed
+
+        # Preserve order while removing duplicates.
+        return list(dict.fromkeys(merged))
 
     # Database
     DATABASE_URL: str = "postgresql://aibook_user:password@localhost:5432/aibook"
+    DB_POOL_SIZE: int = 20
+    DB_MAX_OVERFLOW: int = 40
+    DB_POOL_TIMEOUT: int = 30
+    DB_POOL_RECYCLE: int = 1800
+    DB_STATEMENT_TIMEOUT_MS: int = 30000
 
     @property
     def async_database_url(self) -> str:
@@ -60,9 +88,55 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
     # AI Service API Keys
+    PREFERRED_STT_SERVICE: str = "openai"
+    STT_PROVIDER: str = "openai"
+    WHISPER_TIMEOUT_SECONDS: int = 3600
+    WHISPER_VM_BASE_URL: Optional[str] = None
+    WHISPER_VM_MODEL_NAME: str = "large-v3"
+    WHISPER_VM_DEFAULT_TASK: str = "transcribe"
+    WHISPER_VM_OUTPUT_FORMAT: str = "json"
+    WHISPER_VM_ENCODE: bool = True
+    WHISPER_VM_WORD_TIMESTAMPS: bool = False
+
     OPENAI_API_KEY: Optional[str] = None
     GOOGLE_AI_API_KEY: Optional[str] = None
+    GOOGLE_GEMINI_API_KEY: Optional[str] = None
+    GOOGLE_GEMINI_API_KEY_1: Optional[str] = None
+    GOOGLE_GEMINI_API_KEY_2: Optional[str] = None
+    GOOGLE_GEMINI_API_KEY_3: Optional[str] = None
+    GOOGLE_GEMINI_MODEL: str = "gemini-3-flash-preview"
     ANTHROPIC_API_KEY: Optional[str] = None
+
+    @property
+    def gemini_api_keys(self) -> List[str]:
+        """Get ordered Gemini API keys with backward compatibility support."""
+        keys = [
+            self.GOOGLE_GEMINI_API_KEY_1,
+            self.GOOGLE_GEMINI_API_KEY_2,
+            self.GOOGLE_GEMINI_API_KEY_3,
+            self.GOOGLE_GEMINI_API_KEY,
+            self.GOOGLE_AI_API_KEY,
+        ]
+        # Preserve order while removing empty values and duplicates.
+        return list(dict.fromkeys([key for key in keys if key]))
+
+    @field_validator("PREFERRED_STT_SERVICE", "STT_PROVIDER")
+    @classmethod
+    def validate_stt_provider(cls, value: str) -> str:
+        """Restrict STT provider values to supported options."""
+        normalized = value.strip().lower()
+        if normalized not in {"openai", "whisper_vm"}:
+            raise ValueError("STT provider must be 'openai' or 'whisper_vm'")
+        return normalized
+
+    @field_validator("WHISPER_VM_OUTPUT_FORMAT")
+    @classmethod
+    def validate_whisper_vm_output_format(cls, value: str) -> str:
+        """Validate supported output formats for whisper-asr-webservice."""
+        normalized = value.strip().lower()
+        if normalized not in {"json", "txt", "vtt", "srt", "tsv"}:
+            raise ValueError("WHISPER_VM_OUTPUT_FORMAT must be one of: json, txt, vtt, srt, tsv")
+        return normalized
 
     # Storage
     STORAGE_BACKEND: str = "local"  # local, gcs, s3

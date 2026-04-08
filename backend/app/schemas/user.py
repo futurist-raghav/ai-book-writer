@@ -12,6 +12,8 @@ from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from app.schemas.common import BaseSchema, IDMixin, TimestampMixin
 
+MAX_BCRYPT_PASSWORD_BYTES = 72
+
 
 # ============== Request Schemas ==============
 
@@ -22,11 +24,14 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=8, max_length=100)
     full_name: Optional[str] = Field(None, max_length=255)
+    ai_assist_enabled: bool = True
 
     @field_validator("password")
     @classmethod
     def validate_password(cls, v: str) -> str:
         """Validate password strength."""
+        if len(v.encode("utf-8")) > MAX_BCRYPT_PASSWORD_BYTES:
+            raise ValueError("Password must be 72 UTF-8 bytes or fewer")
         if not any(c.isupper() for c in v):
             raise ValueError("Password must contain at least one uppercase letter")
         if not any(c.islower() for c in v):
@@ -50,6 +55,7 @@ class UserUpdate(BaseModel):
     writing_style: Optional[str] = Field(None, max_length=50)
     preferred_tense: Optional[str] = Field(None, max_length=20)
     preferred_perspective: Optional[str] = Field(None, max_length=20)
+    ai_assist_enabled: Optional[bool] = None
 
 
 class WritingProfileUpdate(BaseModel):
@@ -59,6 +65,7 @@ class WritingProfileUpdate(BaseModel):
     preferred_tense: Optional[str] = None  # past, present
     preferred_perspective: Optional[str] = None  # first, third
     writing_preferences: Optional[dict] = None
+    ai_assist_enabled: Optional[bool] = None
 
 
 class PasswordChange(BaseModel):
@@ -71,6 +78,8 @@ class PasswordChange(BaseModel):
     @classmethod
     def validate_password(cls, v: str) -> str:
         """Validate password strength."""
+        if len(v.encode("utf-8")) > MAX_BCRYPT_PASSWORD_BYTES:
+            raise ValueError("Password must be 72 UTF-8 bytes or fewer")
         if not any(c.isupper() for c in v):
             raise ValueError("Password must contain at least one uppercase letter")
         if not any(c.islower() for c in v):
@@ -93,6 +102,7 @@ class UserResponse(BaseSchema, IDMixin, TimestampMixin):
     writing_style: Optional[str] = None
     preferred_tense: Optional[str] = None
     preferred_perspective: Optional[str] = None
+    ai_assist_enabled: bool
     last_login: Optional[datetime] = None
 
 

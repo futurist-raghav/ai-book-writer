@@ -47,11 +47,17 @@ class Book(Base):
     subtitle: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     author_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    project_context: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     # Cover and visuals
     cover_image_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    cover_color: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
 
     # Book type and genre
+    project_type: Mapped[Optional[str]] = mapped_column(
+        String(50),
+        nullable=True,
+    )  # novel, screenplay, technical_manual, etc.
     book_type: Mapped[Optional[str]] = mapped_column(
         String(50),
         nullable=True,
@@ -66,6 +72,14 @@ class Book(Base):
         default=list,
         nullable=True,
     )
+    labels: Mapped[Optional[list]] = mapped_column(
+        JSONB,
+        default=list,
+        nullable=True,
+    )
+    target_word_count: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    deadline_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    is_pinned: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     # Front matter
     dedication: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -92,6 +106,16 @@ class Book(Base):
         default=dict,
         nullable=True,
     )
+
+    # Project-wide writing defaults
+    project_settings: Mapped[Optional[dict]] = mapped_column(
+        JSONB,
+        default=dict,
+        nullable=True,
+    )
+    default_writing_form: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    default_chapter_tone: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    ai_enhancement_enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
     # Last export info
     last_exported_at: Mapped[Optional[datetime]] = mapped_column(
@@ -160,6 +184,14 @@ class Book(Base):
     def chapter_count(self) -> int:
         """Return number of chapters."""
         return len(self.chapter_associations)
+
+    @property
+    def target_progress_percent(self) -> Optional[float]:
+        """Return completion progress against target word count."""
+        if not self.target_word_count or self.target_word_count <= 0:
+            return None
+        progress = (self.word_count / self.target_word_count) * 100
+        return round(min(progress, 100.0), 2)
 
 
 class BookChapter(Base):

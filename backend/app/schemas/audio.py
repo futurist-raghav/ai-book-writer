@@ -62,9 +62,12 @@ class AudioListResponse(BaseSchema, IDMixin):
     filename: str
     original_filename: str
     title: Optional[str] = None
+    file_size: int
+    file_format: str
     duration: Optional[float] = None
     duration_formatted: Optional[str] = None
     status: str
+    error_message: Optional[str] = None
     tags: Optional[List[str]] = None
     created_at: datetime
 

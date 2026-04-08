@@ -51,6 +51,13 @@ class TranscriptionRetryRequest(BaseModel):
     force: bool = False  # Force retry even if already transcribed
 
 
+class ManualTranscriptionCreate(BaseModel):
+    """Create or replace transcription text manually for an audio file."""
+
+    text: str = Field(..., min_length=1)
+    language: Optional[str] = Field(None, max_length=10)
+
+
 # ============== Response Schemas ==============
 
 
@@ -64,6 +71,8 @@ class TranscriptionResponse(BaseSchema, IDMixin, TimestampMixin):
     language_probability: Optional[float] = None
     stt_service: str
     stt_model: Optional[str] = None
+    task_mode: str
+    ai_enhanced: bool = False
     status: str
     error_message: Optional[str] = None
     processing_time: Optional[float] = None

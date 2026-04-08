@@ -8,6 +8,7 @@ interface User {
   writing_style?: string;
   preferred_tense?: string;
   preferred_perspective?: string;
+  ai_assist_enabled?: boolean;
 }
 
 interface AuthState {

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 interface Event {
   id: string;
@@ -77,91 +78,110 @@ interface BookState {
   selectBook: (book: Book | null) => void;
 }
 
-export const useBookStore = create<BookState>((set) => ({
-  // Initial state
-  events: [],
-  selectedEvents: new Set(),
-  eventFilter: {},
-  chapters: [],
-  selectedChapter: null,
-  books: [],
-  selectedBook: null,
+export const useBookStore = create<BookState>()(
+  persist(
+    (set) => ({
+      // Initial state
+      events: [],
+      selectedEvents: new Set(),
+      eventFilter: {},
+      chapters: [],
+      selectedChapter: null,
+      books: [],
+      selectedBook: null,
 
-  // Event actions
-  setEvents: (events) => set({ events }),
+      // Event actions
+      setEvents: (events) => set({ events }),
 
-  addEvent: (event) =>
-    set((state) => ({ events: [...state.events, event] })),
+      addEvent: (event) =>
+        set((state) => ({ events: [...state.events, event] })),
 
-  updateEvent: (id, updates) =>
-    set((state) => ({
-      events: state.events.map((e) => (e.id === id ? { ...e, ...updates } : e)),
-    })),
+      updateEvent: (id, updates) =>
+        set((state) => ({
+          events: state.events.map((e) => (e.id === id ? { ...e, ...updates } : e)),
+        })),
 
-  removeEvent: (id) =>
-    set((state) => ({
-      events: state.events.filter((e) => e.id !== id),
-      selectedEvents: new Set([...state.selectedEvents].filter((eid) => eid !== id)),
-    })),
+      removeEvent: (id) =>
+        set((state) => {
+          const selectedEvents = new Set<string>();
+          state.selectedEvents.forEach((eventId) => {
+            if (eventId !== id) {
+              selectedEvents.add(eventId);
+            }
+          });
 
-  toggleEventSelection: (id) =>
-    set((state) => {
-      const newSelected = new Set(state.selectedEvents);
-      if (newSelected.has(id)) {
-        newSelected.delete(id);
-      } else {
-        newSelected.add(id);
-      }
-      return { selectedEvents: newSelected };
+          return {
+            events: state.events.filter((e) => e.id !== id),
+            selectedEvents,
+          };
+        }),
+
+      toggleEventSelection: (id) =>
+        set((state) => {
+          const newSelected = new Set(state.selectedEvents);
+          if (newSelected.has(id)) {
+            newSelected.delete(id);
+          } else {
+            newSelected.add(id);
+          }
+          return { selectedEvents: newSelected };
+        }),
+
+      clearEventSelection: () => set({ selectedEvents: new Set() }),
+
+      setEventFilter: (filter) => set({ eventFilter: filter }),
+
+      // Chapter actions
+      setChapters: (chapters) => set({ chapters }),
+
+      addChapter: (chapter) =>
+        set((state) => ({ chapters: [...state.chapters, chapter] })),
+
+      updateChapter: (id, updates) =>
+        set((state) => ({
+          chapters: state.chapters.map((c) => (c.id === id ? { ...c, ...updates } : c)),
+          selectedChapter:
+            state.selectedChapter?.id === id
+              ? { ...state.selectedChapter, ...updates }
+              : state.selectedChapter,
+        })),
+
+      removeChapter: (id) =>
+        set((state) => ({
+          chapters: state.chapters.filter((c) => c.id !== id),
+          selectedChapter: state.selectedChapter?.id === id ? null : state.selectedChapter,
+        })),
+
+      selectChapter: (chapter) => set({ selectedChapter: chapter }),
+
+      // Book actions
+      setBooks: (books) => set({ books }),
+
+      addBook: (book) =>
+        set((state) => ({ books: [...state.books, book] })),
+
+      updateBook: (id, updates) =>
+        set((state) => ({
+          books: state.books.map((b) => (b.id === id ? { ...b, ...updates } : b)),
+          selectedBook:
+            state.selectedBook?.id === id
+              ? { ...state.selectedBook, ...updates }
+              : state.selectedBook,
+        })),
+
+      removeBook: (id) =>
+        set((state) => ({
+          books: state.books.filter((b) => b.id !== id),
+          selectedBook: state.selectedBook?.id === id ? null : state.selectedBook,
+        })),
+
+      selectBook: (book) => set({ selectedBook: book }),
     }),
-
-  clearEventSelection: () => set({ selectedEvents: new Set() }),
-
-  setEventFilter: (filter) => set({ eventFilter: filter }),
-
-  // Chapter actions
-  setChapters: (chapters) => set({ chapters }),
-
-  addChapter: (chapter) =>
-    set((state) => ({ chapters: [...state.chapters, chapter] })),
-
-  updateChapter: (id, updates) =>
-    set((state) => ({
-      chapters: state.chapters.map((c) => (c.id === id ? { ...c, ...updates } : c)),
-      selectedChapter:
-        state.selectedChapter?.id === id
-          ? { ...state.selectedChapter, ...updates }
-          : state.selectedChapter,
-    })),
-
-  removeChapter: (id) =>
-    set((state) => ({
-      chapters: state.chapters.filter((c) => c.id !== id),
-      selectedChapter: state.selectedChapter?.id === id ? null : state.selectedChapter,
-    })),
-
-  selectChapter: (chapter) => set({ selectedChapter: chapter }),
-
-  // Book actions
-  setBooks: (books) => set({ books }),
-
-  addBook: (book) =>
-    set((state) => ({ books: [...state.books, book] })),
-
-  updateBook: (id, updates) =>
-    set((state) => ({
-      books: state.books.map((b) => (b.id === id ? { ...b, ...updates } : b)),
-      selectedBook:
-        state.selectedBook?.id === id
-          ? { ...state.selectedBook, ...updates }
-          : state.selectedBook,
-    })),
-
-  removeBook: (id) =>
-    set((state) => ({
-      books: state.books.filter((b) => b.id !== id),
-      selectedBook: state.selectedBook?.id === id ? null : state.selectedBook,
-    })),
-
-  selectBook: (book) => set({ selectedBook: book }),
-}));
+    {
+      name: 'book-store',
+      partialize: (state) => ({
+        selectedBook: state.selectedBook,
+      }),
+    }
+  )
+);

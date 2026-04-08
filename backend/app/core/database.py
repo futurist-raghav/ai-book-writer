@@ -31,13 +31,23 @@ class Base(DeclarativeBase):
 
 
 # Create async engine
-engine = create_async_engine(
-    settings.async_database_url,
-    echo=settings.DEBUG,
-    pool_pre_ping=True,
-    pool_size=5,
-    max_overflow=10,
-)
+engine_kwargs = {
+    "echo": settings.DEBUG,
+    "pool_pre_ping": True,
+    "pool_size": settings.DB_POOL_SIZE,
+    "max_overflow": settings.DB_MAX_OVERFLOW,
+    "pool_timeout": settings.DB_POOL_TIMEOUT,
+    "pool_recycle": settings.DB_POOL_RECYCLE,
+}
+
+if settings.async_database_url.startswith("postgresql+asyncpg://"):
+    engine_kwargs["connect_args"] = {
+        "server_settings": {
+            "statement_timeout": str(settings.DB_STATEMENT_TIMEOUT_MS),
+        }
+    }
+
+engine = create_async_engine(settings.async_database_url, **engine_kwargs)
 
 # Async session factory
 async_session_maker = async_sessionmaker(

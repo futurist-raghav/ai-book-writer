@@ -1,16 +1,18 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import Link from 'next/link';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
+  ArrowRight,
   Upload,
   Mic,
-  Play,
-  Pause,
+  Square,
   Trash2,
   FileAudio,
+  FileText,
   Clock,
   RefreshCw,
 } from 'lucide-react';
@@ -23,7 +25,23 @@ import { useAudioStore } from '@/stores/audio-store';
 
 export default function AudioPage() {
   const queryClient = useQueryClient();
-  const { isUploading, uploadProgress, setUploading, setUploadProgress } = useAudioStore();
+  const {
+    isUploading,
+    uploadProgress,
+    isRecording,
+    recordingTime,
+    setUploading,
+    setUploadProgress,
+    setRecording,
+    setRecordingTime,
+  } = useAudioStore();
+  const [recordingError, setRecordingError] = useState<string | null>(null);
+  const [transcriptionMode, setTranscriptionMode] = useState<'transcribe' | 'translate'>('transcribe');
+  const [sourceLanguage, setSourceLanguage] = useState('auto');
+  const [targetLanguage, setTargetLanguage] = useState('en');
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const recordingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['audio'],
@@ -36,6 +54,10 @@ export default function AudioPage() {
       setUploadProgress(0);
       const response = await apiClient.audio.upload(file, (progress) => {
         setUploadProgress(progress);
+      }, {
+        transcription_mode: transcriptionMode,
+        source_language: sourceLanguage === 'auto' ? undefined : sourceLanguage,
+        target_language: transcriptionMode === 'translate' ? targetLanguage : undefined,
       });
       return response;
     },
@@ -85,6 +107,119 @@ export default function AudioPage() {
     [uploadMutation]
   );
 
+  const resetRecordingInterval = useCallback(() => {
+    if (recordingIntervalRef.current) {
+      clearInterval(recordingIntervalRef.current);
+      recordingIntervalRef.current = null;
+    }
+  }, []);
+
+  const getSupportedMimeType = useCallback((): string => {
+    const preferredTypes = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/ogg'];
+    const supportedType = preferredTypes.find((mimeType) => MediaRecorder.isTypeSupported(mimeType));
+    return supportedType || '';
+  }, []);
+
+  const uploadRecordedAudio = useCallback(
+    (blob: Blob, mimeType: string) => {
+      const extension = mimeType.includes('ogg') ? 'ogg' : 'webm';
+      const file = new File([blob], `recording-${Date.now()}.${extension}`, {
+        type: mimeType || 'audio/webm',
+      });
+      uploadMutation.mutate(file);
+    },
+    [uploadMutation]
+  );
+
+  const stopRecording = useCallback(() => {
+    const recorder = mediaRecorderRef.current;
+    if (!recorder || recorder.state === 'inactive') {
+      return;
+    }
+    recorder.stop();
+  }, []);
+
+  const startRecording = useCallback(async () => {
+    if (isRecording) {
+      return;
+    }
+
+    if (!navigator?.mediaDevices?.getUserMedia) {
+      const message = 'Live recording is not supported in this browser.';
+      setRecordingError(message);
+      toast.error(message);
+      return;
+    }
+
+    try {
+      setRecordingError(null);
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mimeType = getSupportedMimeType();
+      const recorder = mimeType
+        ? new MediaRecorder(stream, { mimeType })
+        : new MediaRecorder(stream);
+
+      chunksRef.current = [];
+
+      recorder.ondataavailable = (event: BlobEvent) => {
+        if (event.data.size > 0) {
+          chunksRef.current.push(event.data);
+        }
+      };
+
+      recorder.onerror = () => {
+        setRecordingError('Recording failed. Please try again.');
+        toast.error('Recording failed');
+      };
+
+      recorder.onstop = () => {
+        const recordedMimeType = recorder.mimeType || mimeType || 'audio/webm';
+        const recordedBlob = new Blob(chunksRef.current, { type: recordedMimeType });
+
+        stream.getTracks().forEach((track) => track.stop());
+        resetRecordingInterval();
+        setRecording(false);
+
+        if (recordedBlob.size > 0) {
+          uploadRecordedAudio(recordedBlob, recordedMimeType);
+          toast.success('Recording captured. Uploading now...');
+        } else {
+          toast.error('No audio captured. Please record again.');
+        }
+      };
+
+      recorder.start(1000);
+      mediaRecorderRef.current = recorder;
+      setRecording(true);
+      setRecordingTime(0);
+      recordingIntervalRef.current = setInterval(() => {
+        setRecordingTime(useAudioStore.getState().recordingTime + 1);
+      }, 1000);
+    } catch {
+      const message = 'Microphone access was denied or unavailable.';
+      setRecordingError(message);
+      setRecording(false);
+      resetRecordingInterval();
+      toast.error(message);
+    }
+  }, [
+    getSupportedMimeType,
+    isRecording,
+    resetRecordingInterval,
+    setRecording,
+    setRecordingTime,
+    uploadRecordedAudio,
+  ]);
+
+  useEffect(() => {
+    return () => {
+      stopRecording();
+      resetRecordingInterval();
+      setRecording(false);
+      setRecordingTime(0);
+    };
+  }, [resetRecordingInterval, setRecording, setRecordingTime, stopRecording]);
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
@@ -109,9 +244,87 @@ export default function AudioPage() {
             Upload or record audio to transcribe into text
           </p>
         </div>
+        <div className="w-full max-w-xs">
+          <p className="mb-1 text-xs text-muted-foreground">Processing mode</p>
+          <select
+            className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={transcriptionMode}
+            onChange={(event) => setTranscriptionMode(event.target.value as 'transcribe' | 'translate')}
+          >
+            <option value="transcribe">Transcribe original language</option>
+            <option value="translate">Translate to English</option>
+          </select>
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            <select
+              className="h-9 rounded-md border border-input bg-background px-2 text-xs"
+              value={sourceLanguage}
+              onChange={(event) => setSourceLanguage(event.target.value)}
+            >
+              <option value="auto">Source: auto</option>
+              <option value="en">Source: English</option>
+              <option value="hi">Source: Hindi</option>
+              <option value="es">Source: Spanish</option>
+              <option value="fr">Source: French</option>
+            </select>
+            <select
+              className="h-9 rounded-md border border-input bg-background px-2 text-xs"
+              value={targetLanguage}
+              onChange={(event) => setTargetLanguage(event.target.value)}
+              disabled={transcriptionMode !== 'translate'}
+            >
+              <option value="en">Target: English</option>
+              <option value="hi">Target: Hindi</option>
+              <option value="es">Target: Spanish</option>
+              <option value="fr">Target: French</option>
+            </select>
+          </div>
+        </div>
       </div>
 
+      <Card className="border-primary/30 bg-primary/5">
+        <CardHeader>
+          <CardTitle>Transcription Flow</CardTitle>
+          <CardDescription>
+            whisper STT <ArrowRight className="mx-1 inline h-3 w-3" /> optional gemini wording enhancement (based on user/project/chapter AI settings)
+          </CardDescription>
+        </CardHeader>
+      </Card>
+
       {/* Upload Area */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Live Recording</CardTitle>
+          <CardDescription>
+            Record from your microphone and upload automatically when you stop.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col gap-4 rounded-lg border border-muted p-6 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Recording time</p>
+              <p className="text-2xl font-semibold">{formatDuration(recordingTime)}</p>
+              {recordingError && <p className="mt-1 text-sm text-destructive">{recordingError}</p>}
+            </div>
+            <div className="flex items-center gap-3">
+              {isRecording ? (
+                <>
+                  <div className="h-3 w-3 animate-pulse rounded-full bg-red-500" />
+                  <Button onClick={stopRecording} variant="destructive" disabled={isUploading}>
+                    <Square className="mr-2 h-4 w-4" />
+                    Stop Recording
+                  </Button>
+                </>
+              ) : (
+                <Button onClick={startRecording} disabled={isUploading}>
+                  <Mic className="mr-2 h-4 w-4" />
+                  Start Recording
+                </Button>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>Upload Audio</CardTitle>
@@ -275,6 +488,12 @@ function AudioFileCard({
             <RefreshCw className="h-4 w-4" />
           </Button>
         )}
+        <Link href={`/dashboard/audio/${audio.id}`}>
+          <Button variant="outline" size="sm">
+            <FileText className="mr-2 h-4 w-4" />
+            Transcript
+          </Button>
+        </Link>
         <Button
           variant="ghost"
           size="sm"

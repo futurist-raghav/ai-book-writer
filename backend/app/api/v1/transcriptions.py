@@ -13,10 +13,12 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import joinedload
 
 from app.core.dependencies import AsyncSessionDep, CurrentUserIdDep
-from app.models.audio import AudioFile
+from app.models.audio import AudioFile, AudioStatus
+from app.models.chapter import Chapter
 from app.models.transcription import Transcription, TranscriptionStatus
 from app.schemas.common import PaginatedResponse
 from app.schemas.transcription import (
+    ManualTranscriptionCreate,
     TranscriptionResponse,
     TranscriptionStatusResponse,
     TranscriptionSummaryResponse,
@@ -24,6 +26,30 @@ from app.schemas.transcription import (
 )
 
 router = APIRouter()
+
+
+def _to_transcription_response(transcription: Transcription) -> TranscriptionResponse:
+    """Serialize transcription ORM object into API response schema."""
+    return TranscriptionResponse(
+        id=transcription.id,
+        text=transcription.text,
+        segments=transcription.segments,
+        words=transcription.words,
+        language=transcription.language,
+        language_probability=transcription.language_probability,
+        stt_service=transcription.stt_service,
+        stt_model=transcription.stt_model,
+        task_mode=transcription.task_mode,
+        ai_enhanced=transcription.ai_enhanced,
+        status=transcription.status,
+        error_message=transcription.error_message,
+        processing_time=transcription.processing_time,
+        is_edited=transcription.is_edited,
+        word_count=transcription.word_count,
+        audio_file_id=transcription.audio_file_id,
+        created_at=transcription.created_at,
+        updated_at=transcription.updated_at,
+    )
 
 
 @router.get(
@@ -113,24 +139,7 @@ async def get_transcription(
             detail="Transcription not found",
         )
 
-    return TranscriptionResponse(
-        id=transcription.id,
-        text=transcription.text,
-        segments=transcription.segments,
-        words=transcription.words,
-        language=transcription.language,
-        language_probability=transcription.language_probability,
-        stt_service=transcription.stt_service,
-        stt_model=transcription.stt_model,
-        status=transcription.status,
-        error_message=transcription.error_message,
-        processing_time=transcription.processing_time,
-        is_edited=transcription.is_edited,
-        word_count=transcription.word_count,
-        audio_file_id=transcription.audio_file_id,
-        created_at=transcription.created_at,
-        updated_at=transcription.updated_at,
-    )
+    return _to_transcription_response(transcription)
 
 
 @router.put(
@@ -183,24 +192,7 @@ async def update_transcription(
     await db.flush()
     await db.refresh(transcription)
 
-    return TranscriptionResponse(
-        id=transcription.id,
-        text=transcription.text,
-        segments=transcription.segments,
-        words=transcription.words,
-        language=transcription.language,
-        language_probability=transcription.language_probability,
-        stt_service=transcription.stt_service,
-        stt_model=transcription.stt_model,
-        status=transcription.status,
-        error_message=transcription.error_message,
-        processing_time=transcription.processing_time,
-        is_edited=transcription.is_edited,
-        word_count=transcription.word_count,
-        audio_file_id=transcription.audio_file_id,
-        created_at=transcription.created_at,
-        updated_at=transcription.updated_at,
-    )
+    return _to_transcription_response(transcription)
 
 
 @router.get(
@@ -232,24 +224,74 @@ async def get_transcription_by_audio(
             detail="Transcription not found for this audio file",
         )
 
-    return TranscriptionResponse(
-        id=transcription.id,
-        text=transcription.text,
-        segments=transcription.segments,
-        words=transcription.words,
-        language=transcription.language,
-        language_probability=transcription.language_probability,
-        stt_service=transcription.stt_service,
-        stt_model=transcription.stt_model,
-        status=transcription.status,
-        error_message=transcription.error_message,
-        processing_time=transcription.processing_time,
-        is_edited=transcription.is_edited,
-        word_count=transcription.word_count,
-        audio_file_id=transcription.audio_file_id,
-        created_at=transcription.created_at,
-        updated_at=transcription.updated_at,
+    return _to_transcription_response(transcription)
+
+
+@router.post(
+    "/audio/{audio_id}/manual",
+    response_model=TranscriptionResponse,
+    summary="Create or update manual transcription",
+)
+async def create_manual_transcription(
+    audio_id: uuid.UUID,
+    payload: ManualTranscriptionCreate,
+    user_id: CurrentUserIdDep,
+    db: AsyncSessionDep,
+):
+    """Create text-form transcription when audio STT is unavailable or still pending."""
+    audio_result = await db.execute(
+        select(AudioFile).where(
+            AudioFile.id == audio_id,
+            AudioFile.user_id == user_id,
+        )
     )
+    audio_file = audio_result.scalar_one_or_none()
+
+    if not audio_file:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Audio file not found",
+        )
+
+    transcription_result = await db.execute(
+        select(Transcription).where(Transcription.audio_file_id == audio_id)
+    )
+    transcription = transcription_result.scalar_one_or_none()
+
+    text = payload.text.strip()
+    if transcription:
+        transcription.text = text
+        transcription.language = payload.language
+        transcription.stt_service = "manual_text"
+        transcription.stt_model = None
+        transcription.task_mode = "manual"
+        transcription.ai_enhanced = False
+        transcription.status = TranscriptionStatus.COMPLETED.value
+        transcription.error_message = None
+        transcription.is_edited = True
+    else:
+        transcription = Transcription(
+            text=text,
+            segments=[],
+            words=[],
+            language=payload.language,
+            stt_service="manual_text",
+            stt_model=None,
+            task_mode="manual",
+            ai_enhanced=False,
+            status=TranscriptionStatus.COMPLETED.value,
+            audio_file_id=audio_file.id,
+            is_edited=True,
+        )
+        db.add(transcription)
+
+    audio_file.status = AudioStatus.TRANSCRIBED.value
+    audio_file.processed_at = datetime.now(timezone.utc)
+
+    await db.flush()
+    await db.refresh(transcription)
+
+    return _to_transcription_response(transcription)
 
 
 @router.post(
@@ -260,6 +302,7 @@ async def extract_events(
     transcription_id: uuid.UUID,
     user_id: CurrentUserIdDep,
     db: AsyncSessionDep,
+    chapter_id: Optional[uuid.UUID] = Query(None),
 ):
     """
     Trigger AI event extraction from a transcription.
@@ -286,11 +329,29 @@ async def extract_events(
             detail="Transcription is not complete",
         )
 
-    # TODO: Queue event extraction task
-    # from app.tasks.extraction_tasks import extract_events
-    # extract_events.delay(str(transcription.id), str(user_id))
+    from app.tasks.extraction_tasks import extract_events as extract_events_task
+
+    if chapter_id:
+        chapter_result = await db.execute(
+            select(Chapter).where(
+                Chapter.id == chapter_id,
+                Chapter.user_id == user_id,
+            )
+        )
+        if not chapter_result.scalar_one_or_none():
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Chapter not found",
+            )
+
+    extract_events_task.delay(
+        str(transcription.id),
+        str(user_id),
+        str(chapter_id) if chapter_id else None,
+    )
 
     return {
         "message": "Event extraction queued",
         "transcription_id": transcription_id,
+        "chapter_id": chapter_id,
     }

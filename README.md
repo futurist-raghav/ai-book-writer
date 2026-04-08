@@ -11,6 +11,9 @@ AI Book Writer is an intelligent platform that converts voice recordings of life
 - **Voice-to-Text Processing**: Upload audio recordings and let AI transcribe with high accuracy
 - **Intelligent Event Extraction**: Automatically identifies and categorizes events, stories, and themes
 - **Context-Aware Formatting**: Learns your writing style and narrative preferences
+- **Main Project + Chapter Projects**: Treat each book as a main project, with deeply focused chapter workspaces inside it
+- **Auto Base Context File**: Each chapter now gets an auto-generated context file that guides AI listening, STT organization, and chapter drafting
+- **Chapter Writing Chat**: Dedicated chapter-level chat interface to request deeper rewrites while preserving writer intent and factual commitment
 - **Smart Document Management**: Organizes content by events, timelines, and themes
 - **Interactive Editor**: Review AI-generated content with synchronized audio playback
 - **Human-in-the-Loop**: Easy correction and refinement of AI extractions
@@ -242,12 +245,43 @@ npm install
 npm run dev
 ```
 
+### High-Concurrency Docker Mode (10K+ users target)
+
+Use the production stack for realistic concurrency/load testing. The default `docker-compose.yml` is development-focused and uses hot reload.
+
+```bash
+# 1) Copy and edit environment
+cp .env.example .env
+
+# 2) Start production stack
+make start-prod
+
+# 3) Scale backend replicas (example: 4 API replicas)
+make scale-backend-prod REPLICAS=4
+
+# 4) Watch production logs
+make logs-prod
+```
+
+Recommended baseline before load testing:
+
+- `WEB_CONCURRENCY=4`
+- `DB_POOL_SIZE=20`
+- `DB_MAX_OVERFLOW=40`
+- `POSTGRES_MAX_CONNECTIONS=600`
+- `CELERY_CONCURRENCY=8`
+
+Tune these in `.env` based on CPU/RAM and expected request mix.
+
 ### Environment Variables
 
 ```bash
 # AI Services
 OPENAI_API_KEY=your_openai_key
-GOOGLE_AI_API_KEY=your_google_ai_key
+GOOGLE_GEMINI_API_KEY_1=your_google_ai_key_1
+GOOGLE_GEMINI_API_KEY_2=your_google_ai_key_2
+GOOGLE_GEMINI_API_KEY_3=your_google_ai_key_3
+GOOGLE_GEMINI_MODEL=gemini-3-flash-preview
 ANTHROPIC_API_KEY=your_anthropic_key
 
 # Database
@@ -371,25 +405,25 @@ See [DEPLOYMENT.md](docs/DEPLOYMENT.md) for detailed deployment instructions for
 
 ### Phase 1: MVP (Months 1-2)
 - [x] Project setup and architecture
-- [ ] Basic audio upload and storage
-- [ ] Whisper integration for STT
-- [ ] Simple text display and editing
-- [ ] User authentication
+- [x] Basic audio upload and storage
+- [x] Whisper integration for STT
+- [x] Simple text display and editing
+- [x] User authentication
 
 ### Phase 2: AI Processing (Months 2-3)
-- [ ] Event extraction with Gemini
+- [x] Event extraction with Gemini
 - [ ] Context management system
 - [ ] Writing style learning
 - [ ] Timeline organization
 
 ### Phase 3: Advanced Features (Months 3-4)
 - [ ] Interactive editor with audio sync
-- [ ] Chapter management
-- [ ] Book assembly and merging
-- [ ] Multi-format export
+- [x] Chapter management
+- [x] Book assembly and merging
+- [x] Multi-format export
 
 ### Phase 4: SaaS Features (Months 4-6)
-- [ ] User settings and preferences
+- [x] User settings and preferences
 - [ ] Custom API key support
 - [ ] Subscription management
 - [ ] Collaboration features

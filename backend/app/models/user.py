@@ -69,6 +69,9 @@ class User(Base):
         nullable=True,
     )
 
+    # AI assistance preference
+    ai_assist_enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
     # API key preferences (for users who want to use their own keys)
     custom_api_keys: Mapped[Optional[dict]] = mapped_column(
         JSONB,

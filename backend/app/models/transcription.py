@@ -9,7 +9,7 @@ from datetime import datetime
 from enum import Enum
 from typing import TYPE_CHECKING, List, Optional
 
-from sqlalchemy import DateTime, Float, ForeignKey, String, Text, func
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -79,6 +79,12 @@ class Transcription(Base):
         String(50),
         nullable=True,
     )  # whisper-1, etc.
+    task_mode: Mapped[str] = mapped_column(
+        String(20),
+        default="transcribe",
+        nullable=False,
+    )  # transcribe, translate
+    ai_enhanced: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     # Processing info
     status: Mapped[str] = mapped_column(

@@ -4,12 +4,16 @@ Google Gemini Service
 Handles text generation and processing using Google's Gemini API.
 """
 
+import asyncio
 import json
+import logging
 from typing import Any, Dict, List, Optional
 
 import google.generativeai as genai
 
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 class GeminiService:
@@ -22,16 +26,64 @@ class GeminiService:
         Args:
             api_key: Google AI API key. If not provided, uses settings.
         """
-        self.api_key = api_key or settings.GOOGLE_AI_API_KEY
+        if api_key:
+            self.api_keys = [api_key]
+        else:
+            self.api_keys = settings.gemini_api_keys
 
-        if not self.api_key:
-            raise ValueError("Google AI API key is required for Gemini service")
+        if not self.api_keys:
+            raise ValueError("At least one Google Gemini API key is required")
 
-        genai.configure(api_key=self.api_key)
+        self.model_name = settings.GOOGLE_GEMINI_MODEL
+        self._next_key_index = 0
+        self._configure_lock = asyncio.Lock()
 
-        # Default model - Gemini Flash for cost-effective processing
-        self.model_name = "gemini-1.5-flash"
-        self.model = genai.GenerativeModel(self.model_name)
+    @staticmethod
+    def _is_key_failover_error(error: Exception) -> bool:
+        """Return True when an error indicates the next API key should be tried."""
+        error_text = str(error).lower()
+        indicators = [
+            "rate limit",
+            "resource_exhausted",
+            "quota",
+            "429",
+            "too many requests",
+            "api key not valid",
+            "invalid api key",
+            "permission denied",
+            "forbidden",
+            "unauthenticated",
+        ]
+        return any(indicator in error_text for indicator in indicators)
+
+    def _ordered_keys_for_attempt(self) -> List[str]:
+        """Get keys in round-robin order so traffic is naturally distributed."""
+        if len(self.api_keys) == 1:
+            return self.api_keys
+
+        start_index = self._next_key_index % len(self.api_keys)
+        self._next_key_index = (start_index + 1) % len(self.api_keys)
+        return self.api_keys[start_index:] + self.api_keys[:start_index]
+
+    async def _build_model_for_key(
+        self,
+        api_key: str,
+        generation_config: genai.GenerationConfig,
+        system_instruction: Optional[str] = None,
+    ) -> genai.GenerativeModel:
+        """Build a configured Gemini model for a specific API key."""
+        async with self._configure_lock:
+            genai.configure(api_key=api_key)
+            if system_instruction:
+                return genai.GenerativeModel(
+                    self.model_name,
+                    system_instruction=system_instruction,
+                    generation_config=generation_config,
+                )
+            return genai.GenerativeModel(
+                self.model_name,
+                generation_config=generation_config,
+            )
 
     async def generate(
         self,
@@ -62,22 +114,37 @@ class GeminiService:
         if json_mode:
             generation_config.response_mime_type = "application/json"
 
-        # Create model with system instruction if provided
-        if system_instruction:
-            model = genai.GenerativeModel(
-                self.model_name,
-                system_instruction=system_instruction,
-                generation_config=generation_config,
-            )
-        else:
-            model = genai.GenerativeModel(
-                self.model_name,
-                generation_config=generation_config,
-            )
+        last_error: Optional[Exception] = None
+        ordered_keys = self._ordered_keys_for_attempt()
 
-        response = await model.generate_content_async(prompt)
+        for index, key in enumerate(ordered_keys):
+            try:
+                model = await self._build_model_for_key(
+                    api_key=key,
+                    generation_config=generation_config,
+                    system_instruction=system_instruction,
+                )
+                response = await model.generate_content_async(prompt)
+                return response.text or ""
+            except Exception as error:  # pragma: no cover - network/provider failures
+                last_error = error
+                is_last_key = index == len(ordered_keys) - 1
+                should_failover = self._is_key_failover_error(error)
 
-        return response.text
+                if should_failover and not is_last_key:
+                    logger.warning(
+                        "Gemini request failed for key index %s, rotating to next key: %s",
+                        index,
+                        error,
+                    )
+                    continue
+
+                raise
+
+        if last_error:
+            raise last_error
+
+        raise RuntimeError("Gemini generation failed without a specific error")
 
     async def extract_events(
         self,

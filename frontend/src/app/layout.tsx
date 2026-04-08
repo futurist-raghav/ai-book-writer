@@ -1,22 +1,24 @@
 import type { Metadata } from 'next';
-import { Inter, Merriweather } from 'next/font/google';
+import { Manrope, Newsreader } from 'next/font/google';
 import './globals.css';
 import { Toaster } from 'sonner';
 import { QueryProvider } from '@/lib/query-provider';
 
-const inter = Inter({
+const manrope = Manrope({
   subsets: ['latin'],
-  variable: '--font-sans',
+  variable: '--font-manrope',
+  weight: ['200', '300', '400', '500', '600', '700', '800'],
 });
 
-const merriweather = Merriweather({
-  weight: ['300', '400', '700', '900'],
+const newsreader = Newsreader({
   subsets: ['latin'],
-  variable: '--font-serif',
+  variable: '--font-newsreader',
+  style: ['normal', 'italic'],
+  weight: ['200', '300', '400', '500', '600', '700', '800'],
 });
 
 export const metadata: Metadata = {
-  title: 'AI Book Writer',
+  title: 'The Editorial Sanctuary - AI Book Writer',
   description: 'Transform your voice recordings into professionally formatted books using AI',
 };
 
@@ -27,7 +29,17 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} ${merriweather.variable} font-sans antialiased`}>
+      <head>
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body
+        suppressHydrationWarning
+        className={`${manrope.variable} ${newsreader.variable} font-label bg-surface text-on-surface antialiased min-h-screen selection:bg-primary-container selection:text-white`}
+      >
         <QueryProvider>
           {children}
           <Toaster position="top-right" richColors />

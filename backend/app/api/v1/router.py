@@ -6,12 +6,13 @@ Combines all API routes into a single router.
 
 from fastapi import APIRouter
 
-from app.api.v1 import audio, auth, books, chapters, events, transcriptions
+from app.api.v1 import ai, audio, auth, books, chapters, events, transcriptions
 
 api_router = APIRouter()
 
 # Include all routers
 api_router.include_router(auth.router, prefix="/auth", tags=["Authentication"])
+api_router.include_router(ai.router, prefix="/ai", tags=["AI Assistant"])
 api_router.include_router(audio.router, prefix="/audio", tags=["Audio Files"])
 api_router.include_router(
     transcriptions.router, prefix="/transcriptions", tags=["Transcriptions"]

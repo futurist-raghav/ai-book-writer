@@ -124,7 +124,10 @@ cat > .env.production << EOF
 DATABASE_URL=postgresql://aibook_user:YOUR_USER_PASSWORD@/aibook?host=/cloudsql/ai-book-writer-prod:us-central1:aibook-db
 REDIS_URL=redis://REDIS_IP:6379
 OPENAI_API_KEY=your_openai_key
-GOOGLE_AI_API_KEY=your_google_ai_key
+GOOGLE_GEMINI_API_KEY_1=your_google_ai_key_1
+GOOGLE_GEMINI_API_KEY_2=your_google_ai_key_2
+GOOGLE_GEMINI_API_KEY_3=your_google_ai_key_3
+GOOGLE_GEMINI_MODEL=gemini-3-flash-preview
 SECRET_KEY=$(openssl rand -hex 32)
 ENVIRONMENT=production
 GCS_BUCKET_NAME=ai-book-writer-audio
@@ -439,7 +442,10 @@ REDIS_URL=redis://redis:6379
 
 # AI Services
 OPENAI_API_KEY=your_openai_key
-GOOGLE_AI_API_KEY=your_google_ai_key
+GOOGLE_GEMINI_API_KEY_1=your_google_ai_key_1
+GOOGLE_GEMINI_API_KEY_2=your_google_ai_key_2
+GOOGLE_GEMINI_API_KEY_3=your_google_ai_key_3
+GOOGLE_GEMINI_MODEL=gemini-3-flash-preview
 ANTHROPIC_API_KEY=your_anthropic_key
 
 # App
@@ -667,6 +673,48 @@ docker compose down -v
 docker compose up -d
 docker compose exec backend alembic upgrade head
 ```
+
+---
+
+## Option 5: Docker Compose (Production Runtime, High Concurrency)
+
+**Best for**: Single-host production, staging, realistic load tests
+**Estimated cost**: Infrastructure-dependent
+
+This mode uses `docker-compose.prod.yml`, which switches backend/frontend from dev mode to production runtimes and enables tunable DB/worker concurrency.
+
+### Quick Start
+
+```bash
+# Clone repository
+git clone https://github.com/yourusername/ai-book-writer.git
+cd ai-book-writer
+
+# Copy environment file
+cp .env.example .env
+
+# Edit .env (especially concurrency and DB settings)
+nano .env
+
+# Start high-concurrency stack
+docker compose -f docker-compose.prod.yml up -d --build
+
+# Run migrations
+docker compose -f docker-compose.prod.yml exec backend alembic upgrade head
+
+# Optional: scale backend replicas
+docker compose -f docker-compose.prod.yml up -d --scale backend=4
+```
+
+### Recommended Baseline for 10K user target
+
+- `WEB_CONCURRENCY=4`
+- `DB_POOL_SIZE=20`
+- `DB_MAX_OVERFLOW=40`
+- `POSTGRES_MAX_CONNECTIONS=600`
+- `CELERY_CONCURRENCY=8`
+
+Adjust these based on host CPU/RAM and request profile.
 
 ---
 

@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { apiClient } from '@/lib/api-client';
+import { api, apiClient } from '@/lib/api-client';
 import { useAuthStore } from '@/stores/auth-store';
 
 const loginSchema = z.object({
@@ -39,7 +39,15 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       const response = await apiClient.auth.login(data);
-      const { access_token, refresh_token, user } = response.data;
+      const { access_token, refresh_token } = response.data;
+
+      const profileResponse = await api.get('/auth/me', {
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+        },
+      });
+
+      const user = profileResponse.data;
       login(user, access_token, refresh_token);
       toast.success('Welcome back!');
       router.push('/dashboard');

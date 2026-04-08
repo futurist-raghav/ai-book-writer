@@ -9,7 +9,7 @@ from datetime import datetime
 from enum import Enum
 from typing import TYPE_CHECKING, List, Optional
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -31,6 +31,16 @@ class ChapterStatus(str, Enum):
     ARCHIVED = "archived"
 
 
+class ChapterWorkflowStatus(str, Enum):
+    """Editorial workflow status for chapters."""
+
+    IDEA = "idea"
+    OUTLINE = "outline"
+    DRAFT = "draft"
+    REVISION = "revision"
+    FINAL = "final"
+
+
 class Chapter(Base):
     """Chapter model."""
 
@@ -46,10 +56,12 @@ class Chapter(Base):
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     subtitle: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     # Chapter number and ordering
     chapter_number: Mapped[int] = mapped_column(Integer, default=1)
     order_index: Mapped[int] = mapped_column(Integer, default=0)
+    chapter_type: Mapped[str] = mapped_column(String(50), default="chapter", nullable=False)
 
     # Content settings
     writing_style: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
@@ -61,6 +73,13 @@ class Chapter(Base):
         default=ChapterStatus.DRAFT.value,
         nullable=False,
     )
+    workflow_status: Mapped[str] = mapped_column(
+        String(20),
+        default=ChapterWorkflowStatus.DRAFT.value,
+        nullable=False,
+    )
+    word_count_target: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    timeline_position: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
 
     # AI generation settings
     generation_settings: Mapped[Optional[dict]] = mapped_column(
@@ -68,6 +87,7 @@ class Chapter(Base):
         default=dict,
         nullable=True,
     )
+    ai_enhancement_enabled: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
 
     # Compiled content (generated from events)
     compiled_content: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -123,6 +143,14 @@ class Chapter(Base):
     def events(self) -> List["Event"]:
         """Return list of events in this chapter."""
         return [assoc.event for assoc in self.event_associations]
+
+    @property
+    def target_progress_percent(self) -> Optional[float]:
+        """Return completion progress against chapter target words."""
+        if not self.word_count_target or self.word_count_target <= 0:
+            return None
+        progress = (self.word_count / self.word_count_target) * 100
+        return round(min(progress, 100.0), 2)
 
 
 class ChapterEvent(Base):

@@ -12,12 +12,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { apiClient } from '@/lib/api-client';
+import { api, apiClient } from '@/lib/api-client';
 import { useAuthStore } from '@/stores/auth-store';
+
+const MAX_BCRYPT_PASSWORD_BYTES = 72;
 
 const registerSchema = z.object({
   email: z.string().email('Invalid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
+  password: z.string()
+    .min(8, 'Password must be at least 8 characters')
+    .refine(
+      (value) => new TextEncoder().encode(value).length <= MAX_BCRYPT_PASSWORD_BYTES,
+      'Password must be 72 UTF-8 bytes or fewer'
+    ),
   confirmPassword: z.string(),
   full_name: z.string().optional(),
 }).refine((data) => data.password === data.confirmPassword, {
@@ -48,6 +55,7 @@ export default function RegisterPage() {
         email: data.email,
         password: data.password,
         full_name: data.full_name,
+        ai_assist_enabled: true, // Default to true initially, setup page will update
       });
 
       // Auto-login after registration
@@ -56,10 +64,18 @@ export default function RegisterPage() {
         password: data.password,
       });
 
-      const { access_token, refresh_token, user } = loginResponse.data;
+      const { access_token, refresh_token } = loginResponse.data;
+
+      const profileResponse = await api.get('/auth/me', {
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+        },
+      });
+
+      const user = profileResponse.data;
       login(user, access_token, refresh_token);
       toast.success('Account created successfully!');
-      router.push('/dashboard');
+      router.push('/setup');
     } catch (error: unknown) {
       const err = error as { response?: { data?: { detail?: string } } };
       toast.error(err.response?.data?.detail || 'Registration failed');

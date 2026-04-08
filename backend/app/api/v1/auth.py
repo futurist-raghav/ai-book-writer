@@ -62,10 +62,19 @@ async def register(
         )
 
     # Create new user
+    try:
+        hashed_password = get_password_hash(user_data.password)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+
     user = User(
         email=user_data.email,
-        hashed_password=get_password_hash(user_data.password),
+        hashed_password=hashed_password,
         full_name=user_data.full_name,
+        ai_assist_enabled=user_data.ai_assist_enabled,
     )
 
     db.add(user)
@@ -282,7 +291,14 @@ async def change_password(
         )
 
     # Update password
-    user.hashed_password = get_password_hash(password_data.new_password)
+    try:
+        user.hashed_password = get_password_hash(password_data.new_password)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+
     await db.flush()
 
     return MessageResponse(message="Password updated successfully")

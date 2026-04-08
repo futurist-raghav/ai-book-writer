@@ -1,7 +1,7 @@
 """
-OpenAI Whisper Service
+Whisper STT Service
 
-Handles speech-to-text transcription using OpenAI's Whisper API.
+Supports both OpenAI Whisper API and self-hosted whisper-asr-webservice.
 """
 
 import os
@@ -43,21 +43,46 @@ class TranscriptionResult(BaseModel):
 
 
 class WhisperService:
-    """Service for transcribing audio using OpenAI Whisper API."""
+    """Service for transcribing audio via OpenAI or self-hosted Whisper."""
 
     def __init__(self, api_key: Optional[str] = None):
         """
         Initialize the Whisper service.
 
         Args:
-            api_key: OpenAI API key. If not provided, uses settings.
+            api_key: OpenAI API key override for OpenAI provider mode.
         """
-        self.api_key = api_key or settings.OPENAI_API_KEY
-        self.base_url = "https://api.openai.com/v1"
-        self.model = "whisper-1"
+        configured_provider = settings.STT_PROVIDER or settings.PREFERRED_STT_SERVICE
+        self.provider = configured_provider.strip().lower()
 
-        if not self.api_key:
-            raise ValueError("OpenAI API key is required for Whisper service")
+        self.openai_api_key = api_key or settings.OPENAI_API_KEY
+        self.openai_base_url = "https://api.openai.com/v1"
+        self.openai_model = "whisper-1"
+
+        self.vm_base_url = (settings.WHISPER_VM_BASE_URL or "").rstrip("/")
+        self.vm_model = settings.WHISPER_VM_MODEL_NAME
+        self.vm_default_task = settings.WHISPER_VM_DEFAULT_TASK
+        self.vm_output_format = settings.WHISPER_VM_OUTPUT_FORMAT
+        self.vm_encode = settings.WHISPER_VM_ENCODE
+        self.vm_word_timestamps = settings.WHISPER_VM_WORD_TIMESTAMPS
+
+        self.timeout_seconds = float(settings.WHISPER_TIMEOUT_SECONDS)
+
+        if self.provider == "openai" and not self.openai_api_key:
+            raise ValueError("OPENAI_API_KEY is required when STT_PROVIDER=openai")
+
+        if self.provider == "whisper_vm" and not self.vm_base_url:
+            raise ValueError("WHISPER_VM_BASE_URL is required when STT_PROVIDER=whisper_vm")
+
+    @property
+    def provider_name(self) -> str:
+        """Name stored in transcription metadata."""
+        return "whisper_vm" if self.provider == "whisper_vm" else "openai_whisper"
+
+    @property
+    def model_name(self) -> str:
+        """Model name stored in transcription metadata."""
+        return self.vm_model if self.provider == "whisper_vm" else self.openai_model
 
     async def transcribe(
         self,
@@ -66,9 +91,10 @@ class WhisperService:
         prompt: Optional[str] = None,
         response_format: str = "verbose_json",
         temperature: float = 0,
+        task: Optional[str] = None,
     ) -> TranscriptionResult:
         """
-        Transcribe an audio file using Whisper API.
+        Transcribe an audio file using configured STT provider.
 
         Args:
             audio_path: Path to the audio file.
@@ -76,6 +102,7 @@ class WhisperService:
             prompt: Optional prompt to guide the transcription.
             response_format: Response format (json, text, srt, verbose_json, vtt).
             temperature: Sampling temperature (0-1).
+            task: Optional explicit task override (transcribe or translate).
 
         Returns:
             TranscriptionResult with text and segments.
@@ -85,72 +112,28 @@ class WhisperService:
 
         start_time = time.time()
 
-        async with httpx.AsyncClient(timeout=600.0) as client:
-            # Prepare the request
-            with open(audio_path, "rb") as audio_file:
-                files = {"file": (os.path.basename(audio_path), audio_file)}
-
-                data = {
-                    "model": self.model,
-                    "response_format": response_format,
-                    "temperature": str(temperature),
-                }
-
-                if language:
-                    data["language"] = language
-
-                if prompt:
-                    data["prompt"] = prompt
-
-                # Request word-level timestamps
-                if response_format == "verbose_json":
-                    data["timestamp_granularities[]"] = ["word", "segment"]
-
-                response = await client.post(
-                    f"{self.base_url}/audio/transcriptions",
-                    headers={"Authorization": f"Bearer {self.api_key}"},
-                    files=files,
-                    data=data,
-                )
+        if self.provider == "whisper_vm":
+            result_data = await self._transcribe_with_vm(
+                audio_path=audio_path,
+                language=language,
+                prompt=prompt,
+                response_format=response_format,
+                task=task,
+            )
+        else:
+            result_data = await self._transcribe_with_openai(
+                audio_path=audio_path,
+                language=language,
+                prompt=prompt,
+                response_format=response_format,
+                temperature=temperature,
+            )
 
         processing_time = time.time() - start_time
-
-        if response.status_code != 200:
-            raise Exception(f"Whisper API error: {response.text}")
-
-        result_data = response.json()
-
-        # Parse response
-        segments = []
-        words = []
-
-        if "segments" in result_data:
-            for seg in result_data["segments"]:
-                segments.append(
-                    TranscriptionSegment(
-                        start=seg.get("start", 0),
-                        end=seg.get("end", 0),
-                        text=seg.get("text", "").strip(),
-                    )
-                )
-
-        if "words" in result_data:
-            for word_data in result_data["words"]:
-                words.append(
-                    TranscriptionWord(
-                        start=word_data.get("start", 0),
-                        end=word_data.get("end", 0),
-                        word=word_data.get("word", "").strip(),
-                    )
-                )
-
-        return TranscriptionResult(
-            text=result_data.get("text", "").strip(),
-            language=result_data.get("language"),
-            segments=segments,
-            words=words,
-            duration=result_data.get("duration"),
+        return self._parse_transcription_result(
+            result_data=result_data,
             processing_time=processing_time,
+            fallback_language=language,
         )
 
     async def translate(
@@ -161,7 +144,7 @@ class WhisperService:
         temperature: float = 0,
     ) -> TranscriptionResult:
         """
-        Translate audio to English using Whisper API.
+        Translate audio to English using configured STT provider.
 
         Args:
             audio_path: Path to the audio file.
@@ -175,14 +158,85 @@ class WhisperService:
         if not os.path.exists(audio_path):
             raise FileNotFoundError(f"Audio file not found: {audio_path}")
 
-        start_time = time.time()
+        if self.provider == "whisper_vm":
+            return await self.transcribe(
+                audio_path=audio_path,
+                language="en",
+                prompt=prompt,
+                response_format=response_format,
+                temperature=temperature,
+                task="translate",
+            )
 
-        async with httpx.AsyncClient(timeout=600.0) as client:
+        start_time = time.time()
+        result_data = await self._translate_with_openai(
+            audio_path=audio_path,
+            prompt=prompt,
+            response_format=response_format,
+            temperature=temperature,
+        )
+        processing_time = time.time() - start_time
+
+        parsed = self._parse_transcription_result(
+            result_data=result_data,
+            processing_time=processing_time,
+            fallback_language="en",
+        )
+        parsed.language = "en"
+        return parsed
+
+    async def _transcribe_with_openai(
+        self,
+        audio_path: str,
+        language: Optional[str],
+        prompt: Optional[str],
+        response_format: str,
+        temperature: float,
+    ) -> Dict[str, Any]:
+        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
             with open(audio_path, "rb") as audio_file:
                 files = {"file": (os.path.basename(audio_path), audio_file)}
 
                 data = {
-                    "model": self.model,
+                    "model": self.openai_model,
+                    "response_format": response_format,
+                    "temperature": str(temperature),
+                }
+
+                if language:
+                    data["language"] = language
+
+                if prompt:
+                    data["prompt"] = prompt
+
+                if response_format == "verbose_json":
+                    data["timestamp_granularities[]"] = ["word", "segment"]
+
+                response = await client.post(
+                    f"{self.openai_base_url}/audio/transcriptions",
+                    headers={"Authorization": f"Bearer {self.openai_api_key}"},
+                    files=files,
+                    data=data,
+                )
+
+        if response.status_code != 200:
+            raise Exception(f"Whisper API error: {response.text}")
+
+        return response.json()
+
+    async def _translate_with_openai(
+        self,
+        audio_path: str,
+        prompt: Optional[str],
+        response_format: str,
+        temperature: float,
+    ) -> Dict[str, Any]:
+        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+            with open(audio_path, "rb") as audio_file:
+                files = {"file": (os.path.basename(audio_path), audio_file)}
+
+                data = {
+                    "model": self.openai_model,
                     "response_format": response_format,
                     "temperature": str(temperature),
                 }
@@ -191,35 +245,117 @@ class WhisperService:
                     data["prompt"] = prompt
 
                 response = await client.post(
-                    f"{self.base_url}/audio/translations",
-                    headers={"Authorization": f"Bearer {self.api_key}"},
+                    f"{self.openai_base_url}/audio/translations",
+                    headers={"Authorization": f"Bearer {self.openai_api_key}"},
                     files=files,
                     data=data,
                 )
 
-        processing_time = time.time() - start_time
-
         if response.status_code != 200:
             raise Exception(f"Whisper API error: {response.text}")
 
-        result_data = response.json()
+        return response.json()
 
-        segments = []
-        if "segments" in result_data:
-            for seg in result_data["segments"]:
-                segments.append(
-                    TranscriptionSegment(
-                        start=seg.get("start", 0),
-                        end=seg.get("end", 0),
-                        text=seg.get("text", "").strip(),
-                    )
+    async def _transcribe_with_vm(
+        self,
+        audio_path: str,
+        language: Optional[str],
+        prompt: Optional[str],
+        response_format: str,
+        task: Optional[str],
+    ) -> Dict[str, Any]:
+        output_format_map = {
+            "verbose_json": "json",
+            "json": "json",
+            "text": "txt",
+            "txt": "txt",
+            "vtt": "vtt",
+            "srt": "srt",
+            "tsv": "tsv",
+        }
+        output_format = output_format_map.get(response_format, self.vm_output_format)
+
+        params: Dict[str, Any] = {
+            "task": task or self.vm_default_task,
+            "output": output_format,
+            "encode": str(self.vm_encode).lower(),
+        }
+
+        if language:
+            params["language"] = language
+
+        if self.vm_word_timestamps:
+            params["word_timestamps"] = "true"
+
+        if prompt:
+            params["initial_prompt"] = prompt
+
+        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+            with open(audio_path, "rb") as audio_file:
+                files = {"audio_file": (os.path.basename(audio_path), audio_file)}
+                response = await client.post(
+                    f"{self.vm_base_url}/asr",
+                    params=params,
+                    files=files,
                 )
 
+        if response.status_code != 200:
+            raise Exception(f"Whisper VM API error: {response.text}")
+
+        content_type = response.headers.get("content-type", "")
+        if "application/json" in content_type:
+            return response.json()
+
+        return {
+            "text": response.text.strip(),
+            "language": language,
+            "segments": [],
+            "words": [],
+        }
+
+    def _parse_transcription_result(
+        self,
+        result_data: Dict[str, Any],
+        processing_time: float,
+        fallback_language: Optional[str] = None,
+    ) -> TranscriptionResult:
+        segments = []
+        words = []
+
+        for seg in result_data.get("segments", []) or []:
+            segments.append(
+                TranscriptionSegment(
+                    start=float(seg.get("start", 0) or 0),
+                    end=float(seg.get("end", 0) or 0),
+                    text=str(seg.get("text", "")).strip(),
+                )
+            )
+
+        for word_data in result_data.get("words", []) or []:
+            word_text = word_data.get("word") or word_data.get("text") or ""
+            words.append(
+                TranscriptionWord(
+                    start=float(word_data.get("start", 0) or 0),
+                    end=float(word_data.get("end", 0) or 0),
+                    word=str(word_text).strip(),
+                )
+            )
+
+        duration_raw = result_data.get("duration")
+        duration = None
+        if isinstance(duration_raw, (int, float, str)) and str(duration_raw).strip():
+            try:
+                duration = float(duration_raw)
+            except ValueError:
+                duration = None
+
+        text = str(result_data.get("text", "")).strip()
         return TranscriptionResult(
-            text=result_data.get("text", "").strip(),
-            language="en",  # Translation is always to English
+            text=text,
+            language=result_data.get("language") or fallback_language,
             segments=segments,
-            duration=result_data.get("duration"),
+            words=words,
+            duration=duration,
             processing_time=processing_time,
         )
 

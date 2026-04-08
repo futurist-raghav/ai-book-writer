@@ -15,6 +15,7 @@ from sqlalchemy import func, select
 from app.core.config import settings
 from app.core.dependencies import AsyncSessionDep, CurrentUserIdDep
 from app.models.audio import AudioFile, AudioStatus
+from app.models.chapter import Chapter
 from app.schemas.audio import (
     AudioListResponse,
     AudioMetadata,
@@ -67,6 +68,10 @@ async def upload_audio(
     title: Optional[str] = Form(None),
     description: Optional[str] = Form(None),
     tags: Optional[str] = Form(None),  # Comma-separated
+    transcription_mode: str = Form("transcribe"),
+    chapter_id: Optional[uuid.UUID] = Form(None),
+    source_language: Optional[str] = Form(None),
+    target_language: Optional[str] = Form("en"),
 ):
     """
     Upload an audio file for processing.
@@ -101,6 +106,31 @@ async def upload_audio(
     if tags:
         tag_list = [t.strip() for t in tags.split(",") if t.strip()]
 
+    resolved_mode = transcription_mode.strip().lower()
+    if resolved_mode not in {"transcribe", "translate"}:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="transcription_mode must be 'transcribe' or 'translate'",
+        )
+
+    if chapter_id:
+        chapter_result = await db.execute(
+            select(Chapter).where(Chapter.id == chapter_id, Chapter.user_id == user_id)
+        )
+        if not chapter_result.scalar_one_or_none():
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Chapter not found",
+            )
+
+    file_metadata = {
+        "transcription_mode": resolved_mode,
+        "source_language": source_language,
+        "target_language": target_language,
+    }
+    if chapter_id:
+        file_metadata["chapter_id"] = str(chapter_id)
+
     # Create database record
     audio_file = AudioFile(
         filename=unique_filename,
@@ -112,6 +142,7 @@ async def upload_audio(
         title=title,
         description=description,
         tags=tag_list,
+        file_metadata=file_metadata,
         status=AudioStatus.UPLOADED.value,
         user_id=user_id,
     )
@@ -120,15 +151,22 @@ async def upload_audio(
     await db.flush()
     await db.refresh(audio_file)
 
-    # TODO: Queue transcription task
-    # from app.tasks.transcription_tasks import transcribe_audio
-    # transcribe_audio.delay(str(audio_file.id))
+    message = "Audio file uploaded successfully. Processing has been queued."
+    try:
+        from app.tasks.extraction_tasks import process_audio_complete
+
+        process_audio_complete.delay(str(audio_file.id), str(user_id))
+    except Exception:
+        message = (
+            "Audio file uploaded successfully, but automatic processing could not be queued. "
+            "Use retry to start processing when workers are available."
+        )
 
     return AudioUploadResponse(
         id=audio_file.id,
         filename=audio_file.filename,
         status=audio_file.status,
-        message="Audio file uploaded successfully. Transcription will begin shortly.",
+        message=message,
     )
 
 
@@ -375,8 +413,12 @@ async def retry_transcription(
     audio_file.error_message = None
     await db.flush()
 
-    # TODO: Queue transcription task
-    # from app.tasks.transcription_tasks import transcribe_audio
-    # transcribe_audio.delay(str(audio_file.id))
+    try:
+        from app.tasks.extraction_tasks import process_audio_complete
 
-    return MessageResponse(message="Transcription queued for retry")
+        process_audio_complete.delay(str(audio_file.id), str(user_id))
+        message = "Processing queued for retry"
+    except Exception:
+        message = "Retry requested, but processing could not be queued right now"
+
+    return MessageResponse(message=message)

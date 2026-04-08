@@ -7,14 +7,13 @@ Handles password hashing, JWT token generation and verification.
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
+import bcrypt
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 from pydantic import BaseModel
 
 from app.core.config import settings
 
-# Password hashing context using bcrypt
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+_BCRYPT_MAX_PASSWORD_BYTES = 72
 
 
 class TokenPayload(BaseModel):
@@ -44,7 +43,17 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     Returns:
         True if the password matches, False otherwise.
     """
-    return pwd_context.verify(plain_password, hashed_password)
+    plain_password_bytes = plain_password.encode("utf-8")
+    if len(plain_password_bytes) > _BCRYPT_MAX_PASSWORD_BYTES:
+        return False
+
+    try:
+        return bcrypt.checkpw(
+            plain_password_bytes,
+            hashed_password.encode("utf-8"),
+        )
+    except ValueError:
+        return False
 
 
 def get_password_hash(password: str) -> str:
@@ -57,7 +66,13 @@ def get_password_hash(password: str) -> str:
     Returns:
         The hashed password.
     """
-    return pwd_context.hash(password)
+    password_bytes = password.encode("utf-8")
+    if len(password_bytes) > _BCRYPT_MAX_PASSWORD_BYTES:
+        raise ValueError(
+            "Password is too long. Maximum supported length is 72 UTF-8 bytes."
+        )
+
+    return bcrypt.hashpw(password_bytes, bcrypt.gensalt()).decode("utf-8")
 
 
 def create_access_token(

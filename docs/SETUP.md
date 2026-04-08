@@ -20,9 +20,9 @@ This guide will help you set up the AI Book Writer development environment on yo
 
 ### Required API Keys
 
-1. **OpenAI API Key**: Get from [OpenAI Platform](https://platform.openai.com/api-keys)
-2. **Google AI Studio Key**: Get from [Google AI Studio](https://aistudio.google.com/app/apikey)
-3. **Anthropic API Key** (optional): Get from [Anthropic Console](https://console.anthropic.com/)
+1. **Google AI Studio Key**: Get from [Google AI Studio](https://aistudio.google.com/app/apikey)
+2. **Anthropic API Key** (optional): Get from [Anthropic Console](https://console.anthropic.com/)
+3. **STT Endpoint**: Either a reachable Whisper VM URL (`WHISPER_VM_BASE_URL`) or an OpenAI API key (`OPENAI_API_KEY`)
 
 ---
 
@@ -57,6 +57,28 @@ docker compose exec backend python scripts/create_user.py
 ```
 
 That's it! Skip to [Testing the Setup](#testing-the-setup) section.
+
+### High-Concurrency Mode (Production Runtime)
+
+For load testing and production-like behavior, use the production compose stack:
+
+```bash
+# Uses docker-compose.prod.yml and non-dev runtimes
+make start-prod
+
+# Optional: scale API replicas
+make scale-backend-prod REPLICAS=4
+
+# View logs
+make logs-prod
+```
+
+The production stack enables:
+
+- Gunicorn + multiple Uvicorn workers (backend)
+- Next.js standalone production server (frontend)
+- Tuned PostgreSQL defaults for higher connection concurrency
+- Tunable SQLAlchemy pool and Celery worker concurrency through `.env`
 
 ---
 
@@ -167,8 +189,22 @@ DATABASE_URL=postgresql://aibook_user:your_password@localhost:5432/aibook
 REDIS_URL=redis://localhost:6379
 
 # AI Services
+PREFERRED_STT_SERVICE=whisper_vm
+STT_PROVIDER=whisper_vm
+WHISPER_TIMEOUT_SECONDS=3600
+WHISPER_VM_BASE_URL=http://35.200.193.248:9000
+WHISPER_VM_MODEL_NAME=large-v3
+WHISPER_VM_DEFAULT_TASK=transcribe
+WHISPER_VM_OUTPUT_FORMAT=json
+WHISPER_VM_ENCODE=true
+WHISPER_VM_WORD_TIMESTAMPS=false
+
+# Optional fallback when STT_PROVIDER=openai
 OPENAI_API_KEY=your_openai_key_here
-GOOGLE_AI_API_KEY=your_google_ai_key_here
+GOOGLE_GEMINI_API_KEY_1=your_google_ai_key_1_here
+GOOGLE_GEMINI_API_KEY_2=your_google_ai_key_2_here
+GOOGLE_GEMINI_API_KEY_3=your_google_ai_key_3_here
+GOOGLE_GEMINI_MODEL=gemini-3-flash-preview
 ANTHROPIC_API_KEY=your_anthropic_key_here
 
 # App Configuration
@@ -335,7 +371,10 @@ REDIS_URL=redis://localhost:6379
 
 # AI Services
 OPENAI_API_KEY=sk-...
-GOOGLE_AI_API_KEY=AI...
+GOOGLE_GEMINI_API_KEY_1=AI...
+GOOGLE_GEMINI_API_KEY_2=AI...
+GOOGLE_GEMINI_API_KEY_3=AI...
+GOOGLE_GEMINI_MODEL=gemini-3-flash-preview
 ANTHROPIC_API_KEY=sk-ant-...
 
 # App Configuration
