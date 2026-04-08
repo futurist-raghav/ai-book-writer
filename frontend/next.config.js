@@ -1,8 +1,10 @@
 /** @type {import('next').NextConfig} */
+const isProduction = process.env.NODE_ENV === 'production';
+
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: false, // Disabled for ARM64 Docker compatibility
-  output: 'standalone',
+  ...(isProduction ? { output: 'standalone' } : {}),
   experimental: {
     serverActions: {
       bodySizeLimit: '500mb',
@@ -11,15 +13,10 @@ const nextConfig = {
   images: {
     domains: ['localhost'],
   },
-  webpack: (config, { dev, isServer }) => {
+  webpack: (config, { dev }) => {
     if (dev) {
-      // Avoid stale webpack pack cache artifacts in Docker dev volumes.
+      // Disable all caching in dev to prevent stale CSS/asset manifests
       config.cache = false;
-
-      // Stabilize SSR route compilation in dev by avoiding fragile server vendor-chunk splits.
-      if (isServer && config.optimization?.splitChunks) {
-        config.optimization.splitChunks = false;
-      }
     }
     return config;
   },

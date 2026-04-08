@@ -1,23 +1,21 @@
 FROM node:18-alpine
 
-# Set working directory
 WORKDIR /app
 
-# Copy package files
 COPY package*.json ./
 
-# Clear npm cache and install dependencies with legacy-peer-deps flag
-RUN npm cache clean --force && npm ci --legacy-peer-deps
+RUN npm cache clean --force && \
+    npm ci --legacy-peer-deps && \
+    npm cache clean --force
 
-# Copy application code
 COPY . .
 
-# Expose port
+# Force Tailwind to scan and compile all CSS upfront
+RUN npx tailwindcss -i ./src/app/globals.css -o /tmp/validate-tailwind.css
+
 EXPOSE 3000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD node -e "require('http').get('http://localhost:3000', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+HEALTHCHECK --interval=30s --timeout=10s --start-period=45s --retries=3 \
+    CMD sh -c 'curl -s http://localhost:3000 | grep -q "_next/static/css" && echo "UP" || exit 1'
 
-# Default command (can be overridden in docker-compose)
 CMD ["npm", "run", "dev"]

@@ -20,9 +20,13 @@ This guide will help you set up the AI Book Writer development environment on yo
 
 ### Required API Keys
 
-1. **Google AI Studio Key**: Get from [Google AI Studio](https://aistudio.google.com/app/apikey)
-2. **Anthropic API Key** (optional): Get from [Anthropic Console](https://console.anthropic.com/)
-3. **STT Endpoint**: Either a reachable Whisper VM URL (`WHISPER_VM_BASE_URL`) or an OpenAI API key (`OPENAI_API_KEY`)
+1. **Anthropic API Key** (required): Get from [Anthropic Console](https://console.anthropic.com/)
+   - Used for context-aware AI assistant and Claude integration
+2. **STT Service** (one of):
+   - **Whisper VM URL**: `WHISPER_VM_BASE_URL` pointing to your Whisper service
+   - **OpenAI API Key**: `OPENAI_API_KEY` for Whisper API
+3. **Google AI Studio Key** (optional): Get from [Google AI Studio](https://aistudio.google.com/app/apikey)
+   - For event extraction and text processing tasks
 
 ---
 
@@ -188,24 +192,30 @@ DATABASE_URL=postgresql://aibook_user:your_password@localhost:5432/aibook
 # Redis
 REDIS_URL=redis://localhost:6379
 
-# AI Services
+# AI Services - REQUIRED FOR CLAUDE INTEGRATION
+ANTHROPIC_API_KEY=sk-ant-your_anthropic_key_here
+ANTHROPIC_MODEL=claude-3-5-sonnet-20241022
+
+# Speech-to-Text (Choose one: whisper_vm or openai)
 PREFERRED_STT_SERVICE=whisper_vm
 STT_PROVIDER=whisper_vm
-WHISPER_TIMEOUT_SECONDS=3600
 WHISPER_VM_BASE_URL=http://35.200.193.248:9000
 WHISPER_VM_MODEL_NAME=large-v3
+WHISPER_TIMEOUT_SECONDS=3600
 WHISPER_VM_DEFAULT_TASK=transcribe
 WHISPER_VM_OUTPUT_FORMAT=json
 WHISPER_VM_ENCODE=true
 WHISPER_VM_WORD_TIMESTAMPS=false
 
-# Optional fallback when STT_PROVIDER=openai
+# Optional: Fallback to OpenAI Whisper API
+# Set PREFERRED_STT_SERVICE=openai to use this
 OPENAI_API_KEY=your_openai_key_here
+
+# Optional: Google Gemini for event extraction and processing
 GOOGLE_GEMINI_API_KEY_1=your_google_ai_key_1_here
 GOOGLE_GEMINI_API_KEY_2=your_google_ai_key_2_here
 GOOGLE_GEMINI_API_KEY_3=your_google_ai_key_3_here
 GOOGLE_GEMINI_MODEL=gemini-3-flash-preview
-ANTHROPIC_API_KEY=your_anthropic_key_here
 
 # App Configuration
 SECRET_KEY=$(openssl rand -hex 32)

@@ -18,9 +18,9 @@ This guide covers deploying AI Book Writer to various platforms. Choose the depl
 - GitHub account (for code repository)
 - Domain name (optional but recommended)
 - AI Service API keys:
-  - OpenAI API key (for Whisper)
-  - Google AI Studio API key (for Gemini)
-  - Anthropic API key (optional, for Claude)
+  - **Anthropic API key** (for Claude 3.5 Sonnet - REQUIRED)
+  - OpenAI API key (for Whisper STT, optional if using Whisper VM)
+  - Google AI Studio API key (for Gemini event extraction, optional)
 
 ### Required Tools
 - Docker and Docker Compose
@@ -123,11 +123,27 @@ cd backend
 cat > .env.production << EOF
 DATABASE_URL=postgresql://aibook_user:YOUR_USER_PASSWORD@/aibook?host=/cloudsql/ai-book-writer-prod:us-central1:aibook-db
 REDIS_URL=redis://REDIS_IP:6379
+
+# AI Services - Claude (REQUIRED)
+ANTHROPIC_API_KEY=sk-ant-your_anthropic_key_here
+ANTHROPIC_MODEL=claude-3-5-sonnet-20241022
+
+# STT Service (choose one approach)
+# Option 1: Whisper VM
+PREFERRED_STT_SERVICE=whisper_vm
+WHISPER_VM_BASE_URL=http://whisper-ai-vm:9000
+WHISPER_VM_MODEL_NAME=large-v3
+
+# Option 2: OpenAI Whisper API
 OPENAI_API_KEY=your_openai_key
+
+# Optional: Google Gemini for event processing
 GOOGLE_GEMINI_API_KEY_1=your_google_ai_key_1
 GOOGLE_GEMINI_API_KEY_2=your_google_ai_key_2
 GOOGLE_GEMINI_API_KEY_3=your_google_ai_key_3
 GOOGLE_GEMINI_MODEL=gemini-3-flash-preview
+
+# App Configuration
 SECRET_KEY=$(openssl rand -hex 32)
 ENVIRONMENT=production
 GCS_BUCKET_NAME=ai-book-writer-audio

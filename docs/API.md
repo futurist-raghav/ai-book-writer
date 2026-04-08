@@ -703,6 +703,133 @@ Configure webhooks to receive notifications about processing events.
 }
 ```
 
+### AI Assistant
+
+#### Chat with AI (Context-Aware)
+
+```http
+POST /ai/chat
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "book_id": "uuid",
+  "chapter_id": "uuid",
+  "message": "Help me write a compelling dialogue between two characters",
+  "assistance_type": "general"
+}
+```
+
+**Assistance Types:**
+- `general` - General writing assistance with full project context
+- `character` - Character development and dialogue help
+- `world` - World building and setting suggestions
+- `dialogue` - Specific dialogue writing help
+- `plot` - Plot and narrative structure assistance
+
+**Response (200)**:
+
+```json
+{
+  "response": "Here's a compelling dialogue...",
+  "suggestions": [
+    "Consider adding more sensory details...",
+    "The character's tone could reflect..."
+  ],
+  "context_used": {
+    "genres": ["fantasy", "romance"],
+    "characters": [
+      {
+        "name": "Aria",
+        "role": "protagonist",
+        "traits": ["brave", "conflicted"]
+      }
+    ],
+    "tone": "reflective",
+    "word_count": 15000
+  }
+}
+```
+
+**Context Sent to AI:**
+- Full project metadata (genres, themes, tone, writing_form)
+- Current chapter title, title, and content
+- All characters involved with their descriptions
+- World elements and locations
+- Recent events in the story
+- Previous editing decisions and style patterns
+
+#### Generate Style Guide
+
+```http
+POST /ai/style-guide
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "book_id": "uuid",
+  "samples": ["excerpt 1 of user's writing", "excerpt 2"]
+}
+```
+
+**Response (200)**:
+
+```json
+{
+  "style_guide": {
+    "narrative_voice": "First Person, Reflective",
+    "sentence_structure": "Medium length with varied rhythm",
+    "vocabulary_level": "Literary but accessible",
+    "common_patterns": [
+      "Uses sensory metaphors frequently",
+      "Prefers dialogue over narration",
+      "Often employs parallel structure"
+    ],
+    "forbidden_words": ["literally", "very", "suddenly"],
+    "tone_descriptors": ["introspective", "lyrical", "honest"]
+  }
+}
+```
+
+#### Generate Writing Prompts
+
+```http
+POST /ai/writing-prompts
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "book_id": "uuid",
+  "chapter_id": "uuid",
+  "prompt_type": "scene"
+}
+```
+
+**Prompt Types:**
+- `scene` - Scene-writing prompts
+- `dialogue` - Dialogue writing prompts
+- `description` - Descriptive writing prompts
+- `character_development` - Character focused prompts
+
+**Response (200)**:
+
+```json
+{
+  "prompts": [
+    {
+      "prompt": "Write the scene where your protagonist first realizes...",
+      "context": "This fits naturally after the event where... Consider the character's emotional state...",
+      "writing_type": "introspective scene"
+    },
+    {
+      "prompt": "Develop a tense dialogue between two conflicting characters...",
+      "context": "Build on the tension established in Chapter 3...",
+      "writing_type": "dialogue"
+    }
+  ]
+}
+```
+
 ## WebSocket API
 
 Real-time updates for processing jobs.

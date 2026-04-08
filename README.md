@@ -8,18 +8,16 @@ AI Book Writer is an intelligent platform that converts voice recordings of life
 
 ### Key Features
 
-- **Voice-to-Text Processing**: Upload audio recordings and let AI transcribe with high accuracy
-- **Intelligent Event Extraction**: Automatically identifies and categorizes events, stories, and themes
-- **Context-Aware Formatting**: Learns your writing style and narrative preferences
-- **Main Project + Chapter Projects**: Treat each book as a main project, with deeply focused chapter workspaces inside it
-- **Auto Base Context File**: Each chapter now gets an auto-generated context file that guides AI listening, STT organization, and chapter drafting
-- **Chapter Writing Chat**: Dedicated chapter-level chat interface to request deeper rewrites while preserving writer intent and factual commitment
-- **Smart Document Management**: Organizes content by events, timelines, and themes
-- **Interactive Editor**: Review AI-generated content with synchronized audio playback
-- **Human-in-the-Loop**: Easy correction and refinement of AI extractions
-- **Book Assembly**: Combine and merge chapters into a final publishable manuscript
-- **Multi-Format Export**: Export to various formats (PDF, EPUB, DOCX, etc.)
-- **Custom Writing Profiles**: Create presets for different writing styles and contexts
+- **🧠 Unified Context Model**: Single data store connecting all features - when you update a character, all chapters see it instantly
+- **✍️ Professional Writer Canvas**: Tiptap-based rich text editor with tables, images, code blocks, and real-time syncing
+- **🤖 Context-Aware AI Assistant**: Claude 3.5 Sonnet with full project awareness - understands your genre, tone, characters, and story world
+- **🎙️ Voice-to-Text Processing**: Whisper API transcription with STT auto-organization into chapters
+- **🔗 Bidirectional Entity Linking**: Characters, world elements, and events automatically connected across chapters
+- **📖 Chapter-Level AI Chat**: Request rewrites, dialogue help, and style guidance while preserving your intent
+- **⚡ Auto-Save & Real-Time Updates**: All changes sync instantly to the backend - no manual saving needed
+- **🎬 Smart Document Management**: Organize content by events, timelines, themes, and characters
+- **📤 Multi-Format Export**: PDF, EPUB, DOCX with professional formatting
+- **🎨 Custom Writing Profiles**: Create style presets for different writing voices and contexts
 
 ## 🎯 Use Cases
 
@@ -32,74 +30,131 @@ AI Book Writer is an intelligent platform that converts voice recordings of life
 
 ```mermaid
 graph TB
-    subgraph "Frontend Layer"
-        UI[Web Interface]
-        Editor[Document Editor]
-        Audio[Audio Player]
+    subgraph "Frontend - Next.js"
+        STATE["Project Context Store<br/>(useProjectContext)"]
+        WC["WriterCanvas<br/>(Tiptap)"]
+        AI["AI Assistant<br/>(Claude)"]
+        CHARS["Characters"]
+        WORLD["World Building"]
+        EVENTS["Events"]
+        AUDIO["Audio Notes"]
     end
     
-    subgraph "Backend Services"
-        API[REST API]
-        Upload[File Upload Service]
-        Queue[Job Queue]
+    subgraph "Backend - FastAPI"
+        API["REST API"]
+        AUTH["Auth Service"]
+        AIZ["AI Service<br/>(Claude 3.5)"]
+        STT["STT Service<br/>(Whisper)"]
     end
     
-    subgraph "AI Processing Pipeline"
-        STT[Speech-to-Text]
-        LLM[Text Processing & Formatting]
-        Extract[Event Extraction]
-        Context[Context Manager]
-    end
-    
-    subgraph "Storage Layer"
-        Files[File Storage]
+    subgraph "Data Layer"
         DB[(PostgreSQL)]
-        Vector[(Vector DB)]
+        STORAGE["Cloud Storage"]
     end
     
-    UI --> API
-    Editor --> API
-    Audio --> Files
-    API --> Upload
-    Upload --> Queue
-    Queue --> STT
-    STT --> LLM
-    LLM --> Extract
-    Extract --> Context
-    Context --> Vector
-    API --> DB
-    API --> Files
-    API --> Vector
+    STATE -->|writes to| WC
+    STATE -->|writes to| AI
+    STATE -->|writes to| CHARS
+    STATE -->|writes to| WORLD
+    STATE -->|writes to| EVENTS
+    STATE -->|writes to| AUDIO
+    
+    WC -->|updates| STATE
+    CHARS -->|updates| STATE
+    WORLD -->|updates| STATE
+    EVENTS -->|updates| STATE
+    AUDIO -->|updates| STATE
+    
+    AI -->|reads context| STATE
+    AI -->|calls| AIZ
+    AUDIO -->|calls| STT
+    
+    STATE -->|auto-syncs| API
+    API -->|syncs| DB
+    AUDIO -->|uploads| STORAGE
+    AUTH -->|manages| DB
 ```
+
+**Key Insight**: All UI features share a single context store. Changes to characters instantly propagate to the AI assistant and all chapters. The backend stays in sync automatically.
 
 ## 🚀 Technology Stack
 
-### Recommended AI Models & Services
+### Frontend Stack
+- **Next.js 14+**: React framework with server-side rendering
+- **React Query + Zustand**: Server and client state management  
+- **Tiptap 3**: Professional rich text editor (ProseMirror-based)
+- **Tailwind CSS**: Utility-first styling
+
+### Core AI Services
+
+#### AI Assistant & Writing Support
+**Claude 3.5 Sonnet** (Anthropic) ⭐ **PRIMARY**
+- **Cost**: $3.00/M input, $15.00/M output tokens
+- **Why**: Best prose generation, style adherence, complex reasoning
+- **Features**: 
+  - Full project context awareness
+  - Character and world consistency
+  - Dialogue and scene assistance
+  - Style guide generation
 
 #### Speech-to-Text (STT)
-**Primary: OpenAI Whisper API**
-- **Cost**: $0.006/minute (standard) or $0.003/minute (GPT-4o Mini)
-- **Accuracy**: Industry-leading, especially for multilingual and noisy environments
-- **Why**: Best balance of cost, accuracy, and ease of integration
-- **Alternative**: Google Cloud Speech-to-Text V2 ($0.016/min, 60 min free/month)
+**Whisper Large V3** (OpenAI)
+- **Cost**: $0.006/minute API or free if self-hosted
+- **Accuracy**: Best-in-class for multilingual, accents, technical vocabulary
+- **Options**: 
+  - Use OpenAI API for simplicity
+  - Self-host Whisper VM for privacy and cost savings
 
-#### Text Generation & Processing
-**Primary: Google Gemini 3 Flash**
-- **Cost**: $0.50/M input tokens, $3.00/M output tokens
-- **Context Window**: Up to 1M tokens
-- **Why**: Excellent cost-performance ratio, large context for processing long narratives
-- **Use Cases**: Event extraction, text formatting, style learning
+#### Event Extraction & Processing
+**Google Gemini 3 Flash** (optional, for bulk processing)
+- **Cost**: $0.50/M input, $3.00/M output tokens
+- **Why**: Excellent cost-performance, good for structured extraction
 
-**Secondary: Claude 4.5 Sonnet**
-- **Cost**: $3.00/M input, $15.00/M output
-- **Context Window**: 200K-400K tokens
-- **Why**: Superior reasoning for complex narrative structuring and coherence
-- **Use Cases**: Final book assembly, quality refinement, complex editing
+### Backend Stack
+- **FastAPI**: Modern Python web framework with async support
+- **PostgreSQL 15+**: Relational database for project data
+- **Redis**: Caching and job queue
+- **SQLAlchemy**: ORM with async support
 
-**Tertiary: GPT-5.2 (Optional)**
-- **Cost**: $1.75/M input, $14.00/M output
-- **Why**: Best for creative writing and natural narrative flow
-- **Use Cases**: Creative enhancement, style adaptation
+### Deployment
+- **Recommended**: Docker + Google Cloud Run (or any container orchestrator)
+- **Database**: Google Cloud SQL or managed PostgreSQL
+- **Storage**: Google Cloud Storage (or AWS S3)
+- **CI/CD**: GitHub Actions
+
+## 🚀 Getting Started
+
+### Quick Start (Docker)
+```bash
+# Clone the repo
+git clone https://github.com/futurist-raghav/ai-book-writer.git
+cd ai-book-writer
+
+# Copy environment template
+cp .env.example .env
+
+# Add your API keys
+# - ANTHROPIC_API_KEY (required for Claude)
+# - OPENAI_API_KEY or WHISPER_VM_BASE_URL (choose STT method)
+nano .env
+
+# Start everything
+docker compose up -d
+
+# Run migrations
+docker compose exec backend alembic upgrade head
+
+# Access the app
+# Frontend: http://localhost:3000
+# API Docs: http://localhost:8000/docs
+```
+
+### Documentation
+- **[Architecture Guide](docs/ARCHITECTURE.md)** - Deep dive into the unified context model
+- **[Implementation Guide](docs/IMPLEMENTATION_GUIDE.md)** - What's built and how to use it
+- **[API Documentation](docs/API.md)** - Complete API reference with AI endpoints
+- **[Setup Guide](docs/SETUP.md)** - Local development setup
+- **[Deployment Guide](docs/DEPLOYMENT.md)** - Production deployment options
 
 #### Vector Database
 **Primary: ChromaDB (Self-Hosted)**
