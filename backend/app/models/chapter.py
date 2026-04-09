@@ -17,6 +17,7 @@ from app.core.database import Base
 
 if TYPE_CHECKING:
     from app.models.book import Book, BookChapter
+    from app.models.chapter_version import ChapterVersion
     from app.models.event import Event
     from app.models.user import User
 
@@ -127,6 +128,12 @@ class Chapter(Base):
         "BookChapter",
         back_populates="chapter",
         cascade="all, delete-orphan",
+    )
+    versions: Mapped[List["ChapterVersion"]] = relationship(
+        "ChapterVersion",
+        back_populates="chapter",
+        cascade="all, delete-orphan",
+        order_by="ChapterVersion.created_at.desc()",
     )
 
     def __repr__(self) -> str:

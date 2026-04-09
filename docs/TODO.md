@@ -249,14 +249,17 @@
 **Status:** Ready for implementation. Estimated: 4 hours. Priority: Medium.
 
 ### P1.10 Version Snapshots
-- [ ] Database: Add chapter_versions table
-- [ ] Backend: Auto-create snapshot every save (or on-demand)
-- [ ] API endpoint: GET /chapters/{id}/versions
-- [ ] API endpoint: POST /chapters/{id}/revert-to/{version_id}
-- [ ] Frontend: Version history sidebar (list timestamps, preview)
-- [ ] Diff viewer: Show changes between versions
-- [ ] Snapshot naming: "Draft saved at 3:45 PM" or manual names
-**Status:** Ready for implementation. Estimated: 5 hours. Priority: Medium.
+- [x] Database: Add chapter_versions table (migration 007 created)
+- [x] Backend: ChapterVersion model with snapshot fields
+- [x] Backend: Version API endpoints (GET/POST/PATCH/DELETE)
+- [x] Backend: Revert-to-version endpoint with auto-backup
+- [x] Backend: Diff viewer endpoint (unified diff format)
+- [ ] Frontend: Chapter versions sidebar with history list
+- [ ] Frontend: Version detail modal with content preview
+- [ ] Frontend: Diff viewer (show changes between versions)
+- [ ] Frontend: Revert UI with confirmation dialog
+- [ ] Integration: Auto-create snapshot on chapter save (hook in chapter update)
+**Status:** ✅ 50% COMPLETE. Backend fully implemented. Endpoints ready. Frontend components pending. Estimated: 3 hours remaining. Priority: Medium.
 
 ### P1.11 Writing Goals & Metrics
 - [x] Add daily writing goal setting infrastructure (utilities in place)
