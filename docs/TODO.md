@@ -269,10 +269,10 @@
 - [x] Reading level calculation (Flesch-Kincaid grade level)
 - [x] Add reading level display to dashboard (✅ JUST ADDED)
 - [x] Display manuscript stats (pages, reading time, avg chapter)
-- [ ] Integrate WritingGoalsWidget fully (minor type fixes needed)
+- [x] Integrate WritingGoalsWidget fully (✅ COMPLETED - dashboard wired up)
 - [ ] Word count breakdown per chapter (components exist, need integration)
 - [ ] Writing streak visual in dashboard (components exist)
-**Status:** ✅ 70% COMPLETE. Infrastructure complete, reading level integrated. Minor type fixes needed to complete integration. Estimated: 2 hours work. Priority: Medium.
+**Status:** ✅ 85% COMPLETE. Infrastructure, reading level, and WritingGoalsWidget fully integrated into dashboard. Minor cosmetics remaining. Estimated: 1 hour polish work. Priority: Medium.
 
 ### P1.12 Adaptive AI Assistant
 - [ ] Update AI assistant buttons to be context-aware per project type
