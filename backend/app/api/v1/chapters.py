@@ -17,6 +17,7 @@ from app.core.config import settings
 from app.core.dependencies import AsyncSessionDep, CurrentUserIdDep
 from app.models.book import BookChapter
 from app.models.chapter import Chapter, ChapterEvent, ChapterStatus, ChapterWorkflowStatus
+from app.models.chapter_version import ChapterVersion
 from app.models.event import Event
 from app.models.user import User
 from app.services.llm.gemini_service import get_gemini_service
@@ -1316,6 +1317,25 @@ async def compile_chapter(
 
     chapter.compiled_content = compiled_content
     chapter.last_compiled_at = datetime.now(timezone.utc)
+
+    # Auto-create version snapshot
+    version_snapshot = ChapterVersion(
+        chapter_id=chapter.id,
+        user_id=user_id,
+        title=chapter.title,
+        subtitle=chapter.subtitle,
+        compiled_content=chapter.compiled_content,
+        summary=chapter.summary,
+        word_count=chapter.word_count,
+        chapter_number=chapter.chapter_number,
+        order_index=chapter.order_index,
+        chapter_type=chapter.chapter_type,
+        workflow_status=chapter.workflow_status,
+        version_name=None,  # Auto-snapshots don't have custom names
+        change_description="Auto-snapshot created during chapter compilation",
+        is_auto_snapshot=True,
+    )
+    db.add(version_snapshot)
 
     await db.flush()
     await db.refresh(chapter)
