@@ -9,6 +9,7 @@ import { Loading, Spinner } from '@/components/ui/spinner';
 import { formatDate } from '@/lib/utils';
 import { toast } from 'sonner';
 import { calculateReadingLevel } from '@/lib/writing-metrics';
+import { WritingGoalsWidget } from '@/components/writing-goals-widget';
 
 export default function ProjectOverviewPage() {
   const queryClient = useQueryClient();
@@ -235,6 +236,15 @@ export default function ProjectOverviewPage() {
             <p className="text-sm"><span className="font-bold">Estimated Pages:</span> ~{Math.round(book.word_count / 250)} (250 words/page)</p>
           </div>
         </div>
+      </div>
+
+      {/* Writing Goals Widget */}
+      <div className="mb-12">
+        <WritingGoalsWidget 
+          dailyTarget={(bookDetails?.project_settings as any)?.daily_writing_goal || 0}
+          wordCountToday={0}
+          lastEditDates={[]}
+        />
       </div>
 
       {/* Bento Grid Content */}

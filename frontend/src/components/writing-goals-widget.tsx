@@ -9,40 +9,43 @@ import { useEffect, useState } from 'react';
 import { getTodayProgress, wasGoalMetToday, calculateWritingStreak } from '@/lib/writing-metrics';
 
 interface WritingGoalsWidgetProps {
-  dailyTarget: number; // Target words per day
-  wordCountToday: number; // Words written today
-  lastEditDates: string[]; // Array of edit dates for streak calculation
+  dailyTarget?: number; // Target words per day (optional)
+  wordCountToday?: number; // Words written today (optional)
+  lastEditDates?: (string | Date)[]; // Array of edit dates for streak calculation (optional)
 }
 
 export function WritingGoalsWidget({
-  dailyTarget,
-  wordCountToday,
-  lastEditDates,
+  dailyTarget = 0,
+  wordCountToday = 0,
+  lastEditDates = [],
 }: WritingGoalsWidgetProps) {
   const [streak, setStreak] = useState(0);
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
-    const { streak: calculatedStreak } = calculateWritingStreak(lastEditDates);
+    const normalizedDates = (lastEditDates || []).map((d) => 
+      typeof d === 'string' ? d : d?.toISOString?.().split('T')[0] || ''
+    );
+    const { streak: calculatedStreak } = calculateWritingStreak(normalizedDates);
     setStreak(calculatedStreak);
   }, [lastEditDates]);
 
   if (!isMounted) return null;
 
-  if (dailyTarget === 0) {
+  if (!dailyTarget || dailyTarget === 0) {
     return (
       <div className="bg-surface-container-lowest rounded-xl p-6 border border-outline-variant/10">
         <p className="text-sm text-on-surface-variant">
-          Set a daily writing goal in project settings to get started!
+          Set a daily writing goal in project settings to track your progress!
         </p>
       </div>
     );
   }
 
-  const progress = getTodayProgress(wordCountToday, dailyTarget);
-  const goalMet = wasGoalMetToday(wordCountToday, dailyTarget);
-  const remaining = Math.max(0, dailyTarget - wordCountToday);
+  const progress = getTodayProgress(wordCountToday || 0, dailyTarget);
+  const goalMet = wasGoalMetToday(wordCountToday || 0, dailyTarget);
+  const remaining = Math.max(0, dailyTarget - (wordCountToday || 0));
 
   return (
     <div className="bg-gradient-to-br from-tertiary-container/40 to-secondary-container/20 rounded-xl p-6 border border-outline-variant/10">
