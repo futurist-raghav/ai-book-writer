@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/stores/auth-store';
+import { useKeyboardShortcutsContext } from '@/stores/keyboard-shortcuts-context';
 import { cn } from '@/lib/utils';
 
 const topNav = [
@@ -16,6 +17,7 @@ export function Header() {
   const router = useRouter();
   const pathname = usePathname();
   const { logout } = useAuthStore();
+  const { openHelp } = useKeyboardShortcutsContext();
 
   const handleLogout = () => {
     logout();
@@ -52,7 +54,14 @@ export function Header() {
           })}
         </div>
         
-        <button className="material-symbols-outlined text-primary/70 hover:bg-surface-container-low p-2 rounded-full transition-all">history</button>
+        <button className="material-symbols-outlined text-primary/70 hover:bg-surface-container-low p-2 rounded-full transition-all" title="History">history</button>
+        <button 
+          onClick={openHelp}
+          className="material-symbols-outlined text-primary/70 hover:bg-surface-container-low p-2 rounded-full transition-all"
+          title="Help & Keyboard Shortcuts (?)"
+        >
+          help_outline
+        </button>
         <Link href="/dashboard/settings" className="material-symbols-outlined text-primary/70 hover:bg-surface-container-low p-2 rounded-full transition-all" title="Settings">
           settings
         </Link>
