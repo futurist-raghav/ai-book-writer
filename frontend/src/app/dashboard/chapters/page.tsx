@@ -8,6 +8,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { apiClient } from '@/lib/api-client';
 import { formatDate } from '@/lib/utils';
 import { useBookStore } from '@/stores/book-store';
+import { ProjectType, ProjectTypeConfigService } from '@/lib/project-types';
 
 interface Chapter {
   id: string;
@@ -63,6 +64,12 @@ export default function ChaptersPage() {
   const [workflowFilter, setWorkflowFilter] = useState('all');
   const [chapterTypeFilter, setChapterTypeFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Get dynamic labels based on project type
+  const projectType = (selectedBook?.project_type || 'novel') as ProjectType;
+  const config = ProjectTypeConfigService.getConfig(projectType);
+  const structureUnitName = config.structureUnitName; // e.g., "Chapters", "Scenes", "Lessons"
+  const pluralName = structureUnitName.endsWith('s') ? structureUnitName : `${structureUnitName}s`;
 
   const { data, isLoading } = useQuery({
     queryKey: ['chapters', workflowFilter, chapterTypeFilter],
@@ -131,6 +138,18 @@ export default function ChaptersPage() {
     },
   });
 
+  const statusMutation = useMutation({
+    mutationFn: ({ chapterId, workflowStatus }: { chapterId: string; workflowStatus: string }) =>
+      apiClient.chapters.update(chapterId, { workflow_status: workflowStatus }),
+    onSuccess: () => {
+      toast.success('Chapter status updated');
+      queryClient.invalidateQueries({ queryKey: ['chapters'] });
+    },
+    onError: () => {
+      toast.error('Failed to update chapter status');
+    },
+  });
+
   const handleCreateChapter = () => {
     if (!newChapterTitle.trim()) return;
     if (!selectedProjectId) {
@@ -193,7 +212,7 @@ export default function ChaptersPage() {
         <div>
           <p className="font-label text-xs uppercase tracking-[0.2em] text-secondary mb-4">Workspace Index</p>
           <h2 className="text-5xl md:text-7xl font-light tracking-tighter text-primary font-body">
-            Project Chapters
+            Project {pluralName}
           </h2>
         </div>
         <button 
@@ -201,7 +220,7 @@ export default function ChaptersPage() {
           className="flex items-center gap-2 bg-gradient-to-r from-primary to-primary-container text-white px-6 py-3 rounded-lg font-label font-bold text-sm shadow-md hover:opacity-90 transition-all active:scale-95"
         >
           <span className="material-symbols-outlined text-sm">{isCreating ? 'close' : 'add'}</span>
-          {isCreating ? 'Cancel' : 'New Chapter'}
+          {isCreating ? 'Cancel' : `New ${structureUnitName}`}
         </button>
       </div>
 
@@ -230,7 +249,7 @@ export default function ChaptersPage() {
       {/* Search Bar */}
       {selectedProjectId && (
         <div className="mb-8">
-          <label className="block font-label text-[10px] text-on-surface-variant font-bold uppercase tracking-wider mb-2">Search Chapters</label>
+          <label className="block font-label text-[10px] text-on-surface-variant font-bold uppercase tracking-wider mb-2">Search {pluralName}</label>
           <div className="relative">
             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/50 text-lg">search</span>
             <input
@@ -263,7 +282,7 @@ export default function ChaptersPage() {
           value={chapterTypeFilter}
           onChange={(event) => setChapterTypeFilter(event.target.value)}
         >
-          <option value="all">All chapter types</option>
+          <option value="all">All {structureUnitName.toLowerCase()} types</option>
           {chapterTypeOptions.map((chapterType) => (
             <option key={chapterType} value={chapterType}>
               {formatTag(chapterType)}
@@ -276,7 +295,7 @@ export default function ChaptersPage() {
       {isCreating && (
         <div className="bg-surface-container-lowest p-8 rounded-xl shadow-[0_4px_20px_rgba(25,28,29,0.04)] border border-outline-variant/10 mb-12 transition-all">
           <div className="mb-6">
-            <h3 className="font-label text-sm font-bold text-primary uppercase tracking-widest">Create Chapter</h3>
+            <h3 className="font-label text-sm font-bold text-primary uppercase tracking-widest">Create {structureUnitName}</h3>
             <p className="font-label text-xs text-on-surface-variant mt-1">Create a clean writing workspace under the selected project.</p>
           </div>
           
@@ -285,7 +304,7 @@ export default function ChaptersPage() {
               <label className="block font-label text-[10px] text-on-surface-variant font-bold uppercase tracking-wider mb-2">Title</label>
               <input
                 className="w-full bg-surface-container-low border border-outline-variant/20 rounded-lg px-4 py-3 text-sm font-label focus:ring-secondary/50 focus:border-secondary transition-colors"
-                placeholder="e.g., Chapter Title"
+                placeholder={`e.g., ${structureUnitName} Title`}
                 value={newChapterTitle}
                 onChange={(e) => setNewChapterTitle(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleCreateChapter()}
@@ -320,21 +339,21 @@ export default function ChaptersPage() {
           <div className="w-16 h-16 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant mb-6">
             <span className="material-symbols-outlined text-3xl">layers</span>
           </div>
-          <h3 className="font-label text-sm font-bold text-primary uppercase tracking-widest mb-2">No chapters yet</h3>
+          <h3 className="font-label text-sm font-bold text-primary uppercase tracking-widest mb-2">No {structureUnitName.toLowerCase()} yet</h3>
           <p className="font-label text-xs text-on-surface-variant max-w-sm leading-relaxed mb-8">
-            This project has no chapters yet. Create your first chapter workspace.
+            Start writing by creating your first {structureUnitName.toLowerCase()}. You can organize and structure your project later.
           </p>
           <button 
             onClick={() => setIsCreating(true)}
-            className="bg-surface-container-lowest border border-outline-variant/20 text-primary px-6 py-3 rounded-lg font-label font-bold text-sm shadow-sm hover:shadow-md transition-all active:scale-95"
+            className="bg-primary text-white px-6 py-3 rounded-lg font-label font-bold text-sm shadow-sm hover:opacity-90 transition-all active:scale-95"
           >
-            Create Chapter Project
+            + Create {structureUnitName}
           </button>
         </div>
       ) : (
         <div className="bg-surface-container-lowest p-10 rounded-xl shadow-[0_4px_20px_rgba(25,28,29,0.04)] border border-outline-variant/10">
           <div className="flex justify-between items-center mb-8">
-            <h3 className="font-label text-xs font-extrabold uppercase tracking-[0.2em] text-primary">Project Chapters</h3>
+            <h3 className="font-label text-xs font-extrabold uppercase tracking-[0.2em] text-primary">Project {pluralName}</h3>
             <span className="font-label text-[10px] text-on-surface-variant opacity-60">{projectScopedChapters.length} items</span>
           </div>
 
@@ -358,9 +377,19 @@ export default function ChaptersPage() {
                           {chapter.status.replace('_', ' ')}
                         </span>
                         {chapter.workflow_status ? (
-                          <span className="font-label text-[10px] text-on-surface-variant uppercase tracking-widest bg-surface-container-high px-2 py-0.5 rounded-full">
-                            {formatTag(chapter.workflow_status)}
-                          </span>
+                          <select
+                            value={chapter.workflow_status}
+                            onChange={(e) => statusMutation.mutate({ chapterId: chapter.id, workflowStatus: e.target.value })}
+                            disabled={statusMutation.isPending}
+                            className="font-label text-[10px] text-on-surface-variant uppercase tracking-widest bg-tertiary-container/50 text-tertiary hover:bg-tertiary-container cursor-pointer px-2 py-0.5 rounded-full disabled:opacity-50 transition-colors"
+                            title="Change workflow status"
+                          >
+                            <option value="idea">Idea</option>
+                            <option value="outline">Outline</option>
+                            <option value="draft">Draft</option>
+                            <option value="revision">Revision</option>
+                            <option value="final">Final</option>
+                          </select>
                         ) : null}
                         {chapter.chapter_type ? (
                           <span className="font-label text-[10px] text-on-surface-variant uppercase tracking-widest bg-surface-container-high px-2 py-0.5 rounded-full">

@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loading } from '@/components/ui/spinner';
+import { DarkModeToggle } from '@/components/dark-mode-toggle';
 import { apiClient } from '@/lib/api-client';
 import { useAuthStore } from '@/stores/auth-store';
 
@@ -284,6 +285,17 @@ export default function SettingsPage() {
               Change Password
             </Button>
           </form>
+        </section>
+
+        <section className="bg-surface-container-lowest rounded-xl border border-outline-variant/10 p-6">
+          <div className="mb-5">
+            <h2 className="font-label text-sm font-bold text-primary uppercase tracking-widest">Appearance</h2>
+            <p className="font-label text-xs text-on-surface-variant mt-1">Customize how the editor looks and feels.</p>
+          </div>
+
+          <div className="space-y-4">
+            <DarkModeToggle />
+          </div>
         </section>
       </div>
     </div>

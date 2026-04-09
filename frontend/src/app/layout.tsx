@@ -3,6 +3,7 @@ import { Manrope, Newsreader } from 'next/font/google';
 import './globals.css';
 import { Toaster } from 'sonner';
 import { QueryProvider } from '@/lib/query-provider';
+import { DarkModeProvider } from '@/stores/dark-mode-context';
 
 const manrope = Manrope({
   subsets: ['latin'],
@@ -38,12 +39,14 @@ export default function RootLayout({
       </head>
       <body
         suppressHydrationWarning
-        className={`${manrope.variable} ${newsreader.variable} font-label bg-surface text-on-surface antialiased min-h-screen selection:bg-primary-container selection:text-white`}
+        className={`${manrope.variable} ${newsreader.variable} font-label bg-surface text-on-surface dark:bg-neutral-950 dark:text-neutral-50 antialiased min-h-screen selection:bg-primary-container selection:text-white`}
       >
-        <QueryProvider>
-          {children}
-          <Toaster position="top-right" richColors />
-        </QueryProvider>
+        <DarkModeProvider>
+          <QueryProvider>
+            {children}
+            <Toaster position="top-right" richColors />
+          </QueryProvider>
+        </DarkModeProvider>
       </body>
     </html>
   );

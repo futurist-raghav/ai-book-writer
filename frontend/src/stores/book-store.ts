@@ -34,6 +34,9 @@ interface Book {
   subtitle?: string;
   author_name?: string;
   description?: string;
+  project_type?: string;
+  metadata?: Record<string, unknown>;
+  ai_enhancement_enabled?: boolean;
   chapter_count: number;
   word_count: number;
   status: string;

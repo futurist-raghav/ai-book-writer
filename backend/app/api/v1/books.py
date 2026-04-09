@@ -16,6 +16,7 @@ from sqlalchemy.orm import selectinload
 
 from app.core.config import settings
 from app.core.dependencies import AsyncSessionDep, CurrentUserIdDep
+from app.core.project_templates import get_project_template
 from app.models.book import Book, BookChapter, BookStatus
 from app.models.chapter import Chapter, ChapterStatus
 from app.schemas.book import (
@@ -31,6 +32,7 @@ from app.schemas.book import (
     BookListResponse,
     BookPinUpdate,
     BookResponse,
+    BookTemplateApplyRequest,
     BookUpdate,
 )
 from app.schemas.chapter import ChapterListResponse
@@ -204,6 +206,7 @@ async def create_book(
         description=book_data.description,
         project_context=book_data.project_context,
         project_settings=book_data.project_settings,
+        project_metadata=book_data.metadata,
         cover_image_url=book_data.cover_image_url,
         cover_color=book_data.cover_color,
         project_type=book_data.project_type or book_data.book_type,
@@ -308,6 +311,7 @@ async def create_book(
         cover_image_url=book.cover_image_url,
         cover_color=book.cover_color,
         project_type=book.project_type or book.book_type,
+        metadata=book.project_metadata,
         book_type=book.book_type,
         genres=book.genres,
         tags=book.tags,
@@ -398,6 +402,7 @@ async def get_book(
         cover_image_url=book.cover_image_url,
         cover_color=book.cover_color,
         project_type=book.project_type or book.book_type,
+        metadata=book.project_metadata,
         book_type=book.book_type,
         genres=book.genres,
         tags=book.tags,
@@ -469,6 +474,10 @@ async def update_book(
     elif "book_type" in update_data and "project_type" not in update_data:
         update_data["project_type"] = update_data["book_type"]
 
+    if "metadata" in update_data and "project_metadata" not in update_data:
+        update_data["project_metadata"] = update_data["metadata"]
+    update_data.pop("metadata", None)
+
     if "genre" in update_data and "genres" not in update_data:
         update_data["genres"] = [update_data["genre"]] if update_data["genre"] else None
     update_data.pop("genre", None)
@@ -490,6 +499,7 @@ async def update_book(
         cover_image_url=book.cover_image_url,
         cover_color=book.cover_color,
         project_type=book.project_type or book.book_type,
+        metadata=book.project_metadata,
         book_type=book.book_type,
         genres=book.genres,
         tags=book.tags,
@@ -667,6 +677,7 @@ async def duplicate_book(
         description=source_book.description,
         project_context=source_book.project_context,
         project_settings=source_book.project_settings,
+        project_metadata=source_book.project_metadata,
         cover_image_url=source_book.cover_image_url,
         cover_color=source_book.cover_color,
         project_type=source_book.project_type,
@@ -723,6 +734,7 @@ async def duplicate_book(
         cover_image_url=duplicate.cover_image_url,
         cover_color=duplicate.cover_color,
         project_type=duplicate.project_type or duplicate.book_type,
+        metadata=duplicate.project_metadata,
         book_type=duplicate.book_type,
         genres=duplicate.genres,
         tags=duplicate.tags,
@@ -825,6 +837,134 @@ async def pin_book(
     book.is_pinned = payload.is_pinned
     await db.flush()
     return MessageResponse(message="Project pin status updated")
+
+
+@router.post(
+    "/{book_id}/apply-template",
+    response_model=MessageResponse,
+    summary="Apply template to book",
+)
+async def apply_template_to_book(
+    book_id: uuid.UUID,
+    template_data: BookTemplateApplyRequest,
+    user_id: CurrentUserIdDep,
+    db: AsyncSessionDep,
+):
+    """Apply a project template by creating and linking starter chapters."""
+    result = await db.execute(
+        select(Book)
+        .where(Book.id == book_id, Book.user_id == user_id)
+        .options(selectinload(Book.chapter_associations))
+    )
+    book = result.scalar_one_or_none()
+
+    if not book:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Book not found",
+        )
+
+    template = get_project_template(template_data.template_id)
+    if not template:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Template not found",
+        )
+
+    template_project_type = template.get("project_type")
+    book_project_type = book.project_type or book.book_type
+    if (
+        template_project_type
+        and book_project_type
+        and template_project_type != book_project_type
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"Template '{template.get('name')}' expects project type "
+                f"'{template_project_type}', but project uses '{book_project_type}'"
+            ),
+        )
+
+    existing_associations = list(book.chapter_associations)
+    if template_data.replace_existing and existing_associations:
+        existing_chapter_ids = [assoc.chapter_id for assoc in existing_associations]
+        chapters_result = await db.execute(
+            select(Chapter).where(
+                Chapter.id.in_(existing_chapter_ids),
+                Chapter.user_id == user_id,
+            )
+        )
+        for chapter in chapters_result.scalars().all():
+            await db.delete(chapter)
+        await db.flush()
+        await db.refresh(book, attribute_names=["chapter_associations"])
+
+    max_chapter_number_result = await db.execute(
+        select(func.max(Chapter.chapter_number)).where(Chapter.user_id == user_id)
+    )
+    next_chapter_number = (max_chapter_number_result.scalar() or 0) + 1
+
+    max_order_result = await db.execute(
+        select(func.max(Chapter.order_index)).where(Chapter.user_id == user_id)
+    )
+    next_order_index = (max_order_result.scalar() or 0) + 1
+
+    current_book_max_order = max(
+        [assoc.order_index for assoc in book.chapter_associations],
+        default=-1,
+    )
+    book_order_start = current_book_max_order + 1
+
+    chapter_structure = template.get("chapter_structure") or []
+    created_count = 0
+
+    for idx, chapter_template in enumerate(chapter_structure):
+        chapter = Chapter(
+            title=chapter_template.get("title") or f"Chapter {next_chapter_number + idx}",
+            chapter_number=next_chapter_number + idx,
+            order_index=next_order_index + idx,
+            chapter_type=chapter_template.get("chapter_type") or "chapter",
+            writing_style=book.default_writing_form,
+            tone=book.default_chapter_tone,
+            ai_enhancement_enabled=book.ai_enhancement_enabled,
+            status=ChapterStatus.DRAFT.value,
+            user_id=user_id,
+        )
+        db.add(chapter)
+        await db.flush()
+
+        db.add(
+            BookChapter(
+                book_id=book.id,
+                chapter_id=chapter.id,
+                order_index=book_order_start + idx,
+                part_number=chapter_template.get("part_number")
+                if template_data.include_parts
+                else None,
+                part_title=chapter_template.get("part_title")
+                if template_data.include_parts
+                else None,
+            )
+        )
+        created_count += 1
+
+    current_metadata = book.project_metadata or {}
+    template_initial_metadata = template.get("initial_metadata") or {}
+    book.project_metadata = {
+        **current_metadata,
+        **template_initial_metadata,
+        "template_id": template.get("id"),
+        "template_name": template.get("name"),
+        "template_chapter_count": template.get("chapter_count") or created_count,
+        "template_applied_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+    await db.flush()
+
+    return MessageResponse(
+        message=f"Applied template '{template.get('name')}' with {created_count} sections"
+    )
 
 
 @router.post(

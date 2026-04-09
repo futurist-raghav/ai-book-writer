@@ -254,6 +254,42 @@ export default function BooksPage() {
     router.push('/dashboard');
   };
 
+  const handleContinueWriting = async (book: Book) => {
+    if (book.chapter_count === 0) {
+      toast.error('No chapters yet. Create one to start writing.');
+      return;
+    }
+
+    try {
+      // Fetch chapters and find the most recently updated one
+      const chaptersResponse = await apiClient.chapters.list({ limit: 1000 });
+      const allChapters = chaptersResponse.data?.items || [];
+      
+      // Filter chapters for this book and sort by updated_at descending
+      const bookChapters = allChapters
+        .filter((chapter: any) => 
+          chapter.projects?.some((project: any) => project.id === book.id)
+        )
+        .sort((a: any, b: any) => {
+          const aTime = new Date(a.updated_at || a.created_at).getTime();
+          const bTime = new Date(b.updated_at || b.created_at).getTime();
+          return bTime - aTime; // Most recent first
+        });
+
+      if (bookChapters.length === 0) {
+        toast.error('No chapters found for this project.');
+        return;
+      }
+
+      const lastChapter = bookChapters[0];
+      selectBook(book as any);
+      router.push(`/dashboard/chapters/${lastChapter.id}`);
+    } catch (error) {
+      console.error('Error fetching chapters:', error);
+      toast.error('Failed to find last chapter. Please try again.');
+    }
+  };
+
   if (isLoading) {
     return <div className="flex h-64 items-center justify-center"><Spinner className="w-8 h-8 text-primary" /></div>;
   }
@@ -461,14 +497,43 @@ export default function BooksPage() {
                 value={newProjectType}
                 onChange={(event) => setNewProjectType(event.target.value)}
               >
-                <option value="novel">Novel</option>
-                <option value="short_story">Short Story</option>
-                <option value="screenplay">Screenplay</option>
-                <option value="technical_manual">Technical Manual</option>
-                <option value="academic_paper">Academic Paper</option>
-                <option value="poetry_collection">Poetry Collection</option>
-                <option value="blog_series">Blog Series</option>
-                <option value="custom">Custom</option>
+                <optgroup label="Fiction & Creative">
+                  <option value="novel">Novel</option>
+                  <option value="memoir">Memoir</option>
+                  <option value="short_story_collection">Short Story Collection</option>
+                  <option value="poetry_collection">Poetry Collection</option>
+                  <option value="fanfiction">Fanfiction</option>
+                  <option value="interactive_fiction">Interactive Fiction</option>
+                </optgroup>
+                <optgroup label="Screenplay & Visual">
+                  <option value="screenplay">Screenplay</option>
+                  <option value="tv_series_bible">TV Series Bible</option>
+                  <option value="graphic_novel_script">Graphic Novel Script</option>
+                  <option value="comic_script">Comic Script</option>
+                </optgroup>
+                <optgroup label="Audio & Music">
+                  <option value="songwriting_project">Songwriting Project</option>
+                  <option value="podcast_script">Podcast Script</option>
+                  <option value="audiobook_script">Audiobook Script</option>
+                </optgroup>
+                <optgroup label="Academic & Research">
+                  <option value="research_paper">Research Paper</option>
+                  <option value="thesis_dissertation">Thesis/Dissertation</option>
+                  <option value="k12_textbook">K-12 Textbook</option>
+                  <option value="college_textbook">College Textbook</option>
+                  <option value="academic_course">Academic Course</option>
+                </optgroup>
+                <optgroup label="Professional & Technical">
+                  <option value="technical_documentation">Technical Documentation</option>
+                  <option value="business_book">Business Book</option>
+                  <option value="management_book">Management Book</option>
+                  <option value="self_help_book">Self-Help Book</option>
+                  <option value="legal_document">Legal Document</option>
+                </optgroup>
+                <optgroup label="Other">
+                  <option value="personal_journal">Personal Journal</option>
+                  <option value="experimental">Experimental</option>
+                </optgroup>
               </select>
             </div>
 
@@ -549,19 +614,19 @@ export default function BooksPage() {
           <div className="w-16 h-16 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant mb-6">
             <span className="material-symbols-outlined text-3xl">book</span>
           </div>
-          <h3 className="font-label text-sm font-bold text-primary uppercase tracking-widest mb-2">No projects to show</h3>
+          <h3 className="font-label text-sm font-bold text-primary uppercase tracking-widest mb-2">{viewFilter === 'active' ? 'No active projects' : viewFilter === 'archived' ? 'No archived projects' : 'No draft projects'}</h3>
           <p className="font-label text-xs text-on-surface-variant max-w-sm leading-relaxed mb-8">
             {viewFilter === 'active'
-              ? 'No active projects found. Create one or restore from archived projects.'
+              ? 'Get started by creating your first project. You can restore archived projects at any time.'
               : viewFilter === 'archived'
-                ? 'No archived projects found. Archive a project to see it here.'
-                : 'No draft projects found. Create a draft idea to continue later.'}
+                ? 'No projects have been archived yet. Archive a project from the active list to see it here.'
+                : 'No draft projects found. Create a draft idea to explore concepts before starting a full project.'}
           </p>
           <button
             onClick={() => setIsCreating(true)}
-            className="bg-surface-container-lowest border border-outline-variant/20 text-primary px-6 py-3 rounded-lg font-label font-bold text-sm shadow-sm hover:shadow-md transition-all active:scale-95"
+            className="bg-primary text-white px-6 py-3 rounded-lg font-label font-bold text-sm shadow-sm hover:opacity-90 transition-all active:scale-95"
           >
-            Create Project
+            + Create Project
           </button>
         </div>
       ) : (
@@ -664,8 +729,51 @@ export default function BooksPage() {
                       </div>
                     )}
 
+                    {/* Deadline indicator */}
+                    {book.deadline_at && (
+                      <div className="mb-4">
+                        {(() => {
+                          const deadline = new Date(book.deadline_at);
+                          const now = new Date();
+                          const daysRemaining = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                          const isOverdue = daysRemaining < 0;
+                          const isUrgent = daysRemaining <= 7 && daysRemaining > 0;
+                          
+                          return (
+                            <div className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg ${
+                              isOverdue ? 'bg-error/10' : isUrgent ? 'bg-error-container/50' : 'bg-tertiary-container/30'
+                            }`}>
+                              <span className="font-label text-[9px] font-bold uppercase tracking-tight text-on-surface-variant">Deadline</span>
+                              <span className={`font-label text-[10px] font-bold uppercase tracking-tight ${
+                                isOverdue ? 'text-error' : isUrgent ? 'text-error-container' : 'text-tertiary'
+                              }`}>
+                                {isOverdue 
+                                  ? `${Math.abs(daysRemaining)}d overdue` 
+                                  : daysRemaining === 0 
+                                  ? 'Today'
+                                  : daysRemaining === 1 
+                                  ? 'Tomorrow'
+                                  : `${daysRemaining}d left`
+                                }
+                              </span>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    )}
+
                     {/* Action buttons */}
                     <div className="flex gap-1.5 mt-auto pt-4 border-t border-outline-variant/10">
+                      <button
+                        onClick={() => handleContinueWriting(book)}
+                        disabled={book.chapter_count === 0}
+                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-tertiary/10 text-tertiary hover:bg-tertiary hover:text-white font-label font-bold text-[10px] uppercase tracking-tight transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+                        title={book.chapter_count === 0 ? 'No chapters yet' : 'Continue to last chapter'}
+                      >
+                        <span className="material-symbols-outlined text-sm">auto_stories</span>
+                        Continue
+                      </button>
+
                       <button
                         onClick={() => handleOpenWorkspace(book)}
                         className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-white font-label font-bold text-[10px] uppercase tracking-tight transition-all active:scale-95"

@@ -1,0 +1,370 @@
+{
+  "three-act-novel": {
+    "id": "three-act-novel",
+    "name": "3-Act Novel",
+    "project_type": "novel",
+    "description": "Classic three-act structure with setup, confrontation, and resolution.",
+    "chapter_count": 7,
+    "initial_metadata": {
+      "narrative_structure": "three_act"
+    },
+    "chapter_structure": [
+      {
+        "title": "Prologue",
+        "chapter_type": "prologue",
+        "part_number": 1,
+        "part_title": "Act I: Setup"
+      },
+      {
+        "title": "Inciting Incident",
+        "chapter_type": "chapter",
+        "part_number": 1,
+        "part_title": "Act I: Setup"
+      },
+      {
+        "title": "Rising Stakes",
+        "chapter_type": "chapter",
+        "part_number": 2,
+        "part_title": "Act II: Confrontation"
+      },
+      {
+        "title": "Midpoint Shift",
+        "chapter_type": "chapter",
+        "part_number": 2,
+        "part_title": "Act II: Confrontation"
+      },
+      {
+        "title": "Darkest Hour",
+        "chapter_type": "chapter",
+        "part_number": 2,
+        "part_title": "Act II: Confrontation"
+      },
+      {
+        "title": "Climax",
+        "chapter_type": "chapter",
+        "part_number": 3,
+        "part_title": "Act III: Resolution"
+      },
+      {
+        "title": "Epilogue",
+        "chapter_type": "epilogue",
+        "part_number": 3,
+        "part_title": "Act III: Resolution"
+      }
+    ]
+  },
+  "heros-journey": {
+    "id": "heros-journey",
+    "name": "Hero's Journey",
+    "project_type": "novel",
+    "description": "Mythic structure based on departure, initiation, and return.",
+    "chapter_count": 10,
+    "initial_metadata": {
+      "narrative_structure": "heros_journey"
+    },
+    "chapter_structure": [
+      {
+        "title": "Ordinary World",
+        "chapter_type": "chapter"
+      },
+      {
+        "title": "Call to Adventure",
+        "chapter_type": "chapter"
+      },
+      {
+        "title": "Refusal and Mentor",
+        "chapter_type": "chapter"
+      },
+      {
+        "title": "Crossing the Threshold",
+        "chapter_type": "chapter"
+      },
+      {
+        "title": "Trials and Allies",
+        "chapter_type": "chapter"
+      },
+      {
+        "title": "Ordeal",
+        "chapter_type": "chapter"
+      },
+      {
+        "title": "Reward",
+        "chapter_type": "chapter"
+      },
+      {
+        "title": "Road Back",
+        "chapter_type": "chapter"
+      },
+      {
+        "title": "Resurrection",
+        "chapter_type": "chapter"
+      },
+      {
+        "title": "Return with the Elixir",
+        "chapter_type": "chapter"
+      }
+    ]
+  },
+  "five-chapter-non-fiction": {
+    "id": "five-chapter-non-fiction",
+    "name": "5-Chapter Non-Fiction",
+    "project_type": "business_book",
+    "description": "Simple non-fiction flow: problem, framework, proof, action, wrap-up.",
+    "chapter_count": 6,
+    "initial_metadata": {
+      "narrative_structure": "non_fiction_framework"
+    },
+    "chapter_structure": [
+      {
+        "title": "Introduction",
+        "chapter_type": "introduction"
+      },
+      {
+        "title": "The Core Problem",
+        "chapter_type": "chapter"
+      },
+      {
+        "title": "Your Framework",
+        "chapter_type": "chapter"
+      },
+      {
+        "title": "Case Studies and Proof",
+        "chapter_type": "chapter"
+      },
+      {
+        "title": "Action Plan",
+        "chapter_type": "chapter"
+      },
+      {
+        "title": "Conclusion",
+        "chapter_type": "conclusion"
+      }
+    ]
+  },
+  "screenplay-three-act": {
+    "id": "screenplay-three-act",
+    "name": "Screenplay 3-Act",
+    "project_type": "screenplay",
+    "description": "Three-act screenplay with major scene milestones.",
+    "chapter_count": 8,
+    "initial_metadata": {
+      "narrative_structure": "screenplay_three_act"
+    },
+    "chapter_structure": [
+      {
+        "title": "Act I - Opening Image",
+        "chapter_type": "scene",
+        "part_number": 1,
+        "part_title": "Act I"
+      },
+      {
+        "title": "Act I - Inciting Incident",
+        "chapter_type": "scene",
+        "part_number": 1,
+        "part_title": "Act I"
+      },
+      {
+        "title": "Act I - Break into Two",
+        "chapter_type": "scene",
+        "part_number": 1,
+        "part_title": "Act I"
+      },
+      {
+        "title": "Act II - Fun and Games",
+        "chapter_type": "scene",
+        "part_number": 2,
+        "part_title": "Act II"
+      },
+      {
+        "title": "Act II - Midpoint",
+        "chapter_type": "scene",
+        "part_number": 2,
+        "part_title": "Act II"
+      },
+      {
+        "title": "Act II - All Is Lost",
+        "chapter_type": "scene",
+        "part_number": 2,
+        "part_title": "Act II"
+      },
+      {
+        "title": "Act III - Finale",
+        "chapter_type": "scene",
+        "part_number": 3,
+        "part_title": "Act III"
+      },
+      {
+        "title": "Act III - Final Image",
+        "chapter_type": "scene",
+        "part_number": 3,
+        "part_title": "Act III"
+      }
+    ]
+  },
+  "research-paper-standard": {
+    "id": "research-paper-standard",
+    "name": "Research Paper (IMRaD)",
+    "project_type": "research_paper",
+    "description": "Standard academic structure for journals and conferences.",
+    "chapter_count": 8,
+    "initial_metadata": {
+      "narrative_structure": "imrad"
+    },
+    "chapter_structure": [
+      {
+        "title": "Abstract",
+        "chapter_type": "section"
+      },
+      {
+        "title": "Introduction",
+        "chapter_type": "section"
+      },
+      {
+        "title": "Literature Review",
+        "chapter_type": "section"
+      },
+      {
+        "title": "Methodology",
+        "chapter_type": "section"
+      },
+      {
+        "title": "Results",
+        "chapter_type": "section"
+      },
+      {
+        "title": "Discussion",
+        "chapter_type": "section"
+      },
+      {
+        "title": "Conclusion",
+        "chapter_type": "section"
+      },
+      {
+        "title": "References",
+        "chapter_type": "section"
+      }
+    ]
+  },
+  "textbook-outline": {
+    "id": "textbook-outline",
+    "name": "Textbook Outline",
+    "project_type": "college_textbook",
+    "description": "Part-based structure for educational textbook projects.",
+    "chapter_count": 7,
+    "initial_metadata": {
+      "narrative_structure": "part_based_textbook"
+    },
+    "chapter_structure": [
+      {
+        "title": "Part I - Foundations",
+        "chapter_type": "part",
+        "part_number": 1,
+        "part_title": "Foundations"
+      },
+      {
+        "title": "Chapter 1 - Core Concepts",
+        "chapter_type": "chapter",
+        "part_number": 1,
+        "part_title": "Foundations"
+      },
+      {
+        "title": "Chapter 2 - Principles and Models",
+        "chapter_type": "chapter",
+        "part_number": 1,
+        "part_title": "Foundations"
+      },
+      {
+        "title": "Part II - Applications",
+        "chapter_type": "part",
+        "part_number": 2,
+        "part_title": "Applications"
+      },
+      {
+        "title": "Chapter 3 - Guided Examples",
+        "chapter_type": "chapter",
+        "part_number": 2,
+        "part_title": "Applications"
+      },
+      {
+        "title": "Chapter 4 - Exercises",
+        "chapter_type": "chapter",
+        "part_number": 2,
+        "part_title": "Applications"
+      },
+      {
+        "title": "Appendix",
+        "chapter_type": "appendix",
+        "part_number": 3,
+        "part_title": "Reference"
+      }
+    ]
+  },
+  "memoir-chronological": {
+    "id": "memoir-chronological",
+    "name": "Memoir (Chronological)",
+    "project_type": "memoir",
+    "description": "Chronological memoir progression from early years to reflection.",
+    "chapter_count": 5,
+    "initial_metadata": {
+      "narrative_structure": "chronological"
+    },
+    "chapter_structure": [
+      {
+        "title": "Opening Reflection",
+        "chapter_type": "chapter"
+      },
+      {
+        "title": "Early Years",
+        "chapter_type": "chapter"
+      },
+      {
+        "title": "Turning Points",
+        "chapter_type": "chapter"
+      },
+      {
+        "title": "Reckoning",
+        "chapter_type": "chapter"
+      },
+      {
+        "title": "Where I Stand Now",
+        "chapter_type": "chapter"
+      }
+    ]
+  },
+  "academic-course-modules": {
+    "id": "academic-course-modules",
+    "name": "Academic Course Modules",
+    "project_type": "academic_course",
+    "description": "Module-based structure for instructional course material.",
+    "chapter_count": 6,
+    "initial_metadata": {
+      "narrative_structure": "module_based"
+    },
+    "chapter_structure": [
+      {
+        "title": "Course Overview",
+        "chapter_type": "module"
+      },
+      {
+        "title": "Module 1 - Fundamentals",
+        "chapter_type": "module"
+      },
+      {
+        "title": "Module 2 - Intermediate Topics",
+        "chapter_type": "module"
+      },
+      {
+        "title": "Module 3 - Advanced Topics",
+        "chapter_type": "module"
+      },
+      {
+        "title": "Assessments and Rubrics",
+        "chapter_type": "module"
+      },
+      {
+        "title": "Further Reading",
+        "chapter_type": "module"
+      }
+    ]
+  }
+}

@@ -9,14 +9,18 @@ from datetime import datetime
 from enum import Enum
 from typing import TYPE_CHECKING, List, Optional
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import Boolean, DateTime, Enum as SAEnum, ForeignKey, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+from app.core.project_types import ProjectType
 
 if TYPE_CHECKING:
     from app.models.chapter import Chapter
+    from app.models.collaboration import Activity, BookComment, Collaborator
+    from app.models.export import Export
+    from app.models.reference import Reference
     from app.models.user import User
 
 
@@ -29,6 +33,10 @@ class BookStatus(str, Enum):
     COMPLETED = "completed"
     PUBLISHED = "published"
     ARCHIVED = "archived"
+
+
+PROJECT_TYPE_VALUES = tuple(project_type.value for project_type in ProjectType)
+PROJECT_TYPE_ENUM = SAEnum(*PROJECT_TYPE_VALUES, name="project_type_enum")
 
 
 class Book(Base):
@@ -54,10 +62,18 @@ class Book(Base):
     cover_color: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
 
     # Book type and genre
-    project_type: Mapped[Optional[str]] = mapped_column(
-        String(50),
-        nullable=True,
+    project_type: Mapped[str] = mapped_column(
+        PROJECT_TYPE_ENUM,
+        nullable=False,
+        default=ProjectType.NOVEL.value,
+        server_default=ProjectType.NOVEL.value,
     )  # novel, screenplay, technical_manual, etc.
+    project_metadata: Mapped[Optional[dict]] = mapped_column(
+        "metadata",
+        JSONB,
+        default=dict,
+        nullable=True,
+    )  # Type-specific settings and configurations
     book_type: Mapped[Optional[str]] = mapped_column(
         String(50),
         nullable=True,
@@ -150,6 +166,32 @@ class Book(Base):
         back_populates="book",
         cascade="all, delete-orphan",
         order_by="BookChapter.order_index",
+    )
+    references: Mapped[List["Reference"]] = relationship(
+        "Reference",
+        back_populates="book",
+        cascade="all, delete-orphan",
+        foreign_keys="Reference.book_id",
+    )
+    collaborators: Mapped[List["Collaborator"]] = relationship(
+        "Collaborator",
+        foreign_keys="Collaborator.book_id",
+        cascade="all, delete-orphan",
+    )
+    comments: Mapped[List["BookComment"]] = relationship(
+        "BookComment",
+        foreign_keys="BookComment.book_id",
+        cascade="all, delete-orphan",
+    )
+    activities: Mapped[List["Activity"]] = relationship(
+        "Activity",
+        foreign_keys="Activity.book_id",
+        cascade="all, delete-orphan",
+    )
+    exports: Mapped[List["Export"]] = relationship(
+        "Export",
+        foreign_keys="Export.book_id",
+        cascade="all, delete-orphan",
     )
 
     def __repr__(self) -> str:

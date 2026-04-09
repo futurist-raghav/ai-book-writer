@@ -8,7 +8,7 @@ from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.schemas.chapter import ChapterListResponse
 from app.schemas.common import BaseSchema, IDMixin, TimestampMixin
@@ -26,7 +26,8 @@ class BookCreate(BaseModel):
     description: Optional[str] = None
     project_context: Optional[str] = None
     project_settings: Optional[dict] = None
-    project_type: Optional[str] = Field(None, max_length=50)
+    project_type: str = Field(default="novel", max_length=50)  # Now required with default
+    metadata: Optional[dict] = None  # Type-specific settings and configurations
     book_type: Optional[str] = Field(None, max_length=50)
     genre: Optional[str] = Field(None, max_length=100)
     genres: Optional[List[str]] = None
@@ -44,6 +45,22 @@ class BookCreate(BaseModel):
     auto_create_chapters: int = Field(0, ge=0, le=50)
     chapter_ids: Optional[List[UUID]] = None  # Chapters to include
 
+    @field_validator('project_type')
+    @classmethod
+    def validate_project_type(cls, v: str) -> str:
+        """Validate project type against allowed values."""
+        allowed_types = [
+            "novel", "memoir", "short_story_collection", "poetry_collection", "fanfiction",
+            "interactive_fiction", "screenplay", "tv_series_bible", "graphic_novel_script",
+            "comic_script", "songwriting_project", "podcast_script", "audiobook_script",
+            "research_paper", "thesis_dissertation", "k12_textbook", "college_textbook",
+            "academic_course", "technical_documentation", "business_book", "management_book",
+            "self_help_book", "legal_document", "personal_journal", "experimental"
+        ]
+        if v not in allowed_types:
+            raise ValueError(f"Invalid project_type. Allowed: {', '.join(allowed_types)}")
+        return v
+
 
 class BookUpdate(BaseModel):
     """Schema for updating a book."""
@@ -56,7 +73,8 @@ class BookUpdate(BaseModel):
     project_settings: Optional[dict] = None
     cover_image_url: Optional[str] = Field(None, max_length=500)
     cover_color: Optional[str] = Field(None, max_length=32)
-    project_type: Optional[str] = Field(None, max_length=50)
+    project_type: Optional[str] = Field(None, max_length=50)  # Optional to update
+    metadata: Optional[dict] = None  # Type-specific settings and configurations
     book_type: Optional[str] = Field(None, max_length=50)
     genre: Optional[str] = Field(None, max_length=100)
     genres: Optional[List[str]] = None
@@ -70,6 +88,24 @@ class BookUpdate(BaseModel):
     ai_enhancement_enabled: Optional[bool] = None
     status: Optional[str] = None
     is_public: Optional[bool] = None
+
+    @field_validator('project_type')
+    @classmethod
+    def validate_project_type(cls, v: Optional[str]) -> Optional[str]:
+        """Validate project type against allowed values."""
+        if v is None:
+            return None
+        allowed_types = [
+            "novel", "memoir", "short_story_collection", "poetry_collection", "fanfiction",
+            "interactive_fiction", "screenplay", "tv_series_bible", "graphic_novel_script",
+            "comic_script", "songwriting_project", "podcast_script", "audiobook_script",
+            "research_paper", "thesis_dissertation", "k12_textbook", "college_textbook",
+            "academic_course", "technical_documentation", "business_book", "management_book",
+            "self_help_book", "legal_document", "personal_journal", "experimental"
+        ]
+        if v not in allowed_types:
+            raise ValueError(f"Invalid project_type. Allowed: {', '.join(allowed_types)}")
+        return v
 
 
 class BookPinUpdate(BaseModel):
@@ -121,6 +157,14 @@ class BookChapterReorder(BaseModel):
         return self
 
 
+class BookTemplateApplyRequest(BaseModel):
+    """Schema for applying a starter template to a project."""
+
+    template_id: str = Field(..., min_length=1, max_length=100)
+    replace_existing: bool = False
+    include_parts: bool = True
+
+
 class BookExportRequest(BaseModel):
     """Request to export a book."""
 
@@ -157,7 +201,8 @@ class BookResponse(BaseSchema, IDMixin, TimestampMixin):
     project_settings: Optional[dict] = None
     cover_image_url: Optional[str] = None
     cover_color: Optional[str] = None
-    project_type: Optional[str] = None
+    project_type: str  # Now non-optional since model requires it
+    metadata: Optional[dict] = None  # Type-specific settings and configurations
     book_type: Optional[str] = None
     genres: Optional[List[str]] = None
     tags: Optional[List[str]] = None

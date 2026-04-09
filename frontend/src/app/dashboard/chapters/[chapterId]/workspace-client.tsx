@@ -73,6 +73,11 @@ export default function ChapterWorkspaceClient({ chapterId }: { chapterId: strin
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [isZenMode, setIsZenMode] = useState(false);
+  
+  // Autosave state
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [lastSaveTime, setLastSaveTime] = useState<Date | null>(null);
+  const [lastSavedContent, setLastSavedContent] = useState<string>('');
 
   const workspaceQuery = useQuery({
     queryKey: ['workspace', chapterId],
@@ -337,6 +342,43 @@ export default function ChapterWorkspaceClient({ chapterId }: { chapterId: strin
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // Autosave with debouncing (2 seconds of inactivity)
+  useEffect(() => {
+    if (!writerHtml || !chapterId) return;
+
+    // Set status to 'saving' immediately
+    setSaveStatus('saving');
+    
+    const debounceTimer = setTimeout(async () => {
+      try {
+        await saveDraftMutation.mutateAsync(writerHtml);
+        setSaveStatus('saved');
+        setLastSaveTime(new Date());
+        setLastSavedContent(writerHtml);
+        
+        // Clear saved status after 2 seconds
+        setTimeout(() => {
+          setSaveStatus('idle');
+        }, 2000);
+      } catch (err) {
+        console.error('Autosave failed:', err);
+        setSaveStatus('error');
+      }
+    }, 2000); // Wait 2 seconds after last change
+    
+    return () => {
+      clearTimeout(debounceTimer);
+    };
+  }, [writerHtml, chapterId, saveDraftMutation]);
+
+  // Update browser tab title to show unsaved indicator
+  useEffect(() => {
+    const chapterTitle = workspaceQuery.data?.data?.title || 'Chapter';
+    const hasUnsavedChanges = writerHtml && lastSavedContent && writerHtml !== lastSavedContent;
+    const prefix = hasUnsavedChanges ? '● ' : '';
+    document.title = `${prefix}${chapterTitle} - AI Book Writer`;
+  }, [writerHtml, lastSavedContent, workspaceQuery.data?.data?.title]);
+
   const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
@@ -436,9 +478,34 @@ export default function ChapterWorkspaceClient({ chapterId }: { chapterId: strin
         <div className="h-12 border-b border-outline-variant/10 flex items-center justify-between px-6 bg-white/95 backdrop-blur-sm">
           <div className="flex items-center gap-2">
             <h1 className="text-sm font-bold text-primary italic font-headline">{chapter?.title}</h1>
+            {writerHtml && lastSavedContent && writerHtml !== lastSavedContent && (
+              <span className="text-orange-600 text-lg" title="Unsaved changes">●</span>
+            )}
             <span className="text-xs text-on-surface-variant">
               {writerWordCount.toLocaleString()} words
             </span>
+            
+            {/* Autosave Status Indicator */}
+            <div className="ml-4 flex items-center gap-2">
+              {saveStatus === 'saving' && (
+                <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-50 border border-orange-200">
+                  <div className="w-1 h-1 rounded-full bg-orange-500 animate-pulse"></div>
+                  <span className="text-[10px] font-semibold text-orange-700">Saving...</span>
+                </div>
+              )}
+              {saveStatus === 'saved' && (
+                <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200">
+                  <span className="material-symbols-outlined text-emerald-600 text-xs" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+                  <span className="text-[10px] font-semibold text-emerald-700">Saved</span>
+                </div>
+              )}
+              {saveStatus === 'error' && (
+                <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-50 border border-red-200">
+                  <span className="material-symbols-outlined text-red-600 text-xs" style={{ fontVariationSettings: "'FILL' 1" }}>error</span>
+                  <span className="text-[10px] font-semibold text-red-700">Save Failed</span>
+                </div>
+              )}
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <button 
@@ -475,6 +542,7 @@ export default function ChapterWorkspaceClient({ chapterId }: { chapterId: strin
             }}
             showAiAssistant={Boolean(workspace.effective_ai_enhancement_enabled ?? workspace.ai_enhancement_enabled)}
             readOnly={false}
+            projectType={projectContextQuery.data?.data?.project_type}
           />
         </div>
       </div>
@@ -491,7 +559,37 @@ export default function ChapterWorkspaceClient({ chapterId }: { chapterId: strin
           </Link>
           <div>
             <span className="text-xs text-secondary font-semibold uppercase tracking-widest block mb-0.5">Workspace</span>
-            <h1 className="text-xl font-bold text-primary italic font-headline tracking-tight">{chapter?.title || 'Chapter Workspace'}</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold text-primary italic font-headline tracking-tight">{chapter?.title || 'Chapter Workspace'}</h1>
+              {writerHtml && lastSavedContent && writerHtml !== lastSavedContent && (
+                <span className="text-orange-600 text-xl" title="Unsaved changes">●</span>
+              )}
+            </div>
+          </div>
+          
+          {/* Autosave Status Indicator */}
+          <div className="ml-6 flex items-center gap-2">
+            {saveStatus === 'saving' && (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-orange-50 border border-orange-200">
+                <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></div>
+                <span className="text-xs font-semibold text-orange-700">Saving...</span>
+              </div>
+            )}
+            {saveStatus === 'saved' && (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200">
+                <span className="material-symbols-outlined text-emerald-600 text-base" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+                <span className="text-xs font-semibold text-emerald-700">Saved</span>
+              </div>
+            )}
+            {saveStatus === 'error' && (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-50 border border-red-200">
+                <span className="material-symbols-outlined text-red-600 text-base" style={{ fontVariationSettings: "'FILL' 1" }}>error</span>
+                <span className="text-xs font-semibold text-red-700">Save Failed</span>
+              </div>
+            )}
+            {lastSaveTime && saveStatus === 'idle' && (
+              <span className="text-xs text-on-surface-variant">Saved {lastSaveTime.toLocaleTimeString()}</span>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-4">
@@ -678,6 +776,7 @@ export default function ChapterWorkspaceClient({ chapterId }: { chapterId: strin
               }}
               showAiAssistant={Boolean(workspace.effective_ai_enhancement_enabled ?? workspace.ai_enhancement_enabled)}
               readOnly={false}
+              projectType={projectContextQuery.data?.data?.project_type}
             />
           </section>
 

@@ -55,7 +55,13 @@ export default function ArchivePage() {
 
       <div className="bg-surface-container-lowest p-8 rounded-xl border border-outline-variant/10">
         {archived.length === 0 ? (
-          <p className="font-label text-sm text-on-surface-variant">No archived projects yet.</p>
+          <div className="border-2 border-dashed border-outline-variant/30 rounded-xl p-12 flex flex-col items-center justify-center text-center">
+            <span className="material-symbols-outlined text-4xl text-on-surface-variant mb-4">archive</span>
+            <h3 className="font-label text-sm font-bold text-primary uppercase tracking-widest mb-2">No archived projects</h3>
+            <p className="font-label text-xs text-on-surface-variant max-w-sm leading-relaxed">
+              Archive your finished or inactive projects to keep your workspace organized. Archived projects can be restored anytime.
+            </p>
+          </div>
         ) : (
           <div className="space-y-3">
             {archived.map((book) => (
