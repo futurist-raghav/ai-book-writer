@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { Loading, Spinner } from '@/components/ui/spinner';
 import { formatDate } from '@/lib/utils';
 import { toast } from 'sonner';
+import { calculateReadingLevel } from '@/lib/writing-metrics';
 
 export default function ProjectOverviewPage() {
   const queryClient = useQueryClient();
@@ -114,6 +115,11 @@ export default function ProjectOverviewPage() {
     ? Math.round(((bookDetails?.word_count || book?.word_count || 0) / bookDetails.target_word_count) * 100)
     : null;
   const readingTime = Math.ceil((bookDetails?.word_count || book?.word_count || 0) / 200); // Average 200 words per minute
+  const readingLevel = calculateReadingLevel(
+    chapters
+      .map((ch: any) => ch.compiled_content || '')
+      .join(' ')
+  );
 
   if (!book) {
     return (
@@ -196,6 +202,38 @@ export default function ProjectOverviewPage() {
           <p className="text-[11px] text-on-surface-variant mt-2">
             Plot events & notes captured
           </p>
+        </div>
+      </div>
+
+      {/* Reading Level & Manuscript Stats */}
+      <div className="mb-12 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-gradient-to-br from-secondary/10 to-secondary/5 rounded-xl p-6 border border-secondary/20">
+          <div className="flex items-center justify-between mb-3">
+            <span className="material-symbols-outlined text-secondary text-2xl">analytics</span>
+            <span className="font-label text-[10px] text-secondary font-bold uppercase tracking-widest">Reading Level</span>
+          </div>
+          <p className="text-2xl font-body font-semibold text-primary">
+            {readingLevel.charAt(0).toUpperCase() + readingLevel.slice(1).replace('_', ' ')}
+          </p>
+          <p className="text-[11px] text-on-surface-variant mt-2">
+            {readingLevel === 'elementary' && 'Great for younger readers (K-3 grade)'}
+            {readingLevel === 'middle_school' && 'Suitable for middle school readers (4-6 grade)'}
+            {readingLevel === 'high_school' && 'Suitable for high school readers (7-9 grade)'}
+            {readingLevel === 'college' && 'Suitable for college-level readers (10-12 grade)'}
+            {readingLevel === 'professional' && 'Suitable for professional/academic readers (13+ grade)'}
+          </p>
+        </div>
+
+        <div className="bg-gradient-to-br from-tertiary/10 to-tertiary/5 rounded-xl p-6 border border-tertiary/20">
+          <div className="flex items-center justify-between mb-3">
+            <span className="material-symbols-outlined text-tertiary text-2xl">info</span>
+            <span className="font-label text-[10px] text-tertiary font-bold uppercase tracking-widest">Manuscript Info</span>
+          </div>
+          <div className="space-y-2">
+            <p className="text-sm"><span className="font-bold">Total Reading Time:</span> ~{readingTime} hours</p>
+            <p className="text-sm"><span className="font-bold">Average Chapter:</span> ~{Math.round(book.word_count / book.chapter_count) || 0} words</p>
+            <p className="text-sm"><span className="font-bold">Estimated Pages:</span> ~{Math.round(book.word_count / 250)} (250 words/page)</p>
+          </div>
         </div>
       </div>
 
