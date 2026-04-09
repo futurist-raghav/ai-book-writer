@@ -13,7 +13,8 @@ Comprehensive checklist for QA and manual testing of AI Book Writer features. Us
 7. [Export & Publishing](#export--publishing)
 8. [Collaboration Features](#collaboration-features)
 9. [Performance & Stability](#performance--stability)
-10. [Cross-Browser & Responsive](#cross-browser--responsive)
+10. [PWA & Offline](#pwa--offline)
+11. [Cross-Browser & Responsive](#cross-browser--responsive)
 
 ---
 
@@ -104,6 +105,16 @@ Comprehensive checklist for QA and manual testing of AI Book Writer features. Us
 - [ ] Sort by date modified
 - [ ] Filter by genre
 - [ ] Pagination (if enabled)
+- [ ] Toggle catalog to List view and verify all actions are still available
+- [ ] Toggle catalog back to Cards view and verify card layout restores correctly
+- [ ] Refresh page and verify selected catalog view preference persists
+- [ ] For a project with collaborators, verify avatar initials render on cards and list rows
+- [ ] Verify collaborator overflow shows `+N` badge when members exceed visible avatar slots
+- [ ] Hover collaborator avatars and verify tooltip identity text appears (name/email)
+- [ ] Open an active project overview and verify the Manuscript Health widget is visible
+- [ ] Create/update a chapter with empty summary and verify "Missing Summaries" issue count increases
+- [ ] Create/update a chapter below 300 words and verify "Thin Chapters" issue count increases
+- [ ] Add a known entity name (e.g., Eliana), reference a close variant in chapter text (e.g., Elena), and verify alias mismatch highlighting appears in Manuscript Health
 
 ### Edit Project Details
 - [ ] Click on project to view details
@@ -340,6 +351,17 @@ Comprehensive checklist for QA and manual testing of AI Book Writer features. Us
   - [ ] Response continues story logically
   - [ ] Suggestions escalate tension or advance plot
 
+### Advanced Consistency Checker
+- [ ] Open a chapter workspace and click the "Consistency" action
+- [ ] Verify results modal opens with severity badges and issue-type labels
+- [ ] Create cross-chapter character spelling drift (e.g., Jon vs John) and verify detection
+- [ ] Create terminology drift (e.g., internet vs web) and verify detection with mention counts
+- [ ] Create date conflict (e.g., March 12, 1888 vs March 12, 1889) and verify timeline issue detection
+- [ ] Create appearance drift (e.g., "Elena had red hair" vs "Elena's hair was blonde") and verify appearance inconsistency detection
+- [ ] Verify each issue includes chapter references and suggested fixes
+- [ ] Click "Draft AI Fix Prompt" and verify a structured fix prompt is prefilled in assistant chat input
+- [ ] For replaceable issue types, use "Fix: X → Y" action and verify writer content updates locally
+
 ### Insert Suggestions
 - [ ] Get AI suggestions for any text
 - [ ] Click "Insert" button on suggestion
@@ -508,6 +530,11 @@ Comprehensive checklist for QA and manual testing of AI Book Writer features. Us
 
 ## Collaboration Features
 
+### Project Scope Selector
+- [ ] Open `/dashboard/collaboration` and verify the Project Scope dropdown loads available projects
+- [ ] Switch between two projects and verify collaborator/comment/activity lists refresh per selected project
+- [ ] Add collaborator or comment in Project A, switch to Project B, and verify the new item does not appear there
+
 ### Share Project
 - [ ] Open project settings
 - [ ] Click "Share"
@@ -567,6 +594,35 @@ Comprehensive checklist for QA and manual testing of AI Book Writer features. Us
 - [ ] Reconnect network - verify data syncs
 - [ ] Close browser mid-edit - verify data saved
 - [ ] Reopen browser/project - verify latest content exists
+
+---
+
+## PWA & Offline
+
+### Installability
+- [ ] Open dashboard in Chrome/Edge and verify install prompt appears
+- [ ] Dismiss prompt and verify it can be triggered again on next eligible visit
+- [ ] Accept install prompt and verify app launches in standalone mode
+
+### Connectivity UI
+- [ ] Disconnect network and verify offline banner appears in dashboard
+- [ ] Reconnect network and verify offline banner is removed
+
+### Offline Chapter Viewing (Read Cache)
+- [ ] Open a chapter workspace while online
+- [ ] Navigate through chapter content and return to dashboard
+- [ ] Disconnect network
+- [ ] Reload dashboard and reopen previously visited chapter
+- [ ] Verify chapter content is still viewable from cache
+
+### Offline Chapter Editing Queue
+- [ ] Open chapter workspace while online, then disconnect network
+- [ ] Edit chapter content and wait for autosave debounce window
+- [ ] Verify queued autosave indicator appears with queued count
+- [ ] Make multiple offline edits and verify the most recent draft is the one replayed after reconnect
+- [ ] Reconnect network
+- [ ] Verify queued indicator clears after sync and "saved" state appears
+- [ ] Refresh chapter and verify offline-edited content persisted to backend
 
 ---
 

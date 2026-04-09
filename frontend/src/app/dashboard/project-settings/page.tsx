@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Loading, Spinner } from '@/components/ui/spinner';
+import { QueryErrorState } from '@/components/ui/query-error-state';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -54,7 +55,13 @@ export default function ProjectSettingsPage() {
       .map((token) => token.trim())
       .filter(Boolean);
 
-  const { data: booksData, isLoading: booksLoading } = useQuery({
+  const {
+    data: booksData,
+    isLoading: booksLoading,
+    isError: booksError,
+    error: booksErrorValue,
+    refetch: refetchBooks,
+  } = useQuery({
     queryKey: ['books'],
     queryFn: () => apiClient.books.list({ limit: 100 }),
   });
@@ -84,7 +91,13 @@ export default function ProjectSettingsPage() {
 
   const project = selectedBook && String(selectedBook.status) !== 'draft' ? selectedBook : null;
 
-  const { data: projectDetailsData, isLoading: projectDetailsLoading } = useQuery({
+  const {
+    data: projectDetailsData,
+    isLoading: projectDetailsLoading,
+    isError: projectDetailsError,
+    error: projectDetailsErrorValue,
+    refetch: refetchProjectDetails,
+  } = useQuery({
     queryKey: ['book', project?.id],
     queryFn: () => apiClient.books.get(project!.id),
     enabled: !!project?.id,
@@ -155,6 +168,18 @@ export default function ProjectSettingsPage() {
     return <Loading message="Loading project settings..." />;
   }
 
+  if (booksError) {
+    return (
+      <div className="max-w-5xl mx-auto pt-8 pb-24">
+        <QueryErrorState
+          title="Unable to load projects"
+          error={booksErrorValue}
+          onRetry={() => void refetchBooks()}
+        />
+      </div>
+    );
+  }
+
   // Auto-select first active/non-draft project if none selected
   if (!project && !booksLoading) {
     const books = booksData?.data?.items || [];
@@ -191,6 +216,18 @@ export default function ProjectSettingsPage() {
     return (
       <div className="flex h-64 items-center justify-center">
         <Spinner className="w-8 h-8 text-primary" />
+      </div>
+    );
+  }
+
+  if (projectDetailsError) {
+    return (
+      <div className="max-w-5xl mx-auto pt-8 pb-24">
+        <QueryErrorState
+          title="Unable to load project settings"
+          error={projectDetailsErrorValue}
+          onRetry={() => void refetchProjectDetails()}
+        />
       </div>
     );
   }

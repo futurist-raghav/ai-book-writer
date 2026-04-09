@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Spinner } from '@/components/ui/spinner';
+import { QueryErrorState } from '@/components/ui/query-error-state';
 import { apiClient } from '@/lib/api-client';
 import { formatDate } from '@/lib/utils';
 import { useBookStore } from '@/stores/book-store';
@@ -34,11 +35,19 @@ interface Book {
   ai_enhancement_enabled?: boolean;
 }
 
+interface CollaboratorPreview {
+  id: string;
+  name: string;
+  email?: string;
+  role?: string;
+}
+
 const ACTIVE_STATUSES = ['in_progress', 'review'];
 const ARCHIVED_STATUSES = ['archived', 'completed', 'published'];
 
 type ViewFilter = 'active' | 'archived' | 'drafts';
 type SortBy = 'updated_at' | 'created_at' | 'word_count' | 'title';
+type CatalogView = 'cards' | 'list';
 
 function csvToList(value: string): string[] {
   return value
@@ -86,6 +95,53 @@ function toApiSortBy(sortBy: SortBy): 'updated_at' | 'created_at' | 'title' | 's
   return 'updated_at';
 }
 
+function getCollaboratorInitials(name: string): string {
+  const trimmed = name.trim();
+  if (!trimmed) return 'C';
+  const parts = trimmed.split(/\s+/).filter(Boolean);
+  if (parts.length === 1) {
+    return parts[0].slice(0, 2).toUpperCase();
+  }
+  return `${parts[0][0] || ''}${parts[1][0] || ''}`.toUpperCase();
+}
+
+function normalizeCollaboratorItems(payload: unknown): CollaboratorPreview[] {
+  const root = payload as Record<string, unknown> | null;
+  const nestedData = (root?.data as Record<string, unknown> | undefined) || undefined;
+
+  const rawItems =
+    (Array.isArray(root?.items) ? root?.items : undefined) ||
+    (Array.isArray(nestedData?.items) ? nestedData?.items : undefined) ||
+    (Array.isArray(nestedData?.data) ? nestedData?.data : undefined) ||
+    (Array.isArray(root?.data) ? (root?.data as unknown[]) : undefined) ||
+    [];
+
+  return rawItems
+    .map((item, index) => {
+      const value = item as Record<string, unknown>;
+      const nameCandidate =
+        (typeof value.user_name === 'string' && value.user_name) ||
+        (typeof value.name === 'string' && value.name) ||
+        (typeof value.user_email === 'string' && value.user_email) ||
+        (typeof value.email === 'string' && value.email) ||
+        '';
+
+      const name = nameCandidate.trim();
+      if (!name) return null;
+
+      return {
+        id: String(value.id || value.user_id || `collaborator-${index}`),
+        name,
+        email:
+          (typeof value.user_email === 'string' && value.user_email) ||
+          (typeof value.email === 'string' && value.email) ||
+          undefined,
+        role: typeof value.role === 'string' ? value.role : undefined,
+      } as CollaboratorPreview;
+    })
+    .filter((item): item is CollaboratorPreview => Boolean(item));
+}
+
 export default function BooksPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -106,13 +162,14 @@ export default function BooksPage() {
   const [projectTypeFilter, setProjectTypeFilter] = useState('all');
   const [genreFilter, setGenreFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [catalogView, setCatalogView] = useState<CatalogView>('cards');
   const [page, setPage] = useState(1);
   const pageSize = 24;
 
   const statusFilter = statusFilterForView(viewFilter);
   const apiSortBy = toApiSortBy(sortBy);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['books', 'list', viewFilter, sortBy, projectTypeFilter, genreFilter, page, pageSize],
     queryFn: () =>
       apiClient.books.list({
@@ -130,6 +187,20 @@ export default function BooksPage() {
     setPage(1);
   }, [viewFilter, sortBy, projectTypeFilter, genreFilter]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const saved = window.localStorage.getItem('projects-catalog-view');
+    if (saved === 'cards' || saved === 'list') {
+      setCatalogView(saved);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem('projects-catalog-view', catalogView);
+  }, [catalogView]);
+
   const { data: statusCounts } = useQuery({
     queryKey: ['books', 'status-counts'],
     queryFn: async () => {
@@ -145,6 +216,33 @@ export default function BooksPage() {
         drafts: drafts.data?.total ?? 0,
       };
     },
+  });
+
+  const currentPageBooks = ((data?.data?.items || []) as Book[]).filter((book) => Boolean(book?.id));
+  const currentPageBookIds = currentPageBooks.map((book) => book.id).sort().join(',');
+
+  const { data: collaboratorPreviewsByBook = {} } = useQuery({
+    queryKey: ['books', 'collaborator-previews', currentPageBookIds],
+    enabled: currentPageBooks.length > 0,
+    queryFn: async () => {
+      const entries = await Promise.all(
+        currentPageBooks.map(async (book) => {
+          try {
+            const response = await apiClient.collaboration.membersByBook(book.id, {
+              page: 1,
+              limit: 6,
+              accepted_only: true,
+            });
+            return [book.id, normalizeCollaboratorItems(response.data)] as const;
+          } catch {
+            return [book.id, [] as CollaboratorPreview[]] as const;
+          }
+        })
+      );
+
+      return Object.fromEntries(entries) as Record<string, CollaboratorPreview[]>;
+    },
+    staleTime: 60_000,
   });
 
   const createMutation = useMutation({
@@ -261,9 +359,19 @@ export default function BooksPage() {
     }
 
     try {
-      // Fetch chapters and find the most recently updated one
-      const chaptersResponse = await apiClient.chapters.list({ limit: 1000 });
-      const allChapters = chaptersResponse.data?.items || [];
+      // Fetch chapters in pages (API enforces limit <= 100).
+      const allChapters: any[] = [];
+      const maxPages = 5;
+      for (let currentPage = 1; currentPage <= maxPages; currentPage += 1) {
+        const chaptersResponse = await apiClient.chapters.list({ page: currentPage, limit: 100 });
+        const pageItems = chaptersResponse.data?.items || [];
+        allChapters.push(...pageItems);
+
+        const totalPages = chaptersResponse.data?.pages || currentPage;
+        if (currentPage >= totalPages || pageItems.length === 0) {
+          break;
+        }
+      }
       
       // Filter chapters for this book and sort by updated_at descending
       const bookChapters = allChapters
@@ -284,14 +392,25 @@ export default function BooksPage() {
       const lastChapter = bookChapters[0];
       selectBook(book as any);
       router.push(`/dashboard/chapters/${lastChapter.id}`);
-    } catch (error) {
-      console.error('Error fetching chapters:', error);
+    } catch {
       toast.error('Failed to find last chapter. Please try again.');
     }
   };
 
   if (isLoading) {
     return <div className="flex h-64 items-center justify-center"><Spinner className="w-8 h-8 text-primary" /></div>;
+  }
+
+  if (isError) {
+    return (
+      <div className="max-w-6xl mx-auto pt-8 pb-24">
+        <QueryErrorState
+          title="Unable to load projects"
+          error={error}
+          onRetry={() => void refetch()}
+        />
+      </div>
+    );
   }
 
   const books: Book[] = data?.data?.items || [];
@@ -325,6 +444,137 @@ export default function BooksPage() {
           return b.word_count - a.word_count;
         })
       : searchFilteredProjects;
+
+  const renderProjectActions = (book: Book, className: string, compact = false) => {
+    const archived = ARCHIVED_STATUSES.includes(String(book.status));
+    const actionTextClass = compact ? 'text-[9px]' : 'text-[10px]';
+    const iconClass = compact ? 'text-xs' : 'text-sm';
+    const iconButtonSize = compact ? 'w-9 h-9' : 'w-10 h-10';
+
+    return (
+      <div className={className}>
+        <button
+          onClick={() => handleContinueWriting(book)}
+          disabled={book.chapter_count === 0}
+          className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-tertiary/10 text-tertiary hover:bg-tertiary hover:text-white font-label font-bold uppercase tracking-tight transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${actionTextClass}`}
+          title={book.chapter_count === 0 ? 'No chapters yet' : 'Continue to last chapter'}
+        >
+          <span className={`material-symbols-outlined ${iconClass}`}>auto_stories</span>
+          Continue
+        </button>
+
+        <button
+          onClick={() => handleOpenWorkspace(book)}
+          className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-white font-label font-bold uppercase tracking-tight transition-all active:scale-95 ${actionTextClass}`}
+          title={archived ? 'View' : 'Open'}
+        >
+          <span className={`material-symbols-outlined ${iconClass}`}>edit</span>
+          {archived ? 'View' : 'Open'}
+        </button>
+
+        <button
+          onClick={() => duplicateMutation.mutate(book.id)}
+          disabled={duplicateMutation.isPending}
+          className={`${iconButtonSize} flex items-center justify-center rounded-lg bg-secondary/10 text-secondary hover:bg-secondary hover:text-white transition-all disabled:opacity-50`}
+          title="Duplicate"
+        >
+          {duplicateMutation.isPending && duplicateMutation.variables === book.id ? (
+            <Spinner className="w-4 h-4" />
+          ) : (
+            <span className={`material-symbols-outlined ${iconClass}`}>content_copy</span>
+          )}
+        </button>
+
+        {archived ? (
+          <button
+            onClick={() => restoreMutation.mutate(book.id)}
+            disabled={restoreMutation.isPending}
+            className={`${iconButtonSize} flex items-center justify-center rounded-lg bg-tertiary/10 text-tertiary hover:bg-tertiary hover:text-white transition-all disabled:opacity-50`}
+            title="Restore"
+          >
+            {restoreMutation.isPending && restoreMutation.variables === book.id ? (
+              <Spinner className="w-4 h-4" />
+            ) : (
+              <span className={`material-symbols-outlined ${iconClass}`}>settings_backup_restore</span>
+            )}
+          </button>
+        ) : (
+          <button
+            onClick={() => archiveMutation.mutate(book.id)}
+            disabled={archiveMutation.isPending}
+            className={`${iconButtonSize} flex items-center justify-center rounded-lg bg-surface-container-high hover:bg-surface-container-highest transition-all disabled:opacity-50`}
+            title="Archive"
+          >
+            {archiveMutation.isPending && archiveMutation.variables === book.id ? (
+              <Spinner className="w-4 h-4" />
+            ) : (
+              <span className={`material-symbols-outlined ${iconClass}`}>inbox</span>
+            )}
+          </button>
+        )}
+
+        <button
+          onClick={() => {
+            if (confirm('Delete this project permanently?')) {
+              deleteMutation.mutate(book.id);
+            }
+          }}
+          disabled={deleteMutation.isPending}
+          className={`${iconButtonSize} flex items-center justify-center rounded-lg bg-error/10 text-error hover:bg-error hover:text-white transition-all disabled:opacity-50`}
+          title="Delete"
+        >
+          {deleteMutation.isPending && deleteMutation.variables === book.id ? (
+            <Spinner className="w-4 h-4" />
+          ) : (
+            <span className={`material-symbols-outlined ${iconClass}`}>delete</span>
+          )}
+        </button>
+      </div>
+    );
+  };
+
+  const renderCollaboratorAvatars = (book: Book, compact = false) => {
+    const collaborators = collaboratorPreviewsByBook[book.id] || [];
+    if (collaborators.length === 0) {
+      return null;
+    }
+
+    const visibleCollaborators = collaborators.slice(0, compact ? 3 : 4);
+    const hiddenCount = Math.max(0, collaborators.length - visibleCollaborators.length);
+
+    return (
+      <div className={compact ? 'mt-2' : 'mb-3'}>
+        <div className="flex items-center gap-2">
+          <span className="font-label text-[9px] font-bold uppercase tracking-wider text-on-surface-variant">Collaborators</span>
+          <div className="flex items-center -space-x-2">
+            {visibleCollaborators.map((collab, index) => (
+              <div
+                key={collab.id}
+                title={collab.email ? `${collab.name} (${collab.email})` : collab.name}
+                className={`flex items-center justify-center rounded-full border border-white bg-secondary/15 text-secondary font-label font-bold ${
+                  compact ? 'h-6 w-6 text-[9px]' : 'h-7 w-7 text-[10px]'
+                }`}
+                style={{ zIndex: visibleCollaborators.length - index }}
+              >
+                {getCollaboratorInitials(collab.name)}
+              </div>
+            ))}
+            {hiddenCount > 0 ? (
+              <div
+                className={`flex items-center justify-center rounded-full border border-white bg-surface-container-high text-on-surface-variant font-label font-bold ${
+                  compact ? 'h-6 w-6 text-[9px]' : 'h-7 w-7 text-[10px]'
+                }`}
+                title={`${hiddenCount} more collaborator${hiddenCount === 1 ? '' : 's'}`}
+                style={{ zIndex: 0 }}
+              >
+                +{hiddenCount}
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="max-w-6xl mx-auto pt-8 pb-24">
@@ -439,6 +689,35 @@ export default function BooksPage() {
             <option value="word_count">Sort: Word count</option>
             <option value="title">Sort: Title</option>
           </select>
+
+          <div className="inline-flex overflow-hidden rounded-lg border border-outline-variant/20 bg-surface-container-high">
+            <button
+              type="button"
+              onClick={() => setCatalogView('cards')}
+              className={`flex items-center gap-1.5 px-3 py-2 font-label text-xs font-bold uppercase tracking-wider transition-colors ${
+                catalogView === 'cards'
+                  ? 'bg-primary text-white'
+                  : 'text-primary hover:bg-surface-container-low'
+              }`}
+              aria-label="Card view"
+            >
+              <span className="material-symbols-outlined text-sm">grid_view</span>
+              Cards
+            </button>
+            <button
+              type="button"
+              onClick={() => setCatalogView('list')}
+              className={`flex items-center gap-1.5 px-3 py-2 font-label text-xs font-bold uppercase tracking-wider transition-colors ${
+                catalogView === 'list'
+                  ? 'bg-primary text-white'
+                  : 'text-primary hover:bg-surface-container-low'
+              }`}
+              aria-label="List view"
+            >
+              <span className="material-symbols-outlined text-sm">view_list</span>
+              List
+            </button>
+          </div>
 
           <Link href="/dashboard/drafts" className="px-4 py-2 rounded-lg border border-outline-variant/20 font-label text-xs font-bold uppercase tracking-wider text-primary hover:bg-surface-container-low transition-colors">
             Open Drafts
@@ -636,216 +915,241 @@ export default function BooksPage() {
             <span className="font-label text-[10px] text-on-surface-variant opacity-60">{totalProjects} items • page {page} of {Math.max(totalPages, 1)}</span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {visibleProjects.map((book) => {
-              const archived = ARCHIVED_STATUSES.includes(String(book.status));
-              const progress = getProgress(book);
-              const lastEdited = book.updated_at ? new Date(book.updated_at) : new Date(book.created_at);
-              const daysAgo = Math.floor((new Date().getTime() - lastEdited.getTime()) / (1000 * 60 * 60 * 24));
-              
-              return (
-                <div key={book.id} className="group relative rounded-2xl overflow-hidden bg-white border border-outline-variant/10 hover:border-secondary/30 shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col h-full">
-                  {/* Header with cover color/image */}
-                  <div
-                    className="h-24 w-full relative overflow-hidden bg-gradient-to-br flex items-center justify-center"
-                    style={{ 
-                      background: book.cover_color 
-                        ? `linear-gradient(135deg, ${book.cover_color}dd 0%, ${book.cover_color} 100%)`
-                        : 'linear-gradient(135deg, #536878 0%, #8b9ba8 100%)'
-                    }}
-                  >
-                    {book.cover_image_url ? (
-                      <img src={book.cover_image_url} alt={book.title} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="flex flex-col items-center gap-1 opacity-90">
-                        <span className="material-symbols-outlined text-4xl text-white">auto_stories</span>
-                        <span className="text-[10px] text-white font-bold uppercase tracking-wider">{book.status}</span>
-                      </div>
-                    )}
-                    
-                    {/* Pinned badge */}
-                    {book.is_pinned && (
-                      <div className="absolute top-2 right-2 bg-secondary text-white px-2 py-1 rounded-full flex items-center gap-1">
-                        <span className="material-symbols-outlined text-xs">keep</span>
-                        <span className="text-[8px] font-bold uppercase">Pinned</span>
-                      </div>
-                    )}
-                  </div>
+          {catalogView === 'cards' ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {visibleProjects.map((book) => {
+                const progress = getProgress(book);
+                const lastEdited = book.updated_at ? new Date(book.updated_at) : new Date(book.created_at);
+                const daysAgo = Math.floor((new Date().getTime() - lastEdited.getTime()) / (1000 * 60 * 60 * 24));
 
-                  {/* Content */}
-                  <div className="flex-1 p-5 flex flex-col">
-                    <button 
-                      onClick={() => handleOpenWorkspace(book)} 
-                      className="text-left mb-3 group/title"
+                return (
+                  <div key={book.id} className="group relative rounded-2xl overflow-hidden bg-white border border-outline-variant/10 hover:border-secondary/30 shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col h-full">
+                    <div
+                      className="h-24 w-full relative overflow-hidden bg-gradient-to-br flex items-center justify-center"
+                      style={{
+                        background: book.cover_color
+                          ? `linear-gradient(135deg, ${book.cover_color}dd 0%, ${book.cover_color} 100%)`
+                          : 'linear-gradient(135deg, #536878 0%, #8b9ba8 100%)'
+                      }}
                     >
-                      <h3 className="text-lg font-body italic text-primary group-hover/title:text-secondary transition-colors line-clamp-2">
-                        {book.title}
-                      </h3>
-                    </button>
-
-                    {/* Status badges */}
-                    <div className="flex flex-wrap gap-1.5 mb-3">
-                      <span className="inline-block font-label text-[8px] text-on-secondary-container bg-secondary-container px-2 py-0.5 rounded-full font-bold uppercase tracking-tight">
-                        {deriveProjectType(book).replace('_', ' ')}
-                      </span>
-                      <span className="inline-block font-label text-[8px] text-on-tertiary-container bg-tertiary-container px-2 py-0.5 rounded-full font-bold uppercase tracking-tight">
-                        {derivePrimaryGenre(book)}
-                      </span>
-                      <span className="inline-block font-label text-[8px] text-on-surface-variant bg-surface-container-high px-2 py-0.5 rounded-full font-bold uppercase tracking-tight">
-                        {book.chapter_count} ch
-                      </span>
-                    </div>
-
-                    {/* Word count and last edited */}
-                    <div className="mb-3 space-y-1">
-                      <div className="flex items-center justify-between text-[11px]">
-                        <span className="font-label text-on-surface-variant font-bold uppercase tracking-tight">Word Count</span>
-                        <span className="font-body text-primary font-semibold">{book.word_count.toLocaleString()}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-[11px]">
-                        <span className="font-label text-on-surface-variant font-bold uppercase tracking-tight">Last edited</span>
-                        <span className="font-body text-on-surface-variant text-[10px]">
-                          {daysAgo === 0 ? 'Today' : daysAgo === 1 ? 'Yesterday' : `${daysAgo}d ago`}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Progress bar */}
-                    {book.target_word_count && (
-                      <div className="mb-4">
-                        <div className="flex items-center justify-between mb-1.5">
-                          <span className="font-label text-[10px] font-bold uppercase tracking-tight text-on-surface-variant">Goal Progress</span>
-                          <span className="font-label text-[10px] font-bold uppercase tracking-tight text-primary">{progress}%</span>
-                        </div>
-                        <div className="w-full h-2.5 rounded-full bg-surface-container-high overflow-hidden">
-                          <div
-                            className="h-full rounded-full bg-gradient-to-r from-secondary to-secondary-container transition-all duration-300"
-                            style={{ width: `${progress || 0}%` }}
-                          />
-                        </div>
-                        <span className="text-[9px] text-on-surface-variant opacity-70 mt-1 block">
-                          {Math.round((book.word_count / book.target_word_count) * 100)}% of {book.target_word_count.toLocaleString()} words
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Deadline indicator */}
-                    {book.deadline_at && (
-                      <div className="mb-4">
-                        {(() => {
-                          const deadline = new Date(book.deadline_at);
-                          const now = new Date();
-                          const daysRemaining = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-                          const isOverdue = daysRemaining < 0;
-                          const isUrgent = daysRemaining <= 7 && daysRemaining > 0;
-                          
-                          return (
-                            <div className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg ${
-                              isOverdue ? 'bg-error/10' : isUrgent ? 'bg-error-container/50' : 'bg-tertiary-container/30'
-                            }`}>
-                              <span className="font-label text-[9px] font-bold uppercase tracking-tight text-on-surface-variant">Deadline</span>
-                              <span className={`font-label text-[10px] font-bold uppercase tracking-tight ${
-                                isOverdue ? 'text-error' : isUrgent ? 'text-error-container' : 'text-tertiary'
-                              }`}>
-                                {isOverdue 
-                                  ? `${Math.abs(daysRemaining)}d overdue` 
-                                  : daysRemaining === 0 
-                                  ? 'Today'
-                                  : daysRemaining === 1 
-                                  ? 'Tomorrow'
-                                  : `${daysRemaining}d left`
-                                }
-                              </span>
-                            </div>
-                          );
-                        })()}
-                      </div>
-                    )}
-
-                    {/* Action buttons */}
-                    <div className="flex gap-1.5 mt-auto pt-4 border-t border-outline-variant/10">
-                      <button
-                        onClick={() => handleContinueWriting(book)}
-                        disabled={book.chapter_count === 0}
-                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-tertiary/10 text-tertiary hover:bg-tertiary hover:text-white font-label font-bold text-[10px] uppercase tracking-tight transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
-                        title={book.chapter_count === 0 ? 'No chapters yet' : 'Continue to last chapter'}
-                      >
-                        <span className="material-symbols-outlined text-sm">auto_stories</span>
-                        Continue
-                      </button>
-
-                      <button
-                        onClick={() => handleOpenWorkspace(book)}
-                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-white font-label font-bold text-[10px] uppercase tracking-tight transition-all active:scale-95"
-                        title={archived ? 'View' : 'Open'}
-                      >
-                        <span className="material-symbols-outlined text-sm">edit</span>
-                        {archived ? 'View' : 'Open'}
-                      </button>
-
-                      <button
-                        onClick={() => duplicateMutation.mutate(book.id)}
-                        disabled={duplicateMutation.isPending}
-                        className="w-10 h-10 flex items-center justify-center rounded-lg bg-secondary/10 text-secondary hover:bg-secondary hover:text-white transition-all disabled:opacity-50"
-                        title="Duplicate"
-                      >
-                        {duplicateMutation.isPending && duplicateMutation.variables === book.id ? (
-                          <Spinner className="w-4 h-4" />
-                        ) : (
-                          <span className="material-symbols-outlined text-sm">content_copy</span>
-                        )}
-                      </button>
-
-                      {archived ? (
-                        <button
-                          onClick={() => restoreMutation.mutate(book.id)}
-                          disabled={restoreMutation.isPending}
-                          className="w-10 h-10 flex items-center justify-center rounded-lg bg-tertiary/10 text-tertiary hover:bg-tertiary hover:text-white transition-all disabled:opacity-50"
-                          title="Restore"
-                        >
-                          {restoreMutation.isPending && restoreMutation.variables === book.id ? (
-                            <Spinner className="w-4 h-4" />
-                          ) : (
-                            <span className="material-symbols-outlined text-sm">settings_backup_restore</span>
-                          )}
-                        </button>
+                      {book.cover_image_url ? (
+                        <img src={book.cover_image_url} alt={book.title} className="w-full h-full object-cover" />
                       ) : (
-                        <button
-                          onClick={() => archiveMutation.mutate(book.id)}
-                          disabled={archiveMutation.isPending}
-                          className="w-10 h-10 flex items-center justify-center rounded-lg bg-surface-container-high hover:bg-surface-container-highest transition-all disabled:opacity-50"
-                          title="Archive"
-                        >
-                          {archiveMutation.isPending && archiveMutation.variables === book.id ? (
-                            <Spinner className="w-4 h-4" />
-                          ) : (
-                            <span className="material-symbols-outlined text-sm">inbox</span>
-                          )}
-                        </button>
+                        <div className="flex flex-col items-center gap-1 opacity-90">
+                          <span className="material-symbols-outlined text-4xl text-white">auto_stories</span>
+                          <span className="text-[10px] text-white font-bold uppercase tracking-wider">{book.status}</span>
+                        </div>
                       )}
 
+                      {book.is_pinned && (
+                        <div className="absolute top-2 right-2 bg-secondary text-white px-2 py-1 rounded-full flex items-center gap-1">
+                          <span className="material-symbols-outlined text-xs">keep</span>
+                          <span className="text-[8px] font-bold uppercase">Pinned</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex-1 p-5 flex flex-col">
                       <button
-                        onClick={() => {
-                          if (confirm('Delete this project permanently?')) {
-                            deleteMutation.mutate(book.id);
-                          }
-                        }}
-                        disabled={deleteMutation.isPending}
-                        className="w-10 h-10 flex items-center justify-center rounded-lg bg-error/10 text-error hover:bg-error hover:text-white transition-all disabled:opacity-50"
-                        title="Delete"
+                        onClick={() => handleOpenWorkspace(book)}
+                        className="text-left mb-3 group/title"
                       >
-                        {deleteMutation.isPending && deleteMutation.variables === book.id ? (
-                          <Spinner className="w-4 h-4" />
-                        ) : (
-                          <span className="material-symbols-outlined text-sm">delete</span>
-                        )}
+                        <h3 className="text-lg font-body italic text-primary group-hover/title:text-secondary transition-colors line-clamp-2">
+                          {book.title}
+                        </h3>
                       </button>
+
+                      <div className="flex flex-wrap gap-1.5 mb-3">
+                        <span className="inline-block font-label text-[8px] text-on-secondary-container bg-secondary-container px-2 py-0.5 rounded-full font-bold uppercase tracking-tight">
+                          {deriveProjectType(book).replace('_', ' ')}
+                        </span>
+                        <span className="inline-block font-label text-[8px] text-on-tertiary-container bg-tertiary-container px-2 py-0.5 rounded-full font-bold uppercase tracking-tight">
+                          {derivePrimaryGenre(book)}
+                        </span>
+                        <span className="inline-block font-label text-[8px] text-on-surface-variant bg-surface-container-high px-2 py-0.5 rounded-full font-bold uppercase tracking-tight">
+                          {book.chapter_count} ch
+                        </span>
+                      </div>
+
+                      {renderCollaboratorAvatars(book)}
+
+                      <div className="mb-3 space-y-1">
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="font-label text-on-surface-variant font-bold uppercase tracking-tight">Word Count</span>
+                          <span className="font-body text-primary font-semibold">{book.word_count.toLocaleString()}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="font-label text-on-surface-variant font-bold uppercase tracking-tight">Last edited</span>
+                          <span className="font-body text-on-surface-variant text-[10px]">
+                            {daysAgo === 0 ? 'Today' : daysAgo === 1 ? 'Yesterday' : `${daysAgo}d ago`}
+                          </span>
+                        </div>
+                      </div>
+
+                      {book.target_word_count && (
+                        <div className="mb-4">
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="font-label text-[10px] font-bold uppercase tracking-tight text-on-surface-variant">Goal Progress</span>
+                            <span className="font-label text-[10px] font-bold uppercase tracking-tight text-primary">{progress}%</span>
+                          </div>
+                          <div className="w-full h-2.5 rounded-full bg-surface-container-high overflow-hidden">
+                            <div
+                              className="h-full rounded-full bg-gradient-to-r from-secondary to-secondary-container transition-all duration-300"
+                              style={{ width: `${progress || 0}%` }}
+                            />
+                          </div>
+                          <span className="text-[9px] text-on-surface-variant opacity-70 mt-1 block">
+                            {Math.round((book.word_count / book.target_word_count) * 100)}% of {book.target_word_count.toLocaleString()} words
+                          </span>
+                        </div>
+                      )}
+
+                      {book.deadline_at && (
+                        <div className="mb-4">
+                          {(() => {
+                            const deadline = new Date(book.deadline_at);
+                            const now = new Date();
+                            const daysRemaining = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                            const isOverdue = daysRemaining < 0;
+                            const isUrgent = daysRemaining <= 7 && daysRemaining > 0;
+
+                            return (
+                              <div className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg ${
+                                isOverdue ? 'bg-error/10' : isUrgent ? 'bg-error-container/50' : 'bg-tertiary-container/30'
+                              }`}>
+                                <span className="font-label text-[9px] font-bold uppercase tracking-tight text-on-surface-variant">Deadline</span>
+                                <span className={`font-label text-[10px] font-bold uppercase tracking-tight ${
+                                  isOverdue ? 'text-error' : isUrgent ? 'text-error-container' : 'text-tertiary'
+                                }`}>
+                                  {isOverdue
+                                    ? `${Math.abs(daysRemaining)}d overdue`
+                                    : daysRemaining === 0
+                                      ? 'Today'
+                                      : daysRemaining === 1
+                                        ? 'Tomorrow'
+                                        : `${daysRemaining}d left`
+                                  }
+                                </span>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      )}
+
+                      {renderProjectActions(book, 'flex gap-1.5 mt-auto pt-4 border-t border-outline-variant/10')}
                     </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {visibleProjects.map((book) => {
+                const progress = getProgress(book);
+                const lastEdited = book.updated_at ? new Date(book.updated_at) : new Date(book.created_at);
+
+                return (
+                  <div key={book.id} className="rounded-xl border border-outline-variant/15 bg-white p-4 shadow-sm">
+                    <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                      <div className="flex min-w-0 flex-1 items-start gap-4">
+                        <div
+                          className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-gradient-to-br"
+                          style={{
+                            background: book.cover_color
+                              ? `linear-gradient(135deg, ${book.cover_color}dd 0%, ${book.cover_color} 100%)`
+                              : 'linear-gradient(135deg, #536878 0%, #8b9ba8 100%)'
+                          }}
+                        >
+                          {book.cover_image_url ? (
+                            <img src={book.cover_image_url} alt={book.title} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center">
+                              <span className="material-symbols-outlined text-2xl text-white">auto_stories</span>
+                            </div>
+                          )}
+
+                          {book.is_pinned ? (
+                            <span className="absolute right-1 top-1 material-symbols-outlined text-sm text-white">keep</span>
+                          ) : null}
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <button onClick={() => handleOpenWorkspace(book)} className="text-left">
+                            <h3 className="line-clamp-1 text-lg font-body italic text-primary hover:text-secondary transition-colors">
+                              {book.title}
+                            </h3>
+                          </button>
+
+                          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                            <span className="inline-block rounded-full bg-secondary-container px-2 py-0.5 font-label text-[9px] font-bold uppercase tracking-tight text-on-secondary-container">
+                              {deriveProjectType(book).replace('_', ' ')}
+                            </span>
+                            <span className="inline-block rounded-full bg-tertiary-container px-2 py-0.5 font-label text-[9px] font-bold uppercase tracking-tight text-on-tertiary-container">
+                              {derivePrimaryGenre(book)}
+                            </span>
+                            <span className="inline-block rounded-full bg-surface-container-high px-2 py-0.5 font-label text-[9px] font-bold uppercase tracking-tight text-on-surface-variant">
+                              {formatStatus(book.status)}
+                            </span>
+                          </div>
+
+                          {renderCollaboratorAvatars(book, true)}
+
+                          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-on-surface-variant">
+                            <span>{book.word_count.toLocaleString()} words</span>
+                            <span>{book.chapter_count} chapters</span>
+                            <span>Updated {formatDate(lastEdited.toISOString())}</span>
+                          </div>
+
+                          {book.target_word_count ? (
+                            <div className="mt-2 max-w-xl">
+                              <div className="mb-1 flex items-center justify-between">
+                                <span className="font-label text-[10px] font-bold uppercase tracking-tight text-on-surface-variant">Goal Progress</span>
+                                <span className="font-label text-[10px] font-bold uppercase tracking-tight text-primary">{progress}%</span>
+                              </div>
+                              <div className="h-2.5 w-full overflow-hidden rounded-full bg-surface-container-high">
+                                <div
+                                  className="h-full rounded-full bg-gradient-to-r from-secondary to-secondary-container"
+                                  style={{ width: `${progress || 0}%` }}
+                                />
+                              </div>
+                            </div>
+                          ) : null}
+
+                          {book.deadline_at ? (
+                            <div className="mt-2 text-[10px] font-bold uppercase tracking-tight text-on-surface-variant">
+                              {(() => {
+                                const deadline = new Date(book.deadline_at);
+                                const now = new Date();
+                                const daysRemaining = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+                                if (daysRemaining < 0) {
+                                  return `Deadline: ${Math.abs(daysRemaining)}d overdue`;
+                                }
+
+                                if (daysRemaining === 0) {
+                                  return 'Deadline: today';
+                                }
+
+                                if (daysRemaining === 1) {
+                                  return 'Deadline: tomorrow';
+                                }
+
+                                return `Deadline: ${daysRemaining}d left`;
+                              })()}
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
+
+                      <div className="xl:min-w-[320px]">
+                        {renderProjectActions(book, 'flex flex-wrap justify-start xl:justify-end gap-1.5', true)}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
           {totalPages > 1 ? (
             <div className="mt-8 flex items-center justify-between">

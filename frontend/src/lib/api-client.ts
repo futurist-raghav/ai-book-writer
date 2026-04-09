@@ -1,0 +1,444 @@
+import axios, { AxiosError, AxiosRequestConfig } from 'axios';
+import { useAuthStore } from '@/stores/auth-store';
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+
+// Create axios instance
+export const api = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Request interceptor to add auth token
+api.interceptors.request.use(
+  (config) => {
+    const token = useAuthStore.getState().accessToken;
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Response interceptor for token refresh
+api.interceptors.response.use(
+  (response) => response,
+  async (error: AxiosError) => {
+    const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
+    if (!originalRequest) {
+      return Promise.reject(error);
+    }
+
+    const requestUrl = originalRequest.url || '';
+    const isAuthEndpoint = /\/auth\/(login|register|refresh)\/?$/.test(requestUrl);
+    if (isAuthEndpoint) {
+      return Promise.reject(error);
+    }
+
+    const statusCode = error.response?.status;
+    const detail = (error.response?.data as { detail?: string } | undefined)?.detail;
+
+    const isAuthError =
+      statusCode === 401 ||
+      (statusCode === 403 && detail === 'Not authenticated');
+
+    // If auth failed and not already retrying, try to refresh token.
+    if (isAuthError && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      const refreshToken = useAuthStore.getState().refreshToken;
+      if (refreshToken) {
+        try {
+          const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
+            refresh_token: refreshToken,
+          });
+
+          const { access_token, refresh_token } = response.data;
+          useAuthStore.getState().setTokens(access_token, refresh_token);
+
+          // Retry original request with new token
+          if (originalRequest.headers) {
+            originalRequest.headers.Authorization = `Bearer ${access_token}`;
+          }
+          return api(originalRequest);
+        } catch (refreshError) {
+          // Refresh failed, logout user and let router-controlled layers redirect.
+          useAuthStore.getState().logout();
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('auth:expired'));
+          }
+          return Promise.reject(refreshError);
+        }
+      } else {
+        // No refresh token available, force re-authentication via UI/router layer.
+        useAuthStore.getState().logout();
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('auth:expired'));
+        }
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+
+// Type-safe API methods
+export const apiClient = {
+  // Auth
+  auth: {
+    register: async (data: { email: string; password: string; full_name?: string; ai_assist_enabled?: boolean }) =>
+      api.post('/auth/register', data),
+    login: async (data: { email: string; password: string }) =>
+      api.post('/auth/login', data),
+    refresh: async (refreshToken: string) =>
+      api.post('/auth/refresh', { refresh_token: refreshToken }),
+    me: async () => api.get('/auth/me'),
+    updateMe: async (data: { full_name?: string }) =>
+      api.put('/auth/me', data),
+    updateWritingProfile: async (data: {
+      writing_style?: string;
+      preferred_tense?: string;
+      preferred_perspective?: string;
+      ai_assist_enabled?: boolean;
+    }) => api.put('/auth/me/writing-profile', data),
+    changePassword: async (data: { current_password: string; new_password: string }) =>
+      api.post('/auth/change-password', data),
+  },
+
+  // Audio
+  audio: {
+    list: async (params?: { skip?: number; limit?: number; status?: string }) =>
+      api.get('/audio', { params }),
+    get: async (id: string) => api.get(`/audio/${id}`),
+    upload: async (
+      file: File,
+      onProgress?: (progress: number) => void,
+      options?: {
+        transcription_mode?: 'transcribe' | 'translate';
+        chapter_id?: string;
+        source_language?: string;
+        target_language?: string;
+      }
+    ) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      if (options?.transcription_mode) {
+        formData.append('transcription_mode', options.transcription_mode);
+      }
+      if (options?.chapter_id) {
+        formData.append('chapter_id', options.chapter_id);
+      }
+      if (options?.source_language) {
+        formData.append('source_language', options.source_language);
+      }
+      if (options?.target_language) {
+        formData.append('target_language', options.target_language);
+      }
+      return api.post('/audio/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        onUploadProgress: (progressEvent) => {
+          if (onProgress && progressEvent.total) {
+            onProgress(Math.round((progressEvent.loaded * 100) / progressEvent.total));
+          }
+        },
+      });
+    },
+    update: async (id: string, data: { title?: string; description?: string }) =>
+      api.put(`/audio/${id}`, data),
+    delete: async (id: string) => api.delete(`/audio/${id}`),
+    status: async (id: string) => api.get(`/audio/${id}/status`),
+    retry: async (id: string) => api.post(`/audio/${id}/retry`),
+  },
+
+  // Transcriptions
+  transcriptions: {
+    list: async (params?: { skip?: number; limit?: number }) =>
+      api.get('/transcriptions', { params }),
+    get: async (id: string) => api.get(`/transcriptions/${id}`),
+    getByAudio: async (audioId: string) => api.get(`/transcriptions/audio/${audioId}`),
+    update: async (id: string, data: { text?: string }) =>
+      api.put(`/transcriptions/${id}`, data),
+    createManual: async (audioId: string, data: { text: string; language?: string }) =>
+      api.post(`/transcriptions/audio/${audioId}/manual`, data),
+    extractEvents: async (id: string, chapterId?: string) =>
+      api.post(`/transcriptions/${id}/extract-events`, undefined, {
+        params: chapterId ? { chapter_id: chapterId } : undefined,
+      }),
+  },
+
+  // Events
+  events: {
+    list: async (params?: {
+      skip?: number;
+      limit?: number;
+      category?: string;
+      featured?: boolean;
+    }) => api.get('/events', { params }),
+    get: async (id: string) => api.get(`/events/${id}`),
+    create: async (data: {
+      title: string;
+      content: string;
+      summary?: string;
+      category?: string;
+      subcategory?: string;
+      tags?: string[];
+      location?: string;
+      people?: Array<{ name: string; relationship?: string; description?: string }>;
+      sentiment?: string;
+      emotions?: string[];
+    }) => api.post('/events', data),
+    update: async (
+      id: string,
+      data: Partial<{
+        title: string;
+        summary: string;
+        content: string;
+        category: string;
+        subcategory: string;
+        tags: string[];
+        location: string;
+        people: Array<{ name: string; relationship?: string; description?: string }>;
+        sentiment: string;
+        emotions: string[];
+      }>
+    ) =>
+      api.put(`/events/${id}`, data),
+    delete: async (id: string) => api.delete(`/events/${id}`),
+    reorder: async (eventIds: string[]) => api.post('/events/reorder', { event_ids: eventIds }),
+    feature: async (id: string, featured: boolean) =>
+      api.post(`/events/${id}/feature`, { is_featured: featured }),
+    categories: async () => api.get('/events/categories'),
+    tags: async () => api.get('/events/tags'),
+  },
+
+  // Chapters
+  chapters: {
+    list: async (params?: { page?: number; limit?: number; status?: string; workflow_status?: string; chapter_type?: string }) =>
+      api.get('/chapters', { params }),
+    get: async (id: string) => api.get(`/chapters/${id}`),
+    workspace: async (id: string) => api.get(`/chapters/${id}/workspace`),
+    create: async (data: {
+      title: string;
+      chapter_number: number;
+      subtitle?: string;
+      description?: string;
+      summary?: string;
+      chapter_type?: string;
+      workflow_status?: string;
+      word_count_target?: number;
+      timeline_position?: string;
+      pov_character?: string;
+      writing_style?: string;
+      tone?: string;
+      ai_enhancement_enabled?: boolean;
+      event_ids?: string[];
+    }) => api.post('/chapters', data),
+    update: async (id: string, data: Partial<{ title: string; description?: string; summary?: string; chapter_type?: string; workflow_status?: string; word_count_target?: number; timeline_position?: string; pov_character?: string; writing_style?: string; tone?: string; ai_enhancement_enabled?: boolean; status?: string }>) =>
+      api.put(`/chapters/${id}`, data),
+    delete: async (id: string) => api.delete(`/chapters/${id}`),
+    addEvent: async (chapterId: string, eventId: string, orderIndex?: number) =>
+      api.post(`/chapters/${chapterId}/events`, { event_ids: [eventId], order_index: orderIndex }),
+    removeEvent: async (chapterId: string, eventId: string) =>
+      api.delete(`/chapters/${chapterId}/events/${eventId}`),
+    reorderEvents: async (chapterId: string, eventIds: string[]) =>
+      api.post(`/chapters/${chapterId}/events/reorder`, { event_ids: eventIds }),
+    compile: async (chapterId: string, options?: { writing_style?: string; tone?: string; regenerate?: boolean }) =>
+      api.post(`/chapters/${chapterId}/compile`, options || {}),
+    generateSummary: async (chapterId: string) =>
+      api.post(`/chapters/${chapterId}/generate-summary`),
+    generateOutline: async (chapterId: string) =>
+      api.post(`/chapters/${chapterId}/generate-outline`),
+    expandNotes: async (
+      chapterId: string,
+      data: { notes: string; tone?: string; preserve_writer_commitment?: boolean }
+    ) => api.post(`/chapters/${chapterId}/expand-notes`, data),
+    checkConsistency: async (chapterId: string) =>
+      api.post(`/chapters/${chapterId}/check-consistency`),
+    extractEntities: async (chapterId: string) =>
+      api.post(`/chapters/${chapterId}/extract-entities`),
+    generateContext: async (chapterId: string, data?: { writing_form?: string; force?: boolean }) =>
+      api.post(`/chapters/${chapterId}/context/generate`, data || {}),
+    updateContext: async (chapterId: string, data: { base_context: string; writing_form?: string }) =>
+      api.put(`/chapters/${chapterId}/context`, data),
+    chat: async (
+      chapterId: string,
+      data: {
+        message: string;
+        writing_form?: string;
+        rewrite_depth?: 'light' | 'deep';
+        include_current_compiled_content?: boolean;
+        preserve_writer_commitment?: boolean;
+      }
+    ) => api.post(`/chapters/${chapterId}/chat`, data),
+    uploadAsset: async (chapterId: string, file: File, assetType?: 'image' | 'document') => {
+      const formData = new FormData();
+      formData.append('file', file);
+      if (assetType) {
+        formData.append('asset_type', assetType);
+      }
+      return api.post(`/chapters/${chapterId}/assets/upload`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+    },
+    // Version snapshots
+    versions: {
+      list: async (chapterId: string, params?: { page?: number; page_size?: number }) =>
+        api.get(`/chapters/${chapterId}/versions`, { params }),
+      get: async (chapterId: string, versionId: string) =>
+        api.get(`/chapters/${chapterId}/versions/${versionId}`),
+      create: async (chapterId: string, data?: { version_name?: string; change_description?: string; is_auto_snapshot?: boolean }) =>
+        api.post(`/chapters/${chapterId}/versions`, data || {}),
+      update: async (chapterId: string, versionId: string, data: { version_name?: string; change_description?: string }) =>
+        api.patch(`/chapters/${chapterId}/versions/${versionId}`, data),
+      delete: async (chapterId: string, versionId: string) =>
+        api.delete(`/chapters/${chapterId}/versions/${versionId}`),
+      revertTo: async (chapterId: string, versionId: string) =>
+        api.post(`/chapters/${chapterId}/revert-to/${versionId}`),
+      diff: async (chapterId: string, fromVersionId: string, toVersionId: string) =>
+        api.get(`/chapters/${chapterId}/versions/${fromVersionId}/diff/${toVersionId}`),
+    },
+  },
+
+  // Books
+  books: {
+    list: async (params?: {
+      page?: number;
+      limit?: number;
+      status?: string;
+      project_type?: string;
+      genre?: string;
+      pinned?: boolean;
+      sort_by?: 'updated_at' | 'created_at' | 'title' | 'status';
+      sort_order?: 'asc' | 'desc';
+    }) =>
+      api.get('/books', { params }),
+    get: async (id: string) => api.get(`/books/${id}`),
+    create: async (data: {
+      title: string;
+      subtitle?: string;
+      author_name?: string;
+      description?: string;
+      project_context?: string;
+      project_settings?: Record<string, unknown>;
+      project_type?: string;
+      book_type?: string;
+      genres?: string[];
+      tags?: string[];
+      labels?: string[];
+      cover_image_url?: string;
+      cover_color?: string;
+      target_word_count?: number;
+      deadline_at?: string;
+      is_pinned?: boolean;
+      default_writing_form?: string;
+      default_chapter_tone?: string;
+      ai_enhancement_enabled?: boolean;
+      status?: string;
+      auto_create_chapters?: number;
+    }) => api.post('/books', data),
+    update: async (id: string, data: Partial<{ title: string; description?: string; project_context?: string; project_settings?: Record<string, unknown>; project_type?: string; book_type?: string; genres?: string[]; tags?: string[]; labels?: string[]; cover_image_url?: string; cover_color?: string; target_word_count?: number | null; deadline_at?: string | null; is_pinned?: boolean; default_writing_form?: string; default_chapter_tone?: string; ai_enhancement_enabled?: boolean; status?: string }>) =>
+      api.put(`/books/${id}`, data),
+    delete: async (id: string) => api.delete(`/books/${id}`),
+    duplicate: async (bookId: string) => api.post(`/books/${bookId}/duplicate`),
+    applyTemplate: async (
+      bookId: string,
+      templateId: string,
+      options?: { replace_existing?: boolean; include_parts?: boolean }
+    ) => api.post(`/books/${bookId}/apply-template`, { template_id: templateId, ...(options || {}) }),
+    generateOutline: async (
+      bookId: string,
+      data?: { chapter_count?: number; auto_create_chapters?: boolean; replace_existing?: boolean }
+    ) => api.post(`/books/${bookId}/generate-outline`, data || {}),
+    generateSynopsis: async (
+      bookId: string,
+      data?: { length?: 'one_page' | 'three_page' | 'full' }
+    ) => api.post(`/books/${bookId}/generate-synopsis`, data || {}),
+    archive: async (bookId: string) => api.post(`/books/${bookId}/archive`),
+    restore: async (bookId: string) => api.post(`/books/${bookId}/restore`),
+    pin: async (bookId: string, isPinned: boolean) => api.post(`/books/${bookId}/pin`, { is_pinned: isPinned }),
+    addChapter: async (bookId: string, chapterId: string, orderIndex?: number) =>
+      api.post(`/books/${bookId}/chapters`, { chapter_ids: [chapterId], order_index: orderIndex }),
+    removeChapter: async (bookId: string, chapterId: string) =>
+      api.delete(`/books/${bookId}/chapters/${chapterId}`),
+    reorderChapters: async (bookId: string, chapterIds: string[]) =>
+      api.post(`/books/${bookId}/chapters/reorder`, { chapter_ids: chapterIds }),
+    updateFrontMatter: async (bookId: string, data: Record<string, string>) =>
+      api.put(`/books/${bookId}/front-matter`, data),
+    updateBackMatter: async (bookId: string, data: Record<string, string>) =>
+      api.put(`/books/${bookId}/back-matter`, data),
+    export: async (bookId: string, format: string, options?: Record<string, unknown>) =>
+      api.post(`/books/${bookId}/export`, { format, ...(options || {}) }),
+  },
+
+  // Collaboration
+  collaboration: {
+    members: async (params?: { page?: number; limit?: number }) =>
+      api.get('/collaboration/members', { params }),
+    membersByBook: async (
+      bookId: string,
+      params?: { page?: number; limit?: number; role?: string; accepted_only?: boolean }
+    ) => api.get(`/books/${bookId}/collaborators`, { params }),
+    comments: async (params?: { page?: number; limit?: number; chapter_id?: string }) =>
+      api.get('/collaboration/comments', { params }),
+    commentsByBook: async (
+      bookId: string,
+      params?: { page?: number; limit?: number; unresolved_only?: boolean; target_type?: string }
+    ) => api.get(`/books/${bookId}/comments`, { params }),
+    activity: async (params?: { page?: number; limit?: number }) =>
+      api.get('/collaboration/activity', { params }),
+    activityByBook: async (
+      bookId: string,
+      params?: { page?: number; limit?: number; activity_type?: string }
+    ) => api.get(`/books/${bookId}/activities`, { params }),
+    invite: async (data: { email: string; role: 'editor' | 'reviewer' | 'contributor' | 'viewer' }) =>
+      api.post('/collaboration/invite', data),
+    inviteByBook: async (
+      bookId: string,
+      data: { email: string; role: 'editor' | 'reviewer' | 'contributor' | 'viewer' }
+    ) => api.post(`/books/${bookId}/collaborators/invite`, data),
+    addComment: async (data: { chapter_id: string; text: string; position?: number }) =>
+      api.post('/collaboration/comments', data),
+    addCommentByBook: async (
+      bookId: string,
+      data: { content: string; target_type?: string; target_id?: string }
+    ) => api.post(`/books/${bookId}/comments`, data),
+    removeMember: async (id: string) => api.delete(`/collaboration/members/${id}`),
+    removeMemberByBook: async (bookId: string, collaboratorId: string) =>
+      api.delete(`/books/${bookId}/collaborators/${collaboratorId}`),
+  },
+
+  // Publishing
+  publishing: {
+    list: async (params?: { page?: number; limit?: number; status?: string }) =>
+      api.get('/publishing/exports', { params }),
+    get: async (id: string) => api.get(`/publishing/exports/${id}`),
+    export: async (data: { book_id: string; format: string; options?: Record<string, unknown> }) =>
+      api.post('/publishing/exports', data),
+    updateExport: async (id: string, data: Partial<{ status?: string; metadata?: Record<string, unknown> }>) =>
+      api.put(`/publishing/exports/${id}`, data),
+    deleteExport: async (id: string) => api.delete(`/publishing/exports/${id}`),
+    download: async (id: string) => api.get(`/publishing/exports/${id}/download`, { responseType: 'blob' }),
+  },
+
+  // References
+  references: {
+    list: async (params?: { page?: number; limit?: number; search?: string; source_type?: string }) =>
+      api.get('/references', { params }),
+    get: async (id: string) => api.get(`/references/${id}`),
+    create: async (data: {
+      title: string;
+      author?: string;
+      source_type: 'book' | 'article' | 'website' | 'paper' | 'video' | 'other';
+      url?: string;
+      notes?: string;
+      chapter_id?: string;
+      extracted_text?: string;
+    }) => api.post('/references', data),
+    update: async (id: string, data: Partial<{ title?: string; author?: string; source_type?: string; url?: string; notes?: string; extracted_text?: string }>) =>
+      api.put(`/references/${id}`, data),
+    delete: async (id: string) => api.delete(`/references/${id}`),
+  },
+};

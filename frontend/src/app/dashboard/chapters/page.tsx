@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Spinner } from '@/components/ui/spinner';
+import { QueryErrorState } from '@/components/ui/query-error-state';
 import { apiClient } from '@/lib/api-client';
 import { formatDate } from '@/lib/utils';
 import { useBookStore } from '@/stores/book-store';
@@ -22,6 +23,7 @@ interface Chapter {
   word_count_target?: number;
   target_progress_percent?: number;
   timeline_position?: string;
+  pov_character?: string;
   compiled_content?: string;
   ai_enhancement_enabled?: boolean;
   word_count: number;
@@ -55,6 +57,27 @@ function chapterProgress(chapter: Chapter): number | null {
   return Math.max(0, Math.min(100, Math.round((chapter.word_count / chapter.word_count_target) * 100)));
 }
 
+function getProjectOrderIndex(chapter: Chapter, projectId: string): number {
+  const assoc = chapter.projects?.find((project) => project.id === projectId);
+  if (typeof assoc?.order_index === 'number') {
+    return assoc.order_index;
+  }
+  return chapter.chapter_number;
+}
+
+function reorderIds(ids: string[], fromId: string, toId: string): string[] {
+  const fromIndex = ids.indexOf(fromId);
+  const toIndex = ids.indexOf(toId);
+  if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) {
+    return ids;
+  }
+
+  const next = [...ids];
+  const [moved] = next.splice(fromIndex, 1);
+  next.splice(toIndex, 0, moved);
+  return next;
+}
+
 export default function ChaptersPage() {
   const queryClient = useQueryClient();
   const { selectedBook, selectBook } = useBookStore();
@@ -64,6 +87,11 @@ export default function ChaptersPage() {
   const [workflowFilter, setWorkflowFilter] = useState('all');
   const [chapterTypeFilter, setChapterTypeFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [orderedChapterIds, setOrderedChapterIds] = useState<string[]>([]);
+  const [draggingChapterId, setDraggingChapterId] = useState<string | null>(null);
+  const [selectedChapterIds, setSelectedChapterIds] = useState<string[]>([]);
+  const [bulkWorkflowStatus, setBulkWorkflowStatus] = useState('draft');
+  const [bulkChapterType, setBulkChapterType] = useState('chapter');
 
   // Get dynamic labels based on project type
   const projectType = (selectedBook?.project_type || 'novel') as ProjectType;
@@ -71,17 +99,18 @@ export default function ChaptersPage() {
   const structureUnitName = config.structureUnitName; // e.g., "Chapters", "Scenes", "Lessons"
   const pluralName = structureUnitName.endsWith('s') ? structureUnitName : `${structureUnitName}s`;
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['chapters', workflowFilter, chapterTypeFilter],
-    queryFn: () =>
-      apiClient.chapters.list({
-        limit: 100,
-        workflow_status: workflowFilter !== 'all' ? workflowFilter : undefined,
-        chapter_type: chapterTypeFilter !== 'all' ? chapterTypeFilter : undefined,
-      }),
+  const { data, isLoading, isError, error, refetch } = useQuery({
+    queryKey: ['chapters'],
+    queryFn: () => apiClient.chapters.list({ limit: 100 }),
   });
 
-  const { data: booksData } = useQuery({
+  const {
+    data: booksData,
+    isLoading: booksLoading,
+    isError: booksError,
+    error: booksErrorValue,
+    refetch: refetchBooks,
+  } = useQuery({
     queryKey: ['books', 'for-chapter-form'],
     queryFn: () => apiClient.books.list({ limit: 100 }),
   });
@@ -150,6 +179,51 @@ export default function ChaptersPage() {
     },
   });
 
+  const reorderMutation = useMutation({
+    mutationFn: (chapterIds: string[]) => apiClient.books.reorderChapters(selectedProjectId, chapterIds),
+    onSuccess: () => {
+      toast.success('Chapter order updated');
+      queryClient.invalidateQueries({ queryKey: ['chapters'] });
+      queryClient.invalidateQueries({ queryKey: ['book', selectedProjectId] });
+    },
+    onError: () => {
+      toast.error('Failed to reorder chapters');
+    },
+  });
+
+  const bulkUpdateMutation = useMutation({
+    mutationFn: async (payload: { chapterIds: string[]; workflowStatus?: string; chapterType?: string }) => {
+      return Promise.all(
+        payload.chapterIds.map((chapterId) =>
+          apiClient.chapters.update(chapterId, {
+            workflow_status: payload.workflowStatus,
+            chapter_type: payload.chapterType,
+          })
+        )
+      );
+    },
+    onSuccess: (_, payload) => {
+      toast.success(`Updated ${payload.chapterIds.length} chapters`);
+      setSelectedChapterIds([]);
+      queryClient.invalidateQueries({ queryKey: ['chapters'] });
+    },
+    onError: () => {
+      toast.error('Failed to apply bulk update');
+    },
+  });
+
+  const povMutation = useMutation({
+    mutationFn: ({ chapterId, povCharacter }: { chapterId: string; povCharacter?: string }) =>
+      apiClient.chapters.update(chapterId, { pov_character: povCharacter }),
+    onSuccess: () => {
+      toast.success('POV updated');
+      queryClient.invalidateQueries({ queryKey: ['chapters'] });
+    },
+    onError: () => {
+      toast.error('Failed to update POV');
+    },
+  });
+
   const handleCreateChapter = () => {
     if (!newChapterTitle.trim()) return;
     if (!selectedProjectId) {
@@ -174,6 +248,16 @@ export default function ChaptersPage() {
   const workflowOptions = Array.from(new Set(chapters.map((chapter) => chapter.workflow_status).filter(Boolean))) as string[];
   const chapterTypeOptions = Array.from(new Set(chapters.map((chapter) => chapter.chapter_type).filter(Boolean))) as string[];
 
+  const allProjectChapters = selectedProjectId
+    ? chapters.filter((chapter) => Array.isArray(chapter.projects) && chapter.projects.some((project) => project.id === selectedProjectId))
+    : [];
+
+  const canReorder =
+    Boolean(selectedProjectId) &&
+    workflowFilter === 'all' &&
+    chapterTypeFilter === 'all' &&
+    !searchQuery.trim();
+
   useEffect(() => {
     if (!selectedProjectId && assignableProjects.length > 0) {
       const fallbackProject = selectedBook && assignableProjects.some((project) => project.id === selectedBook.id)
@@ -187,22 +271,99 @@ export default function ChaptersPage() {
     }
   }, [assignableProjects, selectedBook, selectedProjectId, selectBook]);
 
-  const projectScopedChapters = selectedProjectId
-    ? chapters
-        .filter((chapter) => Array.isArray(chapter.projects) && chapter.projects.some((project) => project.id === selectedProjectId))
-        .filter((chapter) => {
-          if (!searchQuery.trim()) return true;
-          const lowerQuery = searchQuery.toLowerCase();
-          return (
-            chapter.title.toLowerCase().includes(lowerQuery) ||
-            (chapter.subtitle && chapter.subtitle.toLowerCase().includes(lowerQuery)) ||
-            (chapter.summary && chapter.summary.toLowerCase().includes(lowerQuery))
-          );
-        })
-    : [];
+  useEffect(() => {
+    const sortedIds = [...allProjectChapters]
+      .sort((a, b) => getProjectOrderIndex(a, selectedProjectId) - getProjectOrderIndex(b, selectedProjectId))
+      .map((chapter) => chapter.id);
 
-  if (isLoading) {
+    setOrderedChapterIds((prev) => {
+      if (prev.length === sortedIds.length && prev.every((id, index) => id === sortedIds[index])) {
+        return prev;
+      }
+      return sortedIds;
+    });
+
+    setSelectedChapterIds((prev) => prev.filter((id) => sortedIds.includes(id)));
+  }, [allProjectChapters, selectedProjectId]);
+
+  const orderedProjectChapters = orderedChapterIds
+    .map((id) => allProjectChapters.find((chapter) => chapter.id === id))
+    .filter((chapter): chapter is Chapter => Boolean(chapter));
+
+  const projectScopedChapters = orderedProjectChapters.filter((chapter) => {
+    if (workflowFilter !== 'all' && chapter.workflow_status !== workflowFilter) {
+      return false;
+    }
+    if (chapterTypeFilter !== 'all' && chapter.chapter_type !== chapterTypeFilter) {
+      return false;
+    }
+    if (!searchQuery.trim()) {
+      return true;
+    }
+    const lowerQuery = searchQuery.toLowerCase();
+    return (
+      chapter.title.toLowerCase().includes(lowerQuery) ||
+      (chapter.subtitle && chapter.subtitle.toLowerCase().includes(lowerQuery)) ||
+      (chapter.summary && chapter.summary.toLowerCase().includes(lowerQuery)) ||
+      (chapter.pov_character && chapter.pov_character.toLowerCase().includes(lowerQuery))
+    );
+  });
+
+  const allVisibleSelected =
+    projectScopedChapters.length > 0 && projectScopedChapters.every((chapter) => selectedChapterIds.includes(chapter.id));
+
+  const handleDropOnChapter = (targetChapterId: string) => {
+    if (!canReorder || !draggingChapterId || !selectedProjectId) {
+      return;
+    }
+    const nextOrder = reorderIds(orderedChapterIds, draggingChapterId, targetChapterId);
+    if (nextOrder === orderedChapterIds) {
+      return;
+    }
+    setOrderedChapterIds(nextOrder);
+    reorderMutation.mutate(nextOrder);
+    setDraggingChapterId(null);
+  };
+
+  const handleBulkApply = () => {
+    if (selectedChapterIds.length === 0) {
+      toast.error('Select at least one chapter for bulk update');
+      return;
+    }
+
+    bulkUpdateMutation.mutate({
+      chapterIds: selectedChapterIds,
+      workflowStatus: bulkWorkflowStatus,
+      chapterType: bulkChapterType,
+    });
+  };
+
+  if (isLoading || booksLoading) {
     return <div className="flex h-64 items-center justify-center"><Spinner className="w-8 h-8 text-primary" /></div>;
+  }
+
+  if (isError) {
+    return (
+      <div className="max-w-6xl mx-auto pt-8 pb-24">
+        <QueryErrorState
+          title="Unable to load chapters"
+          error={error}
+          onRetry={() => void refetch()}
+        />
+      </div>
+    );
+  }
+
+  if (booksError) {
+    return (
+      <div className="max-w-6xl mx-auto pt-8 pb-24">
+        <QueryErrorState
+          title="Unable to load projects"
+          error={booksErrorValue}
+          onRetry={() => void refetchBooks()}
+        />
+      </div>
+    );
   }
 
   return (
@@ -263,7 +424,7 @@ export default function ChaptersPage() {
         </div>
       )}
 
-      <div className="mb-8 flex flex-wrap items-center gap-3">
+      <div className="mb-3 flex flex-wrap items-center gap-3">
         <select
           className="px-3 py-2 rounded-lg bg-surface-container-high text-xs font-label text-primary"
           value={workflowFilter}
@@ -290,6 +451,71 @@ export default function ChaptersPage() {
           ))}
         </select>
       </div>
+
+      {selectedProjectId ? (
+        <div className="mb-8 space-y-3 rounded-xl border border-outline-variant/10 bg-surface-container-lowest p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="font-label text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
+              {canReorder
+                ? 'Drag and drop chapters to reorder'
+                : 'Clear filters and search to enable drag-and-drop reorder'}
+            </p>
+            {reorderMutation.isPending ? (
+              <span className="font-label text-[10px] uppercase tracking-wider text-secondary">Saving order...</span>
+            ) : null}
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-[auto_1fr_1fr_auto] md:items-center">
+            <label className="inline-flex items-center gap-2 text-xs font-label text-on-surface-variant">
+              <input
+                type="checkbox"
+                checked={allVisibleSelected}
+                onChange={(event) => {
+                  if (event.target.checked) {
+                    setSelectedChapterIds(projectScopedChapters.map((chapter) => chapter.id));
+                  } else {
+                    setSelectedChapterIds([]);
+                  }
+                }}
+                className="h-4 w-4 rounded"
+              />
+              Select Visible ({selectedChapterIds.length})
+            </label>
+
+            <select
+              value={bulkWorkflowStatus}
+              onChange={(event) => setBulkWorkflowStatus(event.target.value)}
+              className="rounded-lg bg-surface-container-high px-3 py-2 text-xs font-label text-primary"
+            >
+              <option value="idea">Bulk workflow: idea</option>
+              <option value="outline">Bulk workflow: outline</option>
+              <option value="draft">Bulk workflow: draft</option>
+              <option value="revision">Bulk workflow: revision</option>
+              <option value="final">Bulk workflow: final</option>
+            </select>
+
+            <select
+              value={bulkChapterType}
+              onChange={(event) => setBulkChapterType(event.target.value)}
+              className="rounded-lg bg-surface-container-high px-3 py-2 text-xs font-label text-primary"
+            >
+              <option value="chapter">Bulk type: chapter</option>
+              <option value="scene">Bulk type: scene</option>
+              <option value="interlude">Bulk type: interlude</option>
+              <option value="prologue">Bulk type: prologue</option>
+              <option value="epilogue">Bulk type: epilogue</option>
+            </select>
+
+            <button
+              onClick={handleBulkApply}
+              disabled={bulkUpdateMutation.isPending || selectedChapterIds.length === 0}
+              className="rounded-lg bg-primary px-4 py-2 text-xs font-bold uppercase tracking-wider text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+            >
+              {bulkUpdateMutation.isPending ? 'Applying...' : 'Apply Bulk Edit'}
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {/* Creation Form */}
       {isCreating && (
@@ -358,120 +584,183 @@ export default function ChaptersPage() {
           </div>
 
           <div className="space-y-4">
-            {projectScopedChapters
-              .sort((a, b) => a.chapter_number - b.chapter_number)
-              .map((chapter) => (
-                <div key={chapter.id} className="group flex flex-col md:flex-row md:items-center justify-between p-6 rounded-lg hover:bg-surface-container-low transition-all border border-transparent hover:border-outline-variant/10">
-                  <div className="flex items-start md:items-center gap-6">
-                    <span className="font-label text-xs font-medium text-on-surface-variant opacity-40 pt-1 md:pt-0">
-                      {chapter.chapter_number.toString().padStart(2, '0')}
-                    </span>
-                    <div>
-                      <Link href={`/dashboard/chapters/${chapter.id}`}>
-                        <h4 className="text-2xl font-body italic text-primary group-hover:text-secondary transition-colors cursor-pointer inline-block">
-                          {chapter.title}
-                        </h4>
-                      </Link>
-                      <div className="flex items-center gap-3 mt-2 flex-wrap">
-                        <span className="font-label text-[10px] text-on-surface-variant uppercase tracking-widest bg-surface-container-high px-2 py-0.5 rounded-full">
-                          {chapter.status.replace('_', ' ')}
-                        </span>
-                        {chapter.workflow_status ? (
-                          <select
-                            value={chapter.workflow_status}
-                            onChange={(e) => statusMutation.mutate({ chapterId: chapter.id, workflowStatus: e.target.value })}
-                            disabled={statusMutation.isPending}
-                            className="font-label text-[10px] text-on-surface-variant uppercase tracking-widest bg-tertiary-container/50 text-tertiary hover:bg-tertiary-container cursor-pointer px-2 py-0.5 rounded-full disabled:opacity-50 transition-colors"
-                            title="Change workflow status"
-                          >
-                            <option value="idea">Idea</option>
-                            <option value="outline">Outline</option>
-                            <option value="draft">Draft</option>
-                            <option value="revision">Revision</option>
-                            <option value="final">Final</option>
-                          </select>
-                        ) : null}
-                        {chapter.chapter_type ? (
-                          <span className="font-label text-[10px] text-on-surface-variant uppercase tracking-widest bg-surface-container-high px-2 py-0.5 rounded-full">
-                            {formatTag(chapter.chapter_type)}
-                          </span>
-                        ) : null}
-                        {chapter.timeline_position ? (
-                          <span className="font-label text-[10px] text-on-surface-variant uppercase tracking-widest bg-secondary-container text-on-secondary-container px-2 py-0.5 rounded-full">
-                            {chapter.timeline_position}
-                          </span>
-                        ) : null}
-                        <span className="font-label text-[10px] text-on-surface-variant opacity-60 uppercase tracking-widest">
-                          {chapter.word_count.toLocaleString()} words • {formatDate(chapter.created_at)}
-                        </span>
-                      </div>
-
-                      <div className="mt-3">
-                        {chapter.word_count_target ? (
-                          <>
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Goal Progress</span>
-                              <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">
-                                {chapterProgress(chapter)}% of {chapter.word_count_target.toLocaleString()}
-                              </span>
-                            </div>
-                            <div className="w-72 max-w-full h-2 rounded-full bg-surface-container-high overflow-hidden">
-                              <div
-                                className="h-full rounded-full bg-secondary"
-                                style={{ width: `${chapterProgress(chapter) || 0}%` }}
-                              />
-                            </div>
-                          </>
-                        ) : (
-                          <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant opacity-70">No target word count</span>
-                        )}
-                      </div>
-
-                      {chapter.summary ? (
-                        <p className="mt-3 max-w-2xl font-body text-sm text-on-surface-variant/80 leading-relaxed line-clamp-2">
-                          {chapter.summary}
-                        </p>
-                      ) : null}
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-2 mt-4 md:mt-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity ml-10 md:ml-0">
-                    <Link href={`/dashboard/chapters/${chapter.id}`}>
-                      <button className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-primary shadow-sm hover:bg-primary hover:text-white transition-colors" title="Open Workspace">
-                        <span className="material-symbols-outlined text-[20px]">edit_note</span>
-                      </button>
-                    </Link>
-                    <button 
-                      onClick={() => compileMutation.mutate(chapter.id)}
-                      disabled={compileMutation.isPending}
-                      className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-primary shadow-sm hover:bg-secondary hover:text-white transition-colors disabled:opacity-50" 
-                      title="Compile"
-                    >
-                      {compileMutation.isPending && compileMutation.variables === chapter.id ? (
-                        <Spinner className="w-4 h-4" />
-                      ) : (
-                        <span className="material-symbols-outlined text-[20px]">play_arrow</span>
-                      )}
-                    </button>
-                    <button 
-                      onClick={() => {
-                        if (confirm('Are you sure you want to delete this chapter?')) {
-                          deleteMutation.mutate(chapter.id);
+            {projectScopedChapters.map((chapter) => (
+              <div
+                key={chapter.id}
+                draggable={canReorder}
+                onDragStart={(event) => {
+                  if (!canReorder) return;
+                  setDraggingChapterId(chapter.id);
+                  event.dataTransfer.effectAllowed = 'move';
+                }}
+                onDragOver={(event) => {
+                  if (canReorder) {
+                    event.preventDefault();
+                    event.dataTransfer.dropEffect = 'move';
+                  }
+                }}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  handleDropOnChapter(chapter.id);
+                }}
+                onDragEnd={() => setDraggingChapterId(null)}
+                className={`group flex flex-col md:flex-row md:items-center justify-between p-6 rounded-lg transition-all border ${
+                  draggingChapterId === chapter.id
+                    ? 'bg-surface-container-high border-secondary/40 opacity-70'
+                    : 'hover:bg-surface-container-low border-transparent hover:border-outline-variant/10'
+                }`}
+              >
+                <div className="flex items-start md:items-center gap-6">
+                  <div className="flex items-center gap-3 pt-1 md:pt-0">
+                    <input
+                      type="checkbox"
+                      checked={selectedChapterIds.includes(chapter.id)}
+                      onChange={(event) => {
+                        if (event.target.checked) {
+                          setSelectedChapterIds((prev) => (prev.includes(chapter.id) ? prev : [...prev, chapter.id]));
+                        } else {
+                          setSelectedChapterIds((prev) => prev.filter((id) => id !== chapter.id));
                         }
                       }}
-                      disabled={deleteMutation.isPending}
-                      className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-error shadow-sm hover:bg-error hover:text-white transition-colors disabled:opacity-50" 
-                      title="Delete"
+                      className="h-4 w-4 rounded"
+                    />
+                    <span
+                      className={`material-symbols-outlined text-lg ${canReorder ? 'cursor-grab text-on-surface-variant' : 'text-on-surface-variant/30'}`}
+                      title={canReorder ? 'Drag to reorder' : 'Reordering disabled while filters/search are active'}
                     >
-                      {deleteMutation.isPending && deleteMutation.variables === chapter.id ? (
-                        <Spinner className="w-4 h-4" />
+                      drag_indicator
+                    </span>
+                  </div>
+
+                  <span className="font-label text-xs font-medium text-on-surface-variant opacity-40 pt-1 md:pt-0">
+                    {chapter.chapter_number.toString().padStart(2, '0')}
+                  </span>
+
+                  <div>
+                    <Link href={`/dashboard/chapters/${chapter.id}`}>
+                      <h4 className="text-2xl font-body italic text-primary group-hover:text-secondary transition-colors cursor-pointer inline-block">
+                        {chapter.title}
+                      </h4>
+                    </Link>
+                    <div className="flex items-center gap-3 mt-2 flex-wrap">
+                      <span className="font-label text-[10px] text-on-surface-variant uppercase tracking-widest bg-surface-container-high px-2 py-0.5 rounded-full">
+                        {chapter.status.replace('_', ' ')}
+                      </span>
+                      {chapter.workflow_status ? (
+                        <select
+                          value={chapter.workflow_status}
+                          onChange={(e) => statusMutation.mutate({ chapterId: chapter.id, workflowStatus: e.target.value })}
+                          disabled={statusMutation.isPending}
+                          className="font-label text-[10px] text-on-surface-variant uppercase tracking-widest bg-tertiary-container/50 text-tertiary hover:bg-tertiary-container cursor-pointer px-2 py-0.5 rounded-full disabled:opacity-50 transition-colors"
+                          title="Change workflow status"
+                        >
+                          <option value="idea">Idea</option>
+                          <option value="outline">Outline</option>
+                          <option value="draft">Draft</option>
+                          <option value="revision">Revision</option>
+                          <option value="final">Final</option>
+                        </select>
+                      ) : null}
+                      {chapter.chapter_type ? (
+                        <span className="font-label text-[10px] text-on-surface-variant uppercase tracking-widest bg-surface-container-high px-2 py-0.5 rounded-full">
+                          {formatTag(chapter.chapter_type)}
+                        </span>
+                      ) : null}
+                      {chapter.timeline_position ? (
+                        <span className="font-label text-[10px] text-on-surface-variant uppercase tracking-widest bg-secondary-container text-on-secondary-container px-2 py-0.5 rounded-full">
+                          {chapter.timeline_position}
+                        </span>
+                      ) : null}
+                      {chapter.pov_character ? (
+                        <span className="font-label text-[10px] text-on-surface-variant uppercase tracking-widest bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                          POV: {chapter.pov_character}
+                        </span>
+                      ) : null}
+                      <span className="font-label text-[10px] text-on-surface-variant opacity-60 uppercase tracking-widest">
+                        {chapter.word_count.toLocaleString()} words • {formatDate(chapter.created_at)}
+                      </span>
+                    </div>
+
+                    <div className="mt-3">
+                      {chapter.word_count_target ? (
+                        <>
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Goal Progress</span>
+                            <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">
+                              {chapterProgress(chapter)}% of {chapter.word_count_target.toLocaleString()}
+                            </span>
+                          </div>
+                          <div className="w-72 max-w-full h-2 rounded-full bg-surface-container-high overflow-hidden">
+                            <div
+                              className="h-full rounded-full bg-secondary"
+                              style={{ width: `${chapterProgress(chapter) || 0}%` }}
+                            />
+                          </div>
+                        </>
                       ) : (
-                        <span className="material-symbols-outlined text-[20px]">delete</span>
+                        <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant opacity-70">No target word count</span>
                       )}
-                    </button>
+                    </div>
+
+                    {chapter.summary ? (
+                      <p className="mt-3 max-w-2xl font-body text-sm text-on-surface-variant/80 leading-relaxed line-clamp-2">
+                        {chapter.summary}
+                      </p>
+                    ) : null}
                   </div>
                 </div>
-              ))}
+
+                <div className="flex items-center gap-2 mt-4 md:mt-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity ml-10 md:ml-0">
+                  <button
+                    onClick={() => {
+                      const nextPov = prompt('Set POV character for this chapter', chapter.pov_character || '');
+                      if (nextPov !== null) {
+                        povMutation.mutate({ chapterId: chapter.id, povCharacter: nextPov.trim() || undefined });
+                      }
+                    }}
+                    disabled={povMutation.isPending}
+                    className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-primary shadow-sm hover:bg-primary-container hover:text-white transition-colors disabled:opacity-50"
+                    title="Set POV"
+                  >
+                    <span className="material-symbols-outlined text-[20px]">person</span>
+                  </button>
+
+                  <Link href={`/dashboard/chapters/${chapter.id}`}>
+                    <button className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-primary shadow-sm hover:bg-primary hover:text-white transition-colors" title="Open Workspace">
+                      <span className="material-symbols-outlined text-[20px]">edit_note</span>
+                    </button>
+                  </Link>
+                  <button
+                    onClick={() => compileMutation.mutate(chapter.id)}
+                    disabled={compileMutation.isPending}
+                    className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-primary shadow-sm hover:bg-secondary hover:text-white transition-colors disabled:opacity-50"
+                    title="Compile"
+                  >
+                    {compileMutation.isPending && compileMutation.variables === chapter.id ? (
+                      <Spinner className="w-4 h-4" />
+                    ) : (
+                      <span className="material-symbols-outlined text-[20px]">play_arrow</span>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (confirm('Are you sure you want to delete this chapter?')) {
+                        deleteMutation.mutate(chapter.id);
+                      }
+                    }}
+                    disabled={deleteMutation.isPending}
+                    className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-error shadow-sm hover:bg-error hover:text-white transition-colors disabled:opacity-50"
+                    title="Delete"
+                  >
+                    {deleteMutation.isPending && deleteMutation.variables === chapter.id ? (
+                      <Spinner className="w-4 h-4" />
+                    ) : (
+                      <span className="material-symbols-outlined text-[20px]">delete</span>
+                    )}
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}

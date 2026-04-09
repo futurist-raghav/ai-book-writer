@@ -30,6 +30,7 @@ class ChapterCreate(BaseModel):
     workflow_status: Optional[str] = Field(None, max_length=20)
     word_count_target: Optional[int] = Field(None, ge=1)
     timeline_position: Optional[str] = Field(None, max_length=120)
+    pov_character: Optional[str] = Field(None, max_length=120)
     writing_style: Optional[str] = Field(None, max_length=50)
     tone: Optional[str] = Field(None, max_length=50)
     ai_enhancement_enabled: Optional[bool] = None
@@ -49,6 +50,7 @@ class ChapterUpdate(BaseModel):
     workflow_status: Optional[str] = Field(None, max_length=20)
     word_count_target: Optional[int] = Field(None, ge=1)
     timeline_position: Optional[str] = Field(None, max_length=120)
+    pov_character: Optional[str] = Field(None, max_length=120)
     writing_style: Optional[str] = Field(None, max_length=50)
     tone: Optional[str] = Field(None, max_length=50)
     ai_enhancement_enabled: Optional[bool] = None
@@ -116,6 +118,14 @@ class ChapterChatRequest(BaseModel):
     preserve_writer_commitment: bool = True
 
 
+class ChapterExpandNotesRequest(BaseModel):
+    """Request to expand chapter notes into prose."""
+
+    notes: str = Field(..., min_length=3, max_length=12000)
+    tone: Optional[str] = Field(None, max_length=50)
+    preserve_writer_commitment: bool = True
+
+
 # ============== Response Schemas ==============
 
 
@@ -163,6 +173,7 @@ class ChapterResponse(BaseSchema, IDMixin, TimestampMixin):
     word_count_target: Optional[int] = None
     target_progress_percent: Optional[float] = None
     timeline_position: Optional[str] = None
+    pov_character: Optional[str] = None
     writing_style: Optional[str] = None
     tone: Optional[str] = None
     ai_enhancement_enabled: Optional[bool] = None
@@ -191,6 +202,7 @@ class ChapterListResponse(BaseSchema, IDMixin):
     word_count_target: Optional[int] = None
     target_progress_percent: Optional[float] = None
     timeline_position: Optional[str] = None
+    pov_character: Optional[str] = None
     ai_enhancement_enabled: Optional[bool] = None
     status: str
     word_count: int
@@ -206,6 +218,112 @@ class ChapterCompileResponse(BaseModel):
     compiled_content: str
     word_count: int
     compiled_at: datetime
+    message: str
+
+
+class ChapterSummaryResponse(BaseModel):
+    """Response for AI-generated chapter summary."""
+
+    chapter_id: UUID
+    summary: str
+    generated_at: datetime
+    message: str
+
+
+class ChapterOutlineResponse(BaseModel):
+    """Response for AI-generated chapter outline."""
+
+    chapter_id: UUID
+    outline: str
+    sections: List[str]
+    generated_at: datetime
+    message: str
+
+
+class ChapterExpandNotesResponse(BaseModel):
+    """Response for chapter notes expansion."""
+
+    chapter_id: UUID
+    expanded_text: str
+    diff_preview: str
+    generated_at: datetime
+    message: str
+
+
+class ConsistencyIssueReference(BaseModel):
+    """Chapter reference for a detected consistency issue."""
+
+    chapter_id: UUID
+    chapter_title: str
+    chapter_number: int
+    chapter_order: int
+    matched_text: Optional[str] = None
+    excerpt: Optional[str] = None
+
+
+class ConsistencyIssue(BaseModel):
+    """Single consistency issue found across chapter material."""
+
+    id: str
+    issue_type: Literal[
+        "character_name_variation",
+        "character_appearance_inconsistency",
+        "timeline_inconsistency",
+        "location_name_variation",
+        "terminology_inconsistency",
+    ]
+    severity: Literal["low", "medium", "high"] = "medium"
+    title: str
+    description: str
+    canonical_value: Optional[str] = None
+    variants: List[str] = []
+    references: List[ConsistencyIssueReference] = []
+    fix_suggestions: List[str] = []
+
+
+class ChapterConsistencyResponse(BaseModel):
+    """Response for chapter consistency analysis across related chapters."""
+
+    chapter_id: UUID
+    generated_at: datetime
+    issue_count: int
+    issues: List[ConsistencyIssue] = []
+    message: str
+
+
+class ExtractedEntityReference(BaseModel):
+    """Chapter reference metadata for an extracted entity."""
+
+    chapter_id: UUID
+    chapter_title: str
+    chapter_number: int
+    chapter_order: int
+    mentions: int = 1
+    context_snippet: Optional[str] = None
+
+
+class ExtractedEntity(BaseModel):
+    """Entity discovered from chapter text."""
+
+    id: str
+    name: str
+    entity_type: Literal["character", "location", "object"]
+    frequency: int
+    first_mention_chapter_id: UUID
+    first_mention_chapter_title: str
+    first_mention_chapter_number: int
+    first_mention_chapter_order: int
+    context_snippet: Optional[str] = None
+    references: List[ExtractedEntityReference] = []
+
+
+class ChapterEntityExtractionResponse(BaseModel):
+    """Response for chapter-driven entity extraction."""
+
+    chapter_id: UUID
+    generated_at: datetime
+    entity_count: int
+    entities: List[ExtractedEntity] = []
     message: str
 
 

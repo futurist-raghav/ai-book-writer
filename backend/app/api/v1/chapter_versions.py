@@ -6,12 +6,9 @@ Handles chapter version history, snapshots, and recovery.
 
 import difflib
 import uuid
-from datetime import datetime
-from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query, status
-from sqlalchemy import desc, limit, offset, select
-from sqlalchemy.orm import selectinload
+from sqlalchemy import desc, select
 
 from app.core.dependencies import AsyncSessionDep, CurrentUserIdDep
 from app.models.chapter import Chapter

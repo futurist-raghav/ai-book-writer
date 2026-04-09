@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loading } from '@/components/ui/spinner';
+import { QueryErrorState } from '@/components/ui/query-error-state';
 import { DarkModeToggle } from '@/components/dark-mode-toggle';
 import { apiClient } from '@/lib/api-client';
 import { useAuthStore } from '@/stores/auth-store';
@@ -45,7 +46,7 @@ export default function SettingsPage() {
   const { setUser } = useAuthStore();
   const queryClient = useQueryClient();
 
-  const { data: userData, isLoading } = useQuery({
+  const { data: userData, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['user-profile'],
     queryFn: () => apiClient.auth.me(),
   });
@@ -125,6 +126,18 @@ export default function SettingsPage() {
 
   if (isLoading) {
     return <Loading message="Loading settings..." />;
+  }
+
+  if (isError) {
+    return (
+      <div className="max-w-6xl mx-auto pt-8 pb-24">
+        <QueryErrorState
+          title="Unable to load settings"
+          error={error}
+          onRetry={() => void refetch()}
+        />
+      </div>
+    );
   }
 
   return (

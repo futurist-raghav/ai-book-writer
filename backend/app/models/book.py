@@ -19,6 +19,7 @@ from app.core.project_types import ProjectType
 if TYPE_CHECKING:
     from app.models.chapter import Chapter
     from app.models.collaboration import Activity, BookComment, Collaborator
+    from app.models.entity import Entity
     from app.models.export import Export
     from app.models.reference import Reference
     from app.models.user import User
@@ -166,6 +167,11 @@ class Book(Base):
         back_populates="book",
         cascade="all, delete-orphan",
         order_by="BookChapter.order_index",
+    )
+    entities: Mapped[List["Entity"]] = relationship(
+        "Entity",
+        foreign_keys="Entity.book_id",
+        cascade="all, delete-orphan",
     )
     references: Mapped[List["Reference"]] = relationship(
         "Reference",

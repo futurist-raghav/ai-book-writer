@@ -5,10 +5,158 @@ import { type ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } f
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { apiClient } from '@/lib/api-client';
+import {
+  clearOfflineDraftQueue,
+  enqueueOfflineDraft,
+  readOfflineDraftQueue,
+} from '@/lib/offline-draft-queue';
+import { ProjectType, ProjectTypeConfigService } from '@/lib/project-types';
 import { cn, formatDate } from '@/lib/utils';
 import { Loading, Spinner } from '@/components/ui/spinner';
 import { WriterCanvas } from '@/components/writer-canvas-tiptap';
 import { useProjectContext } from '@/stores/project-context';
+
+interface AssistantQuickAction {
+  id: string;
+  label: string;
+  icon: string;
+  prompt: string;
+  tone?: 'secondary' | 'tertiary';
+}
+
+const FICTION_QUICK_ACTIONS: AssistantQuickAction[] = [
+  {
+    id: 'fiction-continue-story',
+    label: 'Continue Story',
+    icon: 'edit_note',
+    prompt: 'Continue the story naturally from the current draft while preserving tone, POV, and emotional momentum.',
+    tone: 'secondary',
+  },
+  {
+    id: 'fiction-next-scene',
+    label: 'Next Scene',
+    icon: 'auto_stories',
+    prompt: 'Suggest the next scene with 2-3 compelling options and pick the strongest one with a short rationale.',
+    tone: 'secondary',
+  },
+  {
+    id: 'fiction-dialogue',
+    label: 'Add Dialogue',
+    icon: 'chat_bubble',
+    prompt: 'Add natural character dialogue to this section while keeping voice and pacing consistent.',
+    tone: 'tertiary',
+  },
+  {
+    id: 'fiction-punch-up',
+    label: 'Punch Up',
+    icon: 'bolt',
+    prompt: 'Punch up this passage with sharper imagery, stronger verbs, and tighter rhythm without changing meaning.',
+    tone: 'tertiary',
+  },
+  {
+    id: 'fiction-show-dont-tell',
+    label: "Show Don't Tell",
+    icon: 'visibility',
+    prompt: 'Rewrite this section to show rather than tell, using sensory detail and action over exposition.',
+    tone: 'tertiary',
+  },
+];
+
+const NON_FICTION_QUICK_ACTIONS: AssistantQuickAction[] = [
+  {
+    id: 'nonfiction-continue-section',
+    label: 'Continue Section',
+    icon: 'edit_note',
+    prompt: 'Continue this section with clear structure, topic coherence, and transitions.',
+    tone: 'secondary',
+  },
+  {
+    id: 'nonfiction-add-example',
+    label: 'Add Example',
+    icon: 'fact_check',
+    prompt: 'Add a concrete, relevant example that improves clarity and supports the current point.',
+    tone: 'secondary',
+  },
+  {
+    id: 'nonfiction-strengthen-argument',
+    label: 'Strengthen Argument',
+    icon: 'gavel',
+    prompt: 'Strengthen the argument with clearer claims, tighter logic, and counterpoint handling.',
+    tone: 'tertiary',
+  },
+];
+
+const SCREENPLAY_QUICK_ACTIONS: AssistantQuickAction[] = [
+  {
+    id: 'screenplay-next-scene-direction',
+    label: 'Next Scene Direction',
+    icon: 'movie_edit',
+    prompt: 'Write the next scene direction with clear visual beats, setting cues, and momentum.',
+    tone: 'secondary',
+  },
+  {
+    id: 'screenplay-add-subtext',
+    label: 'Add Subtext',
+    icon: 'forum',
+    prompt: 'Rewrite dialogue in this scene to increase subtext while preserving character intent.',
+    tone: 'tertiary',
+  },
+  {
+    id: 'screenplay-format-check',
+    label: 'Format Check',
+    icon: 'task_alt',
+    prompt: 'Check this scene for screenplay formatting issues and provide corrected version.',
+    tone: 'secondary',
+  },
+];
+
+const TEXTBOOK_QUICK_ACTIONS: AssistantQuickAction[] = [
+  {
+    id: 'textbook-next-concept',
+    label: 'Next Concept',
+    icon: 'school',
+    prompt: 'Draft the next concept section with learning objective, explanation, and transition from previous concept.',
+    tone: 'secondary',
+  },
+  {
+    id: 'textbook-add-example',
+    label: 'Add Example',
+    icon: 'fact_check',
+    prompt: 'Add a teaching example suitable for learners, with concise explanation and takeaway.',
+    tone: 'secondary',
+  },
+  {
+    id: 'textbook-generate-quiz',
+    label: 'Generate Quiz Question',
+    icon: 'quiz',
+    prompt: 'Generate 3 quiz questions (mixed difficulty) with answer keys from this section.',
+    tone: 'tertiary',
+  },
+];
+
+const SONGWRITING_QUICK_ACTIONS: AssistantQuickAction[] = [
+  {
+    id: 'song-next-verse',
+    label: 'Next Verse',
+    icon: 'music_note',
+    prompt: 'Write the next verse that keeps theme, cadence, and emotional progression consistent.',
+    tone: 'secondary',
+  },
+  {
+    id: 'song-add-rhyme',
+    label: 'Add Rhyme',
+    icon: 'library_music',
+    prompt: 'Improve end-rhyme and internal rhyme while keeping the original meaning and vibe.',
+    tone: 'tertiary',
+  },
+  {
+    id: 'song-syllable-check',
+    label: 'Syllable Check',
+    icon: 'straighten',
+    prompt: 'Check line-by-line syllable count and suggest edits to tighten rhythmic consistency.',
+    tone: 'secondary',
+  },
+];
 
 interface ChatTurn {
   role: string;
@@ -22,6 +170,40 @@ interface WorkspaceAsset {
   filename: string;
   created_at: string;
   extracted_text_preview?: string;
+}
+
+interface ConsistencyIssueReference {
+  chapter_id: string;
+  chapter_title: string;
+  chapter_number: number;
+  chapter_order: number;
+  matched_text?: string;
+  excerpt?: string;
+}
+
+interface ConsistencyIssue {
+  id: string;
+  issue_type:
+    | 'character_name_variation'
+    | 'character_appearance_inconsistency'
+    | 'timeline_inconsistency'
+    | 'location_name_variation'
+    | 'terminology_inconsistency';
+  severity: 'low' | 'medium' | 'high';
+  title: string;
+  description: string;
+  canonical_value?: string;
+  variants: string[];
+  references: ConsistencyIssueReference[];
+  fix_suggestions: string[];
+}
+
+interface ConsistencyCheckPayload {
+  chapter_id: string;
+  generated_at: string;
+  issue_count: number;
+  issues: ConsistencyIssue[];
+  message: string;
 }
 
 interface ChapterWorkspace {
@@ -73,11 +255,20 @@ export default function ChapterWorkspaceClient({ chapterId }: { chapterId: strin
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [isZenMode, setIsZenMode] = useState(false);
+  const [isSplitView, setIsSplitView] = useState(false);
+  const [splitViewNotes, setSplitViewNotes] = useState('');
+  const [splitPrefsReady, setSplitPrefsReady] = useState(false);
   
   // Autosave state
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'queued' | 'error'>('idle');
   const [lastSaveTime, setLastSaveTime] = useState<Date | null>(null);
   const [lastSavedContent, setLastSavedContent] = useState<string>('');
+  const [isOffline, setIsOffline] = useState(false);
+  const [queuedSaveCount, setQueuedSaveCount] = useState(0);
+  const [showConsistencyModal, setShowConsistencyModal] = useState(false);
+  const [consistencyIssues, setConsistencyIssues] = useState<ConsistencyIssue[]>([]);
+  const [consistencyGeneratedAt, setConsistencyGeneratedAt] = useState<string | null>(null);
+  const [consistencyMessage, setConsistencyMessage] = useState('');
 
   const workspaceQuery = useQuery({
     queryKey: ['workspace', chapterId],
@@ -229,11 +420,105 @@ export default function ChapterWorkspaceClient({ chapterId }: { chapterId: strin
     },
   });
 
+  const queueOfflineDraft = useCallback(
+    (draftHtml: string) => {
+      const nextQueue = enqueueOfflineDraft(chapterId, draftHtml);
+      setQueuedSaveCount(nextQueue.length);
+    },
+    [chapterId]
+  );
+
+  const flushQueuedDrafts = useCallback(async () => {
+    if (typeof window === 'undefined' || !window.navigator.onLine) {
+      return;
+    }
+
+    const queuedDrafts = readOfflineDraftQueue(chapterId);
+    if (!queuedDrafts.length) {
+      return;
+    }
+
+    const latestDraft = queuedDrafts[queuedDrafts.length - 1];
+
+    try {
+      await saveDraftMutation.mutateAsync(latestDraft);
+      clearOfflineDraftQueue(chapterId);
+      setQueuedSaveCount(0);
+      setSaveStatus('saved');
+      setLastSaveTime(new Date());
+      setLastSavedContent(latestDraft);
+      toast.success('Queued offline changes synced.');
+    } catch {
+      setSaveStatus('queued');
+    }
+  }, [chapterId, saveDraftMutation]);
+
   const compileMutation = useMutation({
     mutationFn: () => apiClient.chapters.compile(chapterId, { regenerate: true, writing_style: writingForm }),
     onSuccess: () => {
       toast.success('Chapter compiled successfully.');
       queryClient.invalidateQueries({ queryKey: ['workspace', chapterId] });
+    },
+  });
+
+  const generateSummaryMutation = useMutation({
+    mutationFn: () => apiClient.chapters.generateSummary(chapterId),
+    onSuccess: (res: any) => {
+      const generatedSummary = res?.data?.summary;
+      if (generatedSummary) {
+        toast.success('Chapter summary generated.');
+      } else {
+        toast.success('Summary generation completed.');
+      }
+      queryClient.invalidateQueries({ queryKey: ['workspace', chapterId] });
+      queryClient.invalidateQueries({ queryKey: ['chapters'] });
+    },
+    onError: () => {
+      toast.error('Failed to generate chapter summary.');
+    },
+  });
+
+  const generateOutlineMutation = useMutation({
+    mutationFn: () => apiClient.chapters.generateOutline(chapterId),
+    onSuccess: (res: any) => {
+      const outlineText = String(res?.data?.outline || '').trim();
+      if (outlineText) {
+        setChatTurns((prev) => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: `Generated Outline:\n\n${outlineText}`,
+            created_at: new Date().toISOString(),
+          },
+        ]);
+      }
+      toast.success('Chapter outline generated.');
+      queryClient.invalidateQueries({ queryKey: ['workspace', chapterId] });
+    },
+    onError: () => {
+      toast.error('Failed to generate chapter outline.');
+    },
+  });
+
+  const checkConsistencyMutation = useMutation({
+    mutationFn: () => apiClient.chapters.checkConsistency(chapterId),
+    onSuccess: (res: any) => {
+      const payload = res?.data as ConsistencyCheckPayload | undefined;
+      const issues = Array.isArray(payload?.issues) ? payload.issues : [];
+
+      setConsistencyIssues(issues);
+      setConsistencyGeneratedAt(payload?.generated_at || new Date().toISOString());
+      setConsistencyMessage(payload?.message || 'Consistency check completed.');
+      setShowConsistencyModal(true);
+
+      if (issues.length > 0) {
+        toast.success(`Found ${issues.length} potential consistency issue${issues.length === 1 ? '' : 's'}.`);
+      } else {
+        toast.success('No major consistency issues detected.');
+      }
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.detail || 'Failed to run consistency check.');
     },
   });
 
@@ -308,7 +593,6 @@ export default function ChapterWorkspaceClient({ chapterId }: { chapterId: strin
       }, 1000);
     } catch (err) {
       toast.error('Could not access microphone');
-      console.error(err);
     }
   }, [chapterId, transcriptionMode, sourceLanguage, uploadAudioMutation]);
 
@@ -342,6 +626,56 @@ export default function ChapterWorkspaceClient({ chapterId }: { chapterId: strin
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // Split view preferences are stored per chapter for continuity between sessions.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const savedSplitMode = localStorage.getItem(`chapter-split-view-${chapterId}`);
+    const savedSplitNotes = localStorage.getItem(`chapter-split-notes-${chapterId}`);
+
+    setIsSplitView(savedSplitMode === '1');
+    setSplitViewNotes(savedSplitNotes || '');
+    setSplitPrefsReady(true);
+  }, [chapterId]);
+
+  useEffect(() => {
+    if (!splitPrefsReady || typeof window === 'undefined') return;
+
+    localStorage.setItem(`chapter-split-view-${chapterId}`, isSplitView ? '1' : '0');
+    localStorage.setItem(`chapter-split-notes-${chapterId}`, splitViewNotes);
+  }, [chapterId, isSplitView, splitViewNotes, splitPrefsReady]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const initialQueuedCount = readOfflineDraftQueue(chapterId).length;
+    setIsOffline(!window.navigator.onLine);
+    setQueuedSaveCount(initialQueuedCount);
+
+    if (window.navigator.onLine && initialQueuedCount > 0) {
+      void flushQueuedDrafts();
+    }
+
+    const handleOnline = () => {
+      setIsOffline(false);
+      void flushQueuedDrafts();
+    };
+
+    const handleOffline = () => {
+      setIsOffline(true);
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [chapterId, flushQueuedDrafts]);
+
   // Autosave with debouncing (2 seconds of inactivity)
   useEffect(() => {
     if (!writerHtml || !chapterId) return;
@@ -351,6 +685,12 @@ export default function ChapterWorkspaceClient({ chapterId }: { chapterId: strin
     
     const debounceTimer = setTimeout(async () => {
       try {
+        if (typeof window !== 'undefined' && !window.navigator.onLine) {
+          queueOfflineDraft(writerHtml);
+          setSaveStatus('queued');
+          return;
+        }
+
         await saveDraftMutation.mutateAsync(writerHtml);
         setSaveStatus('saved');
         setLastSaveTime(new Date());
@@ -361,15 +701,20 @@ export default function ChapterWorkspaceClient({ chapterId }: { chapterId: strin
           setSaveStatus('idle');
         }, 2000);
       } catch (err) {
-        console.error('Autosave failed:', err);
-        setSaveStatus('error');
+        if (typeof window !== 'undefined' && !window.navigator.onLine) {
+          queueOfflineDraft(writerHtml);
+          setSaveStatus('queued');
+        } else {
+          console.error('Autosave failed:', err);
+          setSaveStatus('error');
+        }
       }
     }, 2000); // Wait 2 seconds after last change
     
     return () => {
       clearTimeout(debounceTimer);
     };
-  }, [writerHtml, chapterId, saveDraftMutation]);
+  }, [writerHtml, chapterId, queueOfflineDraft, saveDraftMutation]);
 
   // Update browser tab title to show unsaved indicator
   useEffect(() => {
@@ -438,6 +783,133 @@ export default function ChapterWorkspaceClient({ chapterId }: { chapterId: strin
     setChatMessage('');
   }, [writerHtml, contextDraft, htmlToPlainText, chatMutation, projectContextQuery.data]);
 
+  const applyConsistencyReplacement = useCallback((sourceValue: string, targetValue: string) => {
+    const source = sourceValue.trim();
+    const target = targetValue.trim();
+
+    if (!source || !target || source === target) {
+      return;
+    }
+
+    const escaped = source.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const pattern = new RegExp(`\\b${escaped}\\b`, 'g');
+
+    if (!pattern.test(writerHtml)) {
+      toast.error(`No exact matches for "${source}" were found in the current draft.`);
+      return;
+    }
+
+    const nextHtml = writerHtml.replace(pattern, target);
+    setWriterHtml(nextHtml);
+    toast.success(`Replaced "${source}" with "${target}" in the current draft.`);
+  }, [writerHtml]);
+
+  const draftConsistencyFixPrompt = useCallback((issue: ConsistencyIssue) => {
+    const referenceLines = issue.references
+      .slice(0, 5)
+      .map((reference) => {
+        const highlighted = reference.matched_text ? ` (${reference.matched_text})` : '';
+        return `- Chapter ${reference.chapter_number}: ${reference.chapter_title}${highlighted}`;
+      })
+      .join('\n');
+
+    const promptSections = [
+      'Help me resolve this manuscript consistency issue:',
+      `Issue: ${issue.title}`,
+      `Details: ${issue.description}`,
+      issue.canonical_value ? `Preferred canonical value: ${issue.canonical_value}` : '',
+      issue.variants.length ? `Variants: ${issue.variants.join(', ')}` : '',
+      referenceLines ? `References:\n${referenceLines}` : '',
+      'Please suggest exact rewrites and a minimal change plan chapter-by-chapter.',
+    ].filter(Boolean);
+
+    setChatMessage(promptSections.join('\n\n'));
+    setShowConsistencyModal(false);
+    toast.success('Added a consistency fix prompt to the assistant input.');
+  }, []);
+
+  const issueTypeLabel = (issueType: ConsistencyIssue['issue_type']) => {
+    if (issueType === 'character_name_variation') return 'Character';
+    if (issueType === 'character_appearance_inconsistency') return 'Appearance';
+    if (issueType === 'location_name_variation') return 'Location';
+    if (issueType === 'terminology_inconsistency') return 'Terminology';
+    return 'Timeline';
+  };
+
+  const issueSeverityClass = (severity: ConsistencyIssue['severity']) => {
+    if (severity === 'high') return 'bg-red-100 text-red-700 border-red-200';
+    if (severity === 'low') return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+    return 'bg-amber-100 text-amber-700 border-amber-200';
+  };
+
+  const appendSplitNotesToDraft = () => {
+    if (!splitViewNotes.trim()) {
+      toast.error('Add notes before inserting into the draft.');
+      return;
+    }
+
+    setWriterHtml((prev) => `${prev}${prev ? '<p></p>' : ''}${plainTextToHtml(splitViewNotes)}`);
+    toast.success('Notes inserted into draft.');
+  };
+
+  const resolvedProjectType = useMemo(() => {
+    const candidate = String(
+      projectContextQuery.data?.data?.project_type || projectContextQuery.data?.data?.book_type || ''
+    )
+      .trim()
+      .toLowerCase();
+
+    return candidate as ProjectType | '';
+  }, [projectContextQuery.data?.data?.book_type, projectContextQuery.data?.data?.project_type]);
+
+  const assistantQuickActionConfig = useMemo(() => {
+    const fallback = {
+      label: 'Non-Fiction',
+      actions: NON_FICTION_QUICK_ACTIONS,
+    };
+
+    if (!resolvedProjectType) {
+      return fallback;
+    }
+
+    const config = ProjectTypeConfigService.getConfig(resolvedProjectType as ProjectType);
+    const isTextbookType = [
+      ProjectType.K12_TEXTBOOK,
+      ProjectType.COLLEGE_TEXTBOOK,
+      ProjectType.ACADEMIC_COURSE,
+    ].includes(resolvedProjectType as ProjectType);
+
+    if (resolvedProjectType === ProjectType.SONGWRITING_PROJECT || config.aiAssistantMode === 'songwriting') {
+      return {
+        label: 'Songwriting',
+        actions: SONGWRITING_QUICK_ACTIONS,
+      };
+    }
+
+    if (isTextbookType) {
+      return {
+        label: 'Textbook',
+        actions: TEXTBOOK_QUICK_ACTIONS,
+      };
+    }
+
+    if (config.aiAssistantMode === 'screenplay') {
+      return {
+        label: 'Screenplay',
+        actions: SCREENPLAY_QUICK_ACTIONS,
+      };
+    }
+
+    if (config.aiAssistantMode === 'fiction') {
+      return {
+        label: 'Fiction',
+        actions: FICTION_QUICK_ACTIONS,
+      };
+    }
+
+    return fallback;
+  }, [resolvedProjectType]);
+
   if (workspaceQuery.isLoading) {
     return <Loading message="Loading chapter workspace..." />;
   }
@@ -487,6 +959,14 @@ export default function ChapterWorkspaceClient({ chapterId }: { chapterId: strin
             
             {/* Autosave Status Indicator */}
             <div className="ml-4 flex items-center gap-2">
+              {saveStatus === 'queued' && (
+                <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200">
+                  <span className="material-symbols-outlined text-amber-700 text-xs" style={{ fontVariationSettings: "'FILL' 1" }}>cloud_off</span>
+                  <span className="text-[10px] font-semibold text-amber-700">
+                    Queued{queuedSaveCount > 0 ? ` (${queuedSaveCount})` : ''}
+                  </span>
+                </div>
+              )}
               {saveStatus === 'saving' && (
                 <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-50 border border-orange-200">
                   <div className="w-1 h-1 rounded-full bg-orange-500 animate-pulse"></div>
@@ -569,6 +1049,14 @@ export default function ChapterWorkspaceClient({ chapterId }: { chapterId: strin
           
           {/* Autosave Status Indicator */}
           <div className="ml-6 flex items-center gap-2">
+            {saveStatus === 'queued' && (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 border border-amber-200">
+                <span className="material-symbols-outlined text-amber-700 text-base" style={{ fontVariationSettings: "'FILL' 1" }}>cloud_off</span>
+                <span className="text-xs font-semibold text-amber-700">
+                  Queued{queuedSaveCount > 0 ? ` (${queuedSaveCount})` : ''}
+                </span>
+              </div>
+            )}
             {saveStatus === 'saving' && (
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-orange-50 border border-orange-200">
                 <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></div>
@@ -593,6 +1081,16 @@ export default function ChapterWorkspaceClient({ chapterId }: { chapterId: strin
           </div>
         </div>
         <div className="flex items-center gap-4">
+          <button
+            title="Toggle Split View"
+            onClick={() => setIsSplitView((prev) => !prev)}
+            className={cn(
+              'p-2 rounded-lg transition-all active:scale-95',
+              isSplitView ? 'bg-secondary/10 text-secondary' : 'hover:bg-surface-container-low text-primary'
+            )}
+          >
+            <span className="material-symbols-outlined">splitscreen</span>
+          </button>
           <button 
             title="Zen Mode (Cmd+Shift+F)"
             onClick={() => setIsZenMode(true)}
@@ -610,6 +1108,23 @@ export default function ChapterWorkspaceClient({ chapterId }: { chapterId: strin
           </button>
         </div>
       </header>
+
+      {(isOffline || queuedSaveCount > 0) && (
+        <div className="mx-auto mt-3 max-w-[1700px] px-4 md:px-8">
+          <div
+            className={cn(
+              'rounded-lg border px-4 py-2 text-xs font-semibold',
+              isOffline
+                ? 'border-amber-300 bg-amber-50 text-amber-800'
+                : 'border-emerald-300 bg-emerald-50 text-emerald-800'
+            )}
+          >
+            {isOffline
+              ? `You are offline. Draft saves are queued${queuedSaveCount > 0 ? ` (${queuedSaveCount})` : ''} and will sync when back online.`
+              : `Back online. ${queuedSaveCount} queued draft save${queuedSaveCount === 1 ? '' : 's'} syncing automatically.`}
+          </div>
+        </div>
+      )}
 
       <div className="mx-auto mt-4 grid max-w-[1700px] grid-cols-1 gap-6 pb-32 xl:mt-8 xl:grid-cols-12">
         <div className="space-y-6 xl:col-span-2">
@@ -729,6 +1244,15 @@ export default function ChapterWorkspaceClient({ chapterId }: { chapterId: strin
               ) : (
                 <p className="text-[10px] uppercase tracking-widest text-on-surface-variant">No target word count set</p>
               )}
+
+              {chapter.summary ? (
+                <div className="rounded-md border border-outline-variant/20 bg-surface-container-low p-2">
+                  <p className="mb-1 text-[10px] font-label uppercase tracking-widest text-on-surface-variant">Summary</p>
+                  <p className="line-clamp-4 text-xs text-on-surface-variant">{chapter.summary}</p>
+                </div>
+              ) : (
+                <p className="text-[10px] uppercase tracking-widest text-on-surface-variant">No summary generated yet</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -757,27 +1281,80 @@ export default function ChapterWorkspaceClient({ chapterId }: { chapterId: strin
                 <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">Writing Workspace</p>
                 <h2 className="font-body text-2xl italic text-primary">{chapter.title}</h2>
               </div>
-              <p className="text-xs text-on-surface-variant">
-                {writerWordCount.toLocaleString()} live words • Chapter {chapter.chapter_number}
-              </p>
+              <div className="flex items-center gap-3">
+                <p className="text-xs text-on-surface-variant">
+                  {writerWordCount.toLocaleString()} live words • Chapter {chapter.chapter_number}
+                </p>
+                <button
+                  onClick={() => setIsSplitView((prev) => !prev)}
+                  className={cn(
+                    'rounded-lg border px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-colors',
+                    isSplitView
+                      ? 'border-secondary/30 bg-secondary/10 text-secondary'
+                      : 'border-outline-variant/20 bg-white text-primary hover:border-secondary/30'
+                  )}
+                >
+                  {isSplitView ? 'Single Pane' : 'Split View'}
+                </button>
+              </div>
             </div>
 
-            <WriterCanvas
-              chapterId={chapterId}
-              initialContent={writerHtml || workspace.description || workspace.compiled_content || ''}
-              onSave={async (content) => {
-                await saveDraftMutation.mutateAsync(content);
-              }}
-              onContentChange={(html) => {
-                setWriterHtml(html);
-                if (projectContext && projectContext.updateChapterContent) {
-                  projectContext.updateChapterContent(chapterId, html);
-                }
-              }}
-              showAiAssistant={Boolean(workspace.effective_ai_enhancement_enabled ?? workspace.ai_enhancement_enabled)}
-              readOnly={false}
-              projectType={projectContextQuery.data?.data?.project_type}
-            />
+            <div className={cn('grid gap-4', isSplitView ? 'lg:grid-cols-2' : 'grid-cols-1')}>
+              <div>
+                <WriterCanvas
+                  chapterId={chapterId}
+                  initialContent={writerHtml || workspace.description || workspace.compiled_content || ''}
+                  onSave={async (content) => {
+                    await saveDraftMutation.mutateAsync(content);
+                  }}
+                  onContentChange={(html) => {
+                    setWriterHtml(html);
+                    if (projectContext && projectContext.updateChapterContent) {
+                      projectContext.updateChapterContent(chapterId, html);
+                    }
+                  }}
+                  showAiAssistant={Boolean(workspace.effective_ai_enhancement_enabled ?? workspace.ai_enhancement_enabled)}
+                  readOnly={false}
+                  projectType={projectContextQuery.data?.data?.project_type}
+                />
+              </div>
+
+              {isSplitView ? (
+                <aside className="flex h-full flex-col rounded-xl border border-outline-variant/10 bg-surface-container-low p-4">
+                  <div className="mb-3 flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">Split Notes</p>
+                      <p className="mt-1 text-xs text-on-surface-variant">Keep side notes and snippets while drafting.</p>
+                    </div>
+                    <span className="rounded-full bg-white px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-primary">
+                      {splitViewNotes.trim() ? `${splitViewNotes.trim().split(/\s+/).length} words` : '0 words'}
+                    </span>
+                  </div>
+
+                  <textarea
+                    className="min-h-[280px] w-full flex-1 resize-none rounded-lg border border-outline-variant/20 bg-white p-3 text-sm font-body focus:outline-none focus:ring-1 focus:ring-secondary/40"
+                    placeholder="Capture loose ideas, scene fragments, references, or rewrite targets..."
+                    value={splitViewNotes}
+                    onChange={(e) => setSplitViewNotes(e.target.value)}
+                  />
+
+                  <div className="mt-3 flex items-center justify-between gap-2">
+                    <button
+                      onClick={() => setSplitViewNotes('')}
+                      className="rounded-lg border border-outline-variant/20 bg-white px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-primary"
+                    >
+                      Clear Notes
+                    </button>
+                    <button
+                      onClick={appendSplitNotesToDraft}
+                      className="rounded-lg bg-primary px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-white"
+                    >
+                      Insert Into Draft
+                    </button>
+                  </div>
+                </aside>
+              ) : null}
+            </div>
           </section>
 
           {/* Capture Inputs Section */}
@@ -939,55 +1516,85 @@ export default function ChapterWorkspaceClient({ chapterId }: { chapterId: strin
             
             <div className="p-4 border-t border-slate-100 space-y-3">
               {/* Quick Action Buttons */}
-              <div className="grid grid-cols-3 gap-2 mb-3">
-                <button
-                  onClick={() => handleQuickAction("Continue writing the next paragraph naturally based on the current draft and context.")}
-                  disabled={chatMutation.isPending}
-                  className="flex flex-col items-center gap-1 px-2 py-2 rounded-lg bg-secondary-container/30 hover:bg-secondary-container/50 text-secondary transition-all disabled:opacity-50 disabled:pointer-events-none"
-                >
-                  <span className="material-symbols-outlined text-base">edit_note</span>
-                  <span className="text-[9px] font-bold uppercase tracking-tight text-center leading-tight">Continue</span>
-                </button>
-                <button
-                  onClick={() => handleQuickAction("What should happen in the next scene? Suggest 2-3 compelling directions for the story.")}
-                  disabled={chatMutation.isPending}
-                  className="flex flex-col items-center gap-1 px-2 py-2 rounded-lg bg-secondary-container/30 hover:bg-secondary-container/50 text-secondary transition-all disabled:opacity-50 disabled:pointer-events-none"
-                >
-                  <span className="material-symbols-outlined text-base">auto_stories</span>
-                  <span className="text-[9px] font-bold uppercase tracking-tight text-center leading-tight">Next Scene</span>
-                </button>
-                <button
-                  onClick={() => handleQuickAction("Rewrite the current chapter in a more formal, academic tone.")}
-                  disabled={chatMutation.isPending}
-                  className="flex flex-col items-center gap-1 px-2 py-2 rounded-lg bg-secondary-container/30 hover:bg-secondary-container/50 text-secondary transition-all disabled:opacity-50 disabled:pointer-events-none"
-                >
-                  <span className="material-symbols-outlined text-base">article</span>
-                  <span className="text-[9px] font-bold uppercase tracking-tight text-center leading-tight">Formal</span>
-                </button>
-                <button
-                  onClick={() => handleQuickAction("Rewrite the current content to be more punchy, impactful, and energetic.")}
-                  disabled={chatMutation.isPending}
-                  className="flex flex-col items-center gap-1 px-2 py-2 rounded-lg bg-tertiary-container/30 hover:bg-tertiary-container/50 text-tertiary transition-all disabled:opacity-50 disabled:pointer-events-none"
-                >
-                  <span className="material-symbols-outlined text-base">bolt</span>
-                  <span className="text-[9px] font-bold uppercase tracking-tight text-center leading-tight">Punchier</span>
-                </button>
-                <button
-                  onClick={() => handleQuickAction("Add dialogue to the current narrative. Convert some internal thoughts or descriptions into character conversations.")}
-                  disabled={chatMutation.isPending}
-                  className="flex flex-col items-center gap-1 px-2 py-2 rounded-lg bg-tertiary-container/30 hover:bg-tertiary-container/50 text-tertiary transition-all disabled:opacity-50 disabled:pointer-events-none"
-                >
-                  <span className="material-symbols-outlined text-base">chat_bubble</span>
-                  <span className="text-[9px] font-bold uppercase tracking-tight text-center leading-tight">Dialogue</span>
-                </button>
-                <button
-                  onClick={() => handleQuickAction("Improve clarity: Simplify complex sentences, remove jargon, and make the writing more readable.")}
-                  disabled={chatMutation.isPending}
-                  className="flex flex-col items-center gap-1 px-2 py-2 rounded-lg bg-tertiary-container/30 hover:bg-tertiary-container/50 text-tertiary transition-all disabled:opacity-50 disabled:pointer-events-none"
-                >
-                  <span className="material-symbols-outlined text-base">lightbulb</span>
-                  <span className="text-[9px] font-bold uppercase tracking-tight text-center leading-tight">Clarity</span>
-                </button>
+              <div className="mb-3">
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="text-[9px] font-bold uppercase tracking-[0.16em] text-on-surface-variant">Quick Actions</span>
+                  <span className="rounded-full bg-secondary-container/40 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-secondary">
+                    {assistantQuickActionConfig.label} Mode
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  {assistantQuickActionConfig.actions.map((action) => (
+                    <button
+                      key={action.id}
+                      onClick={() => handleQuickAction(action.prompt)}
+                      disabled={
+                        chatMutation.isPending ||
+                        generateSummaryMutation.isPending ||
+                        generateOutlineMutation.isPending ||
+                        checkConsistencyMutation.isPending
+                      }
+                      className={cn(
+                        'flex flex-col items-center gap-1 px-2 py-2 rounded-lg transition-all disabled:opacity-50 disabled:pointer-events-none',
+                        action.tone === 'tertiary'
+                          ? 'bg-tertiary-container/30 hover:bg-tertiary-container/50 text-tertiary'
+                          : 'bg-secondary-container/30 hover:bg-secondary-container/50 text-secondary'
+                      )}
+                    >
+                      <span className="material-symbols-outlined text-base">{action.icon}</span>
+                      <span className="text-[9px] font-bold uppercase tracking-tight text-center leading-tight">{action.label}</span>
+                    </button>
+                  ))}
+
+                  <button
+                    onClick={() => generateSummaryMutation.mutate()}
+                    disabled={
+                      generateSummaryMutation.isPending ||
+                      chatMutation.isPending ||
+                      generateOutlineMutation.isPending ||
+                      checkConsistencyMutation.isPending
+                    }
+                    className="flex flex-col items-center gap-1 px-2 py-2 rounded-lg bg-secondary-container/30 hover:bg-secondary-container/50 text-secondary transition-all disabled:opacity-50 disabled:pointer-events-none"
+                  >
+                    <span className="material-symbols-outlined text-base">summarize</span>
+                    <span className="text-[9px] font-bold uppercase tracking-tight text-center leading-tight">
+                      {generateSummaryMutation.isPending ? 'Working' : 'Summary'}
+                    </span>
+                  </button>
+
+                  <button
+                    onClick={() => generateOutlineMutation.mutate()}
+                    disabled={
+                      generateOutlineMutation.isPending ||
+                      chatMutation.isPending ||
+                      generateSummaryMutation.isPending ||
+                      checkConsistencyMutation.isPending
+                    }
+                    className="flex flex-col items-center gap-1 px-2 py-2 rounded-lg bg-secondary-container/30 hover:bg-secondary-container/50 text-secondary transition-all disabled:opacity-50 disabled:pointer-events-none"
+                  >
+                    <span className="material-symbols-outlined text-base">format_list_bulleted</span>
+                    <span className="text-[9px] font-bold uppercase tracking-tight text-center leading-tight">
+                      {generateOutlineMutation.isPending ? 'Working' : 'Outline'}
+                    </span>
+                  </button>
+
+                  <button
+                    onClick={() => checkConsistencyMutation.mutate()}
+                    disabled={
+                      checkConsistencyMutation.isPending ||
+                      chatMutation.isPending ||
+                      generateSummaryMutation.isPending ||
+                      generateOutlineMutation.isPending
+                    }
+                    className="flex flex-col items-center gap-1 px-2 py-2 rounded-lg bg-tertiary-container/30 hover:bg-tertiary-container/50 text-tertiary transition-all disabled:opacity-50 disabled:pointer-events-none"
+                  >
+                    <span className="material-symbols-outlined text-base">rule</span>
+                    <span className="text-[9px] font-bold uppercase tracking-tight text-center leading-tight">
+                      {checkConsistencyMutation.isPending ? 'Checking' : 'Consistency'}
+                    </span>
+                  </button>
+                </div>
               </div>
 
               <form onSubmit={handleChatSubmit} className="relative">
@@ -1016,6 +1623,145 @@ export default function ChapterWorkspaceClient({ chapterId }: { chapterId: strin
           </section>
         </div>
       </div>
+
+      {showConsistencyModal ? (
+        <div
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/55 p-4"
+          onClick={() => setShowConsistencyModal(false)}
+        >
+          <div
+            className="flex max-h-[85vh] w-full max-w-5xl flex-col overflow-hidden rounded-xl border border-outline-variant/20 bg-white shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-start justify-between border-b border-outline-variant/10 px-5 py-4">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">AI Consistency Checker</p>
+                <h3 className="mt-1 text-lg font-bold text-primary">
+                  {consistencyIssues.length > 0
+                    ? `${consistencyIssues.length} potential issue${consistencyIssues.length === 1 ? '' : 's'} found`
+                    : 'No major issues found'}
+                </h3>
+                <p className="mt-1 text-xs text-on-surface-variant">
+                  {consistencyMessage}
+                  {consistencyGeneratedAt ? ` Checked ${formatDate(consistencyGeneratedAt)}.` : ''}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowConsistencyModal(false)}
+                className="rounded-lg border border-outline-variant/20 px-3 py-1.5 text-xs font-bold text-primary hover:bg-surface-container-low"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="overflow-y-auto p-5">
+              {consistencyIssues.length === 0 ? (
+                <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+                  Consistency checks did not find continuity conflicts that need immediate changes.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {consistencyIssues.map((issue) => {
+                    const replaceableVariants = issue.canonical_value
+                      ? issue.variants.filter((variant) => variant !== issue.canonical_value)
+                      : [];
+
+                    return (
+                      <article key={issue.id} className="rounded-xl border border-outline-variant/20 bg-surface-container-low p-4">
+                        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                          <h4 className="text-sm font-bold text-primary">{issue.title}</h4>
+                          <div className="flex items-center gap-2">
+                            <span className={cn('rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider', issueSeverityClass(issue.severity))}>
+                              {issue.severity}
+                            </span>
+                            <span className="rounded-full border border-outline-variant/20 bg-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
+                              {issueTypeLabel(issue.issue_type)}
+                            </span>
+                          </div>
+                        </div>
+
+                        <p className="text-xs text-on-surface-variant">{issue.description}</p>
+
+                        {issue.variants.length > 0 ? (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {issue.variants.map((variant) => (
+                              <span
+                                key={`${issue.id}-${variant}`}
+                                className={cn(
+                                  'rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-wider',
+                                  issue.canonical_value && variant === issue.canonical_value
+                                    ? 'border-secondary/30 bg-secondary-container/40 text-secondary'
+                                    : 'border-outline-variant/20 bg-white text-on-surface-variant'
+                                )}
+                              >
+                                {variant}
+                              </span>
+                            ))}
+                          </div>
+                        ) : null}
+
+                        {issue.references.length > 0 ? (
+                          <div className="mt-4 rounded-lg border border-outline-variant/15 bg-white p-3">
+                            <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-on-surface-variant">Chapter References</p>
+                            <div className="space-y-2">
+                              {issue.references.map((reference) => (
+                                <div key={`${issue.id}-${reference.chapter_id}-${reference.matched_text || 'ref'}`} className="rounded-md border border-outline-variant/10 bg-surface-container-low p-2">
+                                  <p className="text-xs font-semibold text-primary">
+                                    Chapter {reference.chapter_number}: {reference.chapter_title}
+                                    {reference.matched_text ? ` (${reference.matched_text})` : ''}
+                                  </p>
+                                  {reference.excerpt ? (
+                                    <p className="mt-1 text-xs text-on-surface-variant">{reference.excerpt}</p>
+                                  ) : null}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null}
+
+                        {issue.fix_suggestions.length > 0 ? (
+                          <div className="mt-3 rounded-lg border border-outline-variant/15 bg-white p-3">
+                            <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-on-surface-variant">Suggested Fixes</p>
+                            <div className="space-y-1">
+                              {issue.fix_suggestions.map((suggestion, index) => (
+                                <p key={`${issue.id}-suggestion-${index}`} className="text-xs text-on-surface-variant">
+                                  {index + 1}. {suggestion}
+                                </p>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null}
+
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          {replaceableVariants.map((variant) => (
+                            <button
+                              key={`${issue.id}-replace-${variant}`}
+                              type="button"
+                              onClick={() => applyConsistencyReplacement(variant, issue.canonical_value || '')}
+                              className="rounded-lg border border-secondary/30 bg-secondary-container/30 px-3 py-1.5 text-xs font-bold text-secondary hover:bg-secondary-container/50"
+                            >
+                              Fix: {variant} → {issue.canonical_value}
+                            </button>
+                          ))}
+
+                          <button
+                            type="button"
+                            onClick={() => draftConsistencyFixPrompt(issue)}
+                            className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary/10"
+                          >
+                            Draft AI Fix Prompt
+                          </button>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </>
   );
 }

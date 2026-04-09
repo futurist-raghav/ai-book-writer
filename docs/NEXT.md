@@ -1,4 +1,53 @@
-Here is a full, deep-dive breakdown of every page — what to add, what to remove, what to change, and what new modules to build to make **The Editorial Sanctuary** a universal writing platform for every genre, type, and kind of writer.
+# NEXT - Active Execution Queue (April 10, 2026)
+
+This top section is the source of truth for immediate execution. Historical deep-dive ideation is preserved below for reference.
+
+## Just Completed
+
+- ✅ P2.1 Database architecture: Unified entity model migration (008_unified_entity_model.py)
+- ✅ Entity ORM model with type enum (character, location, concept, faction, item, theme, custom)
+- ✅ Full CRUD API endpoints for entities (/api/v1/books/{book_id}/entities/*)
+- ✅ Pydantic schemas for entity request/response handling
+- ✅ Router integration + Book model relationship setup
+- ✅ Auto-migration of existing project_settings entity data to Entities table
+
+## Immediate Next Work (Ordered by Priority)
+
+1. **P2.1 Continuation: Entity Extraction Integration** (2-3 hours) - **UNBLOCKS practical Phase 2 usage**
+   - Update POST /chapters/{id}/extract-entities to populate Entities table (not just project_settings)
+   - Add test coverage for entity creation from extracted entities
+   - Verify extracted entities appear in book's entities list
+   - Update frontend Entities > Discovered tab to read from DB instead of just project_settings
+
+2. **P2.1 Continuation: Chapter References for Entities** (2-3 hours)
+   - Create entity_references table linking chapters to entities
+   - Update extraction to record which chapter mentions which entity
+   - Implement GET /books/{book_id}/entities/{entity_id}/chapters for cross-reference queries
+   - Update EntityWithChapterReferences schema to populate real chapter data
+
+3. **P1.9 Manual Offline Verification** (30 min) - **FINAL Phase 1 blocker**
+   - Verify cached chapter viewing while offline
+   - Verify queued chapter edits replay correctly when reconnecting
+   - Document outcomes in MANUAL_TESTING_GUIDE.md
+
+4. **P2.2 Flow Engine: Timeline & Dependencies** (4-5 hours)
+   - Define Events/Flow table with timeline position, dependency chains
+   - Chapter-to-Event linking constraints
+   - Timeline query contract for frontend rendering
+   - Initial event list API + timeline Gantt contract
+
+5. **P3.5 Rewrite-with-Diff UX** (3-4 hours)
+   - AI suggestions show before/after diff (not silent overwrites)
+   - User accepts/rejects individual suggestions
+   - Multiple suggestion variants (Formal, Casual, Shorter, etc.)
+
+## Execution Rule
+
+- Keep shipping vertical slices with tests and doc deltas in the same session.
+
+---
+
+Here is a full, deep-dive breakdown of every page - what to add, what to remove, what to change, and what new modules to build to make **The Editorial Sanctuary** a universal writing platform for every genre, type, and kind of writer.
 
 ***
 

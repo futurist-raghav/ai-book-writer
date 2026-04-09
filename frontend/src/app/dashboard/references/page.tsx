@@ -7,6 +7,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { apiClient } from '@/lib/api-client';
 import { Spinner } from '@/components/ui/spinner';
+import { QueryErrorState } from '@/components/ui/query-error-state';
 
 interface Reference {
   id: string;
@@ -43,7 +44,7 @@ export default function ReferencesPage() {
   const [newReferenceSourceType, setNewReferenceSourceType] = useState<'book' | 'article' | 'website' | 'paper' | 'video' | 'other'>('article');
   const [newReferenceNotes, setNewReferenceNotes] = useState('');
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['references', searchQuery],
     queryFn: () => apiClient.references.list({ search: searchQuery }),
   });
@@ -243,7 +244,13 @@ export default function ReferencesPage() {
 
       {/* References List */}
       <div className="space-y-3">
-        {isLoading ? (
+        {isError ? (
+          <QueryErrorState
+            title="Unable to load references"
+            error={error}
+            onRetry={() => void refetch()}
+          />
+        ) : isLoading ? (
           <div className="flex justify-center py-12">
             <Spinner className="w-8 h-8 text-primary" />
           </div>

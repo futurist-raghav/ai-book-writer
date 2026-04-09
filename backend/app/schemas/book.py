@@ -5,7 +5,7 @@ Request and response schemas for book-related endpoints.
 """
 
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Literal, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -168,13 +168,61 @@ class BookTemplateApplyRequest(BaseModel):
 class BookExportRequest(BaseModel):
     """Request to export a book."""
 
-    format: str = Field(..., pattern="^(pdf|epub|docx|html|markdown)$")
+    format: str = Field(..., pattern="^(pdf|epub|docx|html|markdown|latex|fountain)$")
     include_front_matter: bool = True
     include_back_matter: bool = True
     include_toc: bool = True
     page_size: Optional[str] = "letter"  # letter, a4, a5
     font_size: Optional[int] = 12
     font_family: Optional[str] = "serif"
+
+
+class BookOutlineGenerateRequest(BaseModel):
+    """Request to generate a project-level outline."""
+
+    chapter_count: Optional[int] = Field(None, ge=3, le=80)
+    auto_create_chapters: bool = False
+    replace_existing: bool = False
+
+
+class BookOutlineSection(BaseModel):
+    """Single generated section/chapter in an outline."""
+
+    order_index: int
+    title: str
+    summary: str
+    chapter_type: str = "chapter"
+    part_number: Optional[int] = None
+    part_title: Optional[str] = None
+
+
+class BookOutlineResponse(BaseModel):
+    """Response for generated project outline."""
+
+    book_id: UUID
+    project_type: str
+    generated_at: datetime
+    chapter_count: int
+    sections: List[BookOutlineSection] = []
+    created_chapter_ids: List[UUID] = []
+    message: str
+
+
+class BookSynopsisGenerateRequest(BaseModel):
+    """Request to generate a project-level synopsis."""
+
+    length: Literal["one_page", "three_page", "full"] = "one_page"
+
+
+class BookSynopsisResponse(BaseModel):
+    """Response for generated project synopsis."""
+
+    book_id: UUID
+    length: Literal["one_page", "three_page", "full"]
+    synopsis: str
+    generated_at: datetime
+    chapter_count: int
+    message: str
 
 
 # ============== Response Schemas ==============

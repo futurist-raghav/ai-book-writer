@@ -18,6 +18,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Environment variable templates
 - Quick start script
 - Makefile for common tasks
+- Chapter summary generation endpoint: `POST /chapters/{id}/generate-summary`
+- Chapter outline generation endpoint: `POST /chapters/{id}/generate-outline`
+- Chapter route stability test coverage in frontend app tests
+- Reusable frontend query error state component with retry action
+- Backend export support for `latex` and `fountain` formats
+- Dashboard chapter word-count breakdown panel for per-chapter pacing visibility
+- Persistent custom export profile templates in Publishing (save/apply/delete)
+- Chapter workspace split-view mode with persistent side notes panel
+- PWA manifest and service worker for installability and offline caching
+- Runtime PWA install prompt + connectivity banner in dashboard layout
+- Context-aware Writer Assistant quick-action sets by project type (fiction, non-fiction, screenplay, textbook, songwriting)
+- PWA runtime Jest coverage for offline/install prompt flows
+- Project catalog collaborator avatar previews (cards + list rows) with overflow indicator
+- Collaboration dashboard Jest coverage for project scope switching and scoped comment posting
+- Reusable offline draft queue utility for chapter autosave fallback (`offline-draft-queue`)
+- Offline draft queue Jest coverage for malformed storage recovery, bounds, and replay selection
+- Reusable manuscript health analysis utility for chapter diagnostics (`manuscript-health`)
+- Manuscript Health dashboard widget with score/status and issue flags
+- Manuscript health Jest coverage for stale/missing-summary/thin-chapter diagnostics
+- Manuscript health alias-mismatch diagnostics for fuzzy character-name drift (e.g., `Elena -> Eliana`)
+
+### Changed
+- Dashboard pages now use standardized query error + retry patterns
+- Chapter management now supports drag-and-drop reorder, bulk updates, and POV tracking
+- Auth-expiry redirect flow moved to router-driven event handling in frontend layout
+- Publishing workspace now uses supported-format previews, export profile presets, and metadata/front-back matter editors
+- Dashboard writing metrics now include live writing streak display sourced from chapter edit history
+- Publishing profile presets now merge built-in templates with project-specific saved templates persisted in book settings
+- Chapter workspace now supports editor + notes side-by-side composition workflow for split mode
+- Chapter workspace autosave now queues draft snapshots offline and syncs queued changes on reconnect
+- Writer Assistant quick-action buttons now load dynamically from project type configuration while preserving shared summary/outline actions
+- Projects catalog now supports card/list display toggle with persisted user preference
+- Project dashboard collaboration lookup now uses book-scoped collaborator endpoint for card/list previews
+- Collaboration dashboard now uses explicit project scope selection and book-scoped collaborators/comments/activity endpoints
+- Chapter workspace offline autosave now uses shared offline draft queue helpers instead of inline queue storage logic
+- Project overview dashboard now surfaces manuscript readiness diagnostics (stale, missing summary, thin chapter risk flags)
+- Manuscript health now separates fuzzy alias mismatches from generic undefined-character flags for clearer continuity triage
+
+### Fixed
+- "Continue Writing" chapter lookup now respects backend chapter list pagination limit constraints
+- Removed frontend debug artifacts and improved non-404 transcription failure handling
+- Publishing export action now opens backend download URLs from export responses instead of treating responses as binary payloads
+- Writing metrics utility now returns longest streak data and supports word-count fallback for reading level consumers
+- Collaboration dashboard actions now match backend route shape (no legacy non-book-scoped collaboration path dependency)
 
 ### Documentation
 - README.md - Project overview and quick start

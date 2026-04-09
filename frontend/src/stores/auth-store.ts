@@ -24,6 +24,14 @@ interface AuthState {
   setLoading: (loading: boolean) => void;
 }
 
+function emitAuthExpiredEvent(): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.dispatchEvent(new CustomEvent('auth:expired'));
+}
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
@@ -48,12 +56,15 @@ export const useAuthStore = create<AuthState>()(
         }),
 
       logout: () =>
-        set({
-          user: null,
-          accessToken: null,
-          refreshToken: null,
-          isAuthenticated: false,
-          isLoading: false,
+        set(() => {
+          emitAuthExpiredEvent();
+          return {
+            user: null,
+            accessToken: null,
+            refreshToken: null,
+            isAuthenticated: false,
+            isLoading: false,
+          };
         }),
 
       setLoading: (loading) => set({ isLoading: loading }),

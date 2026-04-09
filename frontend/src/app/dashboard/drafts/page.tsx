@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
 import { Spinner } from '@/components/ui/spinner';
+import { QueryErrorState } from '@/components/ui/query-error-state';
 import { toast } from 'sonner';
 import { useBookStore } from '@/stores/book-store';
 import { formatDate } from '@/lib/utils';
@@ -21,7 +22,7 @@ export default function DraftsPage() {
   const queryClient = useQueryClient();
   const { selectBook } = useBookStore();
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['books', 'drafts'],
     queryFn: () => apiClient.books.list({ limit: 100 }),
   });
@@ -58,6 +59,18 @@ export default function DraftsPage() {
 
   if (isLoading) {
     return <div className="flex h-64 items-center justify-center"><Spinner className="w-8 h-8 text-primary" /></div>;
+  }
+
+  if (isError) {
+    return (
+      <div className="max-w-5xl mx-auto pt-8 pb-24">
+        <QueryErrorState
+          title="Unable to load drafts"
+          error={error}
+          onRetry={() => void refetch()}
+        />
+      </div>
+    );
   }
 
   return (

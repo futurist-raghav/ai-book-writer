@@ -1,16 +1,24 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { apiClient } from '@/lib/api-client';
+import { useProjectContext } from '@/stores/project-context';
 import { Spinner } from '@/components/ui/spinner';
+import { QueryErrorState } from '@/components/ui/query-error-state';
+
+interface BookOption {
+  id: string;
+  title: string;
+}
 
 interface Collaborator {
   id: string;
   name: string;
   email: string;
-  role: 'owner' | 'editor' | 'reviewer' | 'contributor' | 'viewer';
+  role: string;
+  is_accepted?: boolean;
   joined_at: string;
   last_active?: string;
 }
@@ -32,8 +40,23 @@ interface Activity {
   timestamp: string;
 }
 
+function extractPaginatedItems(payload: unknown): Record<string, unknown>[] {
+  const root = (payload || {}) as Record<string, unknown>;
+  const nested = (root.data as Record<string, unknown> | undefined) || undefined;
+
+  const rawItems =
+    (Array.isArray(root.items) ? root.items : undefined) ||
+    (Array.isArray(root.data) ? (root.data as unknown[]) : undefined) ||
+    (Array.isArray(nested?.items) ? nested?.items : undefined) ||
+    (Array.isArray(nested?.data) ? nested?.data : undefined) ||
+    [];
+
+  return rawItems as Record<string, unknown>[];
+}
+
 export default function CollaborationPage() {
   const queryClient = useQueryClient();
+  const activeBookId = useProjectContext((state) => state.activeBook?.id);
 
   const [inviteMode, setInviteMode] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
@@ -44,61 +67,202 @@ export default function CollaborationPage() {
   const [selectedChapter, setSelectedChapter] = useState('');
 
   const [activeTab, setActiveTab] = useState<'collaborators' | 'comments' | 'activity'>('collaborators');
+  const [selectedBookId, setSelectedBookId] = useState('');
+
+  const {
+    data: booksData,
+    isLoading: loadingBooks,
+    isError: booksError,
+    error: booksErrorValue,
+    refetch: refetchBooks,
+  } = useQuery({
+    queryKey: ['collaboration-books'],
+    queryFn: () =>
+      apiClient.books.list({
+        page: 1,
+        limit: 100,
+        sort_by: 'updated_at',
+        sort_order: 'desc',
+      }),
+  });
+
+  const availableBooks: BookOption[] = extractPaginatedItems(booksData?.data)
+    .map((item) => {
+      const id = typeof item.id === 'string' ? item.id : '';
+      if (!id) return null;
+
+      return {
+        id,
+        title: typeof item.title === 'string' && item.title.trim() ? item.title : 'Untitled project',
+      };
+    })
+    .filter((item): item is BookOption => Boolean(item));
+
+  useEffect(() => {
+    if (availableBooks.length === 0) {
+      if (selectedBookId) {
+        setSelectedBookId('');
+      }
+      return;
+    }
+
+    const selectedBookStillExists = availableBooks.some((book) => book.id === selectedBookId);
+    if (selectedBookStillExists) {
+      return;
+    }
+
+    const activeBookMatch = activeBookId && availableBooks.find((book) => book.id === activeBookId);
+    setSelectedBookId(activeBookMatch?.id || availableBooks[0].id);
+  }, [activeBookId, availableBooks, selectedBookId]);
 
   // Fetch collaborators
-  const { data: collaboratorsData, isLoading: loadingCollaborators } = useQuery({
-    queryKey: ['collaborators'],
-    queryFn: () => apiClient.collaboration.members(),
+  const {
+    data: collaboratorsData,
+    isLoading: loadingCollaborators,
+    isError: collaboratorsError,
+    error: collaboratorsErrorValue,
+    refetch: refetchCollaborators,
+  } = useQuery({
+    queryKey: ['collaborators', selectedBookId],
+    queryFn: () => apiClient.collaboration.membersByBook(selectedBookId, { accepted_only: false }),
+    enabled: !!selectedBookId,
   });
 
   // Fetch comments
-  const { data: commentsData, isLoading: loadingComments } = useQuery({
-    queryKey: ['collaboration-comments'],
-    queryFn: () => apiClient.collaboration.comments(),
+  const {
+    data: commentsData,
+    isLoading: loadingComments,
+    isError: commentsError,
+    error: commentsErrorValue,
+    refetch: refetchComments,
+  } = useQuery({
+    queryKey: ['collaboration-comments', selectedBookId],
+    queryFn: () => apiClient.collaboration.commentsByBook(selectedBookId),
+    enabled: !!selectedBookId,
   });
 
   // Fetch activity log
-  const { data: activityData, isLoading: loadingActivity } = useQuery({
-    queryKey: ['collaboration-activity'],
-    queryFn: () => apiClient.collaboration.activity(),
+  const {
+    data: activityData,
+    isLoading: loadingActivity,
+    isError: activityError,
+    error: activityErrorValue,
+    refetch: refetchActivity,
+  } = useQuery({
+    queryKey: ['collaboration-activity', selectedBookId],
+    queryFn: () => apiClient.collaboration.activityByBook(selectedBookId),
+    enabled: !!selectedBookId,
   });
 
   const inviteMutation = useMutation({
     mutationFn: (data: { email: string; role: 'editor' | 'reviewer' | 'contributor' | 'viewer' }) =>
-      apiClient.collaboration.invite(data),
+      selectedBookId
+        ? apiClient.collaboration.inviteByBook(selectedBookId, data)
+        : Promise.reject(new Error('No project selected')),
     onSuccess: () => {
       toast.success('Invitation sent');
-      queryClient.invalidateQueries({ queryKey: ['collaborators'] });
+      queryClient.invalidateQueries({ queryKey: ['collaborators', selectedBookId] });
+      queryClient.invalidateQueries({ queryKey: ['collaboration-activity', selectedBookId] });
       setInviteEmail('');
       setInviteMode(false);
     },
-    onError: () => toast.error('Failed to send invitation'),
+    onError: (error: any) => toast.error(error?.response?.data?.detail || 'Failed to send invitation'),
   });
 
   const addCommentMutation = useMutation({
-    mutationFn: (data: { chapter_id: string; text: string; position?: number }) =>
-      apiClient.collaboration.addComment(data),
+    mutationFn: (data: { content: string; target_type?: string; target_id?: string }) =>
+      selectedBookId
+        ? apiClient.collaboration.addCommentByBook(selectedBookId, data)
+        : Promise.reject(new Error('No project selected')),
     onSuccess: () => {
       toast.success('Comment added');
-      queryClient.invalidateQueries({ queryKey: ['collaboration-comments'] });
+      queryClient.invalidateQueries({ queryKey: ['collaboration-comments', selectedBookId] });
+      queryClient.invalidateQueries({ queryKey: ['collaboration-activity', selectedBookId] });
       setCommentText('');
+      setSelectedChapter('');
       setCommentMode(false);
     },
-    onError: () => toast.error('Failed to add comment'),
+    onError: (error: any) => toast.error(error?.response?.data?.detail || 'Failed to add comment'),
   });
 
   const removeCollaboratorMutation = useMutation({
-    mutationFn: (id: string) => apiClient.collaboration.removeMember(id),
+    mutationFn: (id: string) =>
+      selectedBookId
+        ? apiClient.collaboration.removeMemberByBook(selectedBookId, id)
+        : Promise.reject(new Error('No project selected')),
     onSuccess: () => {
       toast.success('Collaborator removed');
-      queryClient.invalidateQueries({ queryKey: ['collaborators'] });
+      queryClient.invalidateQueries({ queryKey: ['collaborators', selectedBookId] });
+      queryClient.invalidateQueries({ queryKey: ['collaboration-activity', selectedBookId] });
     },
-    onError: () => toast.error('Failed to remove collaborator'),
+    onError: (error: any) => toast.error(error?.response?.data?.detail || 'Failed to remove collaborator'),
   });
 
-  const collaborators: Collaborator[] = collaboratorsData?.data?.items || [];
-  const comments: Comment[] = commentsData?.data?.items || [];
-  const activities: Activity[] = activityData?.data?.items || [];
+  const collaborators: Collaborator[] = extractPaginatedItems(collaboratorsData?.data)
+    .map((item, index) => {
+      const id = typeof item.id === 'string' ? item.id : `collab-${index}`;
+      const name =
+        (typeof item.user_name === 'string' && item.user_name.trim()) ||
+        (typeof item.user_email === 'string' && item.user_email.trim()) ||
+        'Unknown collaborator';
+      const email =
+        (typeof item.user_email === 'string' && item.user_email) ||
+        (typeof item.email === 'string' && item.email) ||
+        '';
+      const role = typeof item.role === 'string' && item.role.trim() ? item.role : 'viewer';
+      const invitedAt = typeof item.invited_at === 'string' ? item.invited_at : '';
+      const acceptedAt = typeof item.accepted_at === 'string' ? item.accepted_at : undefined;
+      const updatedAt = typeof item.updated_at === 'string' ? item.updated_at : undefined;
+
+      return {
+        id,
+        name,
+        email,
+        role,
+        is_accepted: typeof item.is_accepted === 'boolean' ? item.is_accepted : true,
+        joined_at: acceptedAt || invitedAt,
+        last_active: updatedAt,
+      } as Collaborator;
+    })
+    .filter((item) => Boolean(item.id));
+
+  const comments: Comment[] = extractPaginatedItems(commentsData?.data)
+    .map((item, index) => {
+      const id = typeof item.id === 'string' ? item.id : `comment-${index}`;
+      const createdAt = typeof item.created_at === 'string' ? item.created_at : '';
+      const targetType = typeof item.target_type === 'string' ? item.target_type : '';
+      const targetId = typeof item.target_id === 'string' ? item.target_id : '';
+
+      return {
+        id,
+        author:
+          (typeof item.author_name === 'string' && item.author_name.trim()) ||
+          'Unknown user',
+        content: typeof item.content === 'string' ? item.content : '',
+        chapter: targetType === 'chapter' ? targetId : undefined,
+        created_at: createdAt,
+        resolved: typeof item.is_resolved === 'boolean' ? item.is_resolved : false,
+      } as Comment;
+    })
+    .filter((item) => Boolean(item.id));
+
+  const activities: Activity[] = extractPaginatedItems(activityData?.data)
+    .map((item, index) => {
+      const id = typeof item.id === 'string' ? item.id : `activity-${index}`;
+      const title = typeof item.title === 'string' ? item.title : '';
+      const description = typeof item.description === 'string' ? item.description : '';
+
+      return {
+        id,
+        user: (typeof item.actor_name === 'string' && item.actor_name.trim()) || 'System',
+        action: title || 'updated collaboration data',
+        resource: description || (typeof item.entity_type === 'string' ? item.entity_type : ''),
+        timestamp: typeof item.created_at === 'string' ? item.created_at : '',
+      } as Activity;
+    })
+    .filter((item) => Boolean(item.id));
+
+  const selectedBook = availableBooks.find((book) => book.id === selectedBookId);
 
   return (
     <div className="max-w-6xl mx-auto pt-8 pb-24">
@@ -113,240 +277,328 @@ export default function CollaborationPage() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="mb-8 flex gap-2 border-b border-outline-variant/20">
-        <button
-          onClick={() => setActiveTab('collaborators')}
-          className={`px-4 py-3 font-label text-sm font-bold uppercase tracking-wider border-b-2 transition-colors ${
-            activeTab === 'collaborators'
-              ? 'border-primary text-primary'
-              : 'border-transparent text-on-surface-variant hover:text-primary'
-          }`}
+      <div className="mb-8 rounded-lg border border-outline-variant/10 bg-surface-container-lowest p-5">
+        <label
+          htmlFor="collaboration-book-scope"
+          className="block font-label text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2"
         >
-          Team Members
-        </button>
-        <button
-          onClick={() => setActiveTab('comments')}
-          className={`px-4 py-3 font-label text-sm font-bold uppercase tracking-wider border-b-2 transition-colors ${
-            activeTab === 'comments'
-              ? 'border-primary text-primary'
-              : 'border-transparent text-on-surface-variant hover:text-primary'
-          }`}
+          Project Scope
+        </label>
+        <select
+          id="collaboration-book-scope"
+          value={selectedBookId}
+          onChange={(e) => {
+            setSelectedBookId(e.target.value);
+            setInviteMode(false);
+            setCommentMode(false);
+          }}
+          disabled={loadingBooks || availableBooks.length === 0}
+          className="w-full rounded-lg border border-outline-variant/20 bg-surface-container-low px-4 py-2 text-sm font-label"
         >
-          Comments & Feedback
-        </button>
-        <button
-          onClick={() => setActiveTab('activity')}
-          className={`px-4 py-3 font-label text-sm font-bold uppercase tracking-wider border-b-2 transition-colors ${
-            activeTab === 'activity'
-              ? 'border-primary text-primary'
-              : 'border-transparent text-on-surface-variant hover:text-primary'
-          }`}
-        >
-          Activity Log
-        </button>
+          {availableBooks.map((book) => (
+            <option key={book.id} value={book.id}>
+              {book.title}
+            </option>
+          ))}
+        </select>
+        {selectedBook ? (
+          <p className="mt-2 text-xs font-label text-on-surface-variant">
+            Managing collaboration for <span className="font-bold text-primary">{selectedBook.title}</span>
+          </p>
+        ) : null}
       </div>
 
-      {/* Collaborators Tab */}
-      {activeTab === 'collaborators' && (
-        <div>
-          <div className="mb-6 flex justify-between items-center">
-            <h3 className="text-lg font-bold text-primary">Team Members</h3>
-            <button
-              onClick={() => setInviteMode(!inviteMode)}
-              className="flex items-center gap-2 bg-secondary text-white px-4 py-2 rounded-lg font-label font-bold text-sm shadow-sm hover:bg-secondary/90 transition-all"
-            >
-              <span className="material-symbols-outlined">person_add</span>
-              Invite
-            </button>
-          </div>
-
-          {inviteMode && (
-            <div className="bg-surface-container-lowest p-6 rounded-lg border border-outline-variant/10 mb-6">
-              <div className="grid md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block font-label text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Email</label>
-                  <input
-                    type="email"
-                    placeholder="collaborator@example.com"
-                    value={inviteEmail}
-                    onChange={(e) => setInviteEmail(e.target.value)}
-                    className="w-full bg-surface-container-low border border-outline-variant/20 rounded-lg px-4 py-2 text-sm font-label"
-                  />
-                </div>
-                <div>
-                  <label className="block font-label text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Role</label>
-                  <select
-                    value={inviteRole}
-                    onChange={(e) => setInviteRole(e.target.value as any)}
-                    className="w-full bg-surface-container-low border border-outline-variant/20 rounded-lg px-4 py-2 text-sm font-label"
-                  >
-                    <option value="editor">Editor</option>
-                    <option value="reviewer">Reviewer</option>
-                    <option value="contributor">Contributor</option>
-                    <option value="viewer">Viewer</option>
-                  </select>
-                </div>
-                <div className="flex items-end gap-2">
-                  <button
-                    onClick={() => inviteMutation.mutate({ email: inviteEmail, role: inviteRole })}
-                    disabled={inviteMutation.isPending || !inviteEmail.trim()}
-                    className="flex-1 bg-primary text-white px-4 py-2 rounded-lg font-label font-bold text-sm hover:bg-primary/90 disabled:opacity-50"
-                  >
-                    Send
-                  </button>
-                  <button
-                    onClick={() => setInviteMode(false)}
-                    className="flex-1 bg-surface-container px-4 py-2 rounded-lg font-label font-bold text-sm text-primary hover:bg-surface-container-high"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="space-y-3">
-            {loadingCollaborators ? (
-              <div className="flex justify-center py-8"><Spinner /></div>
-            ) : collaborators.length === 0 ? (
-              <div className="text-center py-12 bg-surface-container-lowest rounded-lg border border-dashed border-outline-variant/20">
-                <p className="text-on-surface-variant text-sm">No collaborators yet. Invite team members to get started.</p>
-              </div>
-            ) : (
-              collaborators.map((collab) => (
-                <div key={collab.id} className="bg-surface-container-lowest border border-outline-variant/10 rounded-lg p-4 flex items-center justify-between">
-                  <div className="flex-1">
-                    <p className="font-bold text-sm text-primary">{collab.name}</p>
-                    <p className="text-xs text-on-surface-variant">{collab.email}</p>
-                    <div className="flex items-center gap-2 mt-2">
-                      <span className="px-2 py-1 bg-secondary/10 text-secondary text-[10px] font-bold rounded uppercase">
-                        {collab.role}
-                      </span>
-                      {collab.last_active && <span className="text-[10px] text-on-surface-variant">Last active: {new Date(collab.last_active).toLocaleDateString()}</span>}
-                    </div>
-                  </div>
-                  {collab.role !== 'owner' && (
-                    <button
-                      onClick={() => removeCollaboratorMutation.mutate(collab.id)}
-                      className="text-error hover:opacity-70 transition-opacity"
-                    >
-                      <span className="material-symbols-outlined">close</span>
-                    </button>
-                  )}
-                </div>
-              ))
-            )}
-          </div>
+      {booksError ? (
+        <QueryErrorState
+          title="Unable to load projects"
+          error={booksErrorValue}
+          onRetry={() => void refetchBooks()}
+        />
+      ) : loadingBooks ? (
+        <div className="flex justify-center py-10">
+          <Spinner />
         </div>
-      )}
-
-      {/* Comments Tab */}
-      {activeTab === 'comments' && (
-        <div>
-          <div className="mb-6 flex justify-between items-center">
-            <h3 className="text-lg font-bold text-primary">Comments & Feedback</h3>
+      ) : availableBooks.length === 0 ? (
+        <div className="text-center py-14 rounded-lg border border-dashed border-outline-variant/20 bg-surface-container-lowest">
+          <p className="text-sm text-on-surface-variant">Create a project first to manage collaborators, comments, and activity.</p>
+        </div>
+      ) : (
+        <>
+          {/* Tabs */}
+          <div className="mb-8 flex gap-2 border-b border-outline-variant/20">
             <button
-              onClick={() => setCommentMode(!commentMode)}
-              className="flex items-center gap-2 bg-secondary text-white px-4 py-2 rounded-lg font-label font-bold text-sm shadow-sm hover:bg-secondary/90 transition-all"
+              onClick={() => setActiveTab('collaborators')}
+              className={`px-4 py-3 font-label text-sm font-bold uppercase tracking-wider border-b-2 transition-colors ${
+                activeTab === 'collaborators'
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-on-surface-variant hover:text-primary'
+              }`}
             >
-              <span className="material-symbols-outlined">add_comment</span>
-              Add
+              Team Members
+            </button>
+            <button
+              onClick={() => setActiveTab('comments')}
+              className={`px-4 py-3 font-label text-sm font-bold uppercase tracking-wider border-b-2 transition-colors ${
+                activeTab === 'comments'
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-on-surface-variant hover:text-primary'
+              }`}
+            >
+              Comments & Feedback
+            </button>
+            <button
+              onClick={() => setActiveTab('activity')}
+              className={`px-4 py-3 font-label text-sm font-bold uppercase tracking-wider border-b-2 transition-colors ${
+                activeTab === 'activity'
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-on-surface-variant hover:text-primary'
+              }`}
+            >
+              Activity Log
             </button>
           </div>
 
-          {commentMode && (
-            <div className="bg-surface-container-lowest p-6 rounded-lg border border-outline-variant/10 mb-6">
-              <div className="mb-4">
-                <label className="block font-label text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Chapter/Section (Optional)</label>
-                <input
-                  type="text"
-                  placeholder="e.g., Chapter 5"
-                  value={selectedChapter}
-                  onChange={(e) => setSelectedChapter(e.target.value)}
-                  className="w-full bg-surface-container-low border border-outline-variant/20 rounded-lg px-4 py-2 text-sm font-label"
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block font-label text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Comment</label>
-                <textarea
-                  placeholder="Add your feedback or comment..."
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                  className="w-full bg-surface-container-low border border-outline-variant/20 rounded-lg px-4 py-3 text-sm font-label min-h-24 resize-none"
-                />
-              </div>
-              <div className="flex gap-2">
+          {/* Collaborators Tab */}
+          {activeTab === 'collaborators' && (
+            <div>
+              <div className="mb-6 flex justify-between items-center">
+                <h3 className="text-lg font-bold text-primary">Team Members</h3>
                 <button
-                  onClick={() => addCommentMutation.mutate({ chapter_id: selectedChapter || '', text: commentText })}
-                  disabled={addCommentMutation.isPending || !commentText.trim()}
-                  className="bg-primary text-white px-4 py-2 rounded-lg font-label font-bold text-sm hover:bg-primary/90 disabled:opacity-50"
+                  onClick={() => setInviteMode(!inviteMode)}
+                  className="flex items-center gap-2 bg-secondary text-white px-4 py-2 rounded-lg font-label font-bold text-sm shadow-sm hover:bg-secondary/90 transition-all"
                 >
-                  Post
-                </button>
-                <button
-                  onClick={() => setCommentMode(false)}
-                  className="bg-surface-container px-4 py-2 rounded-lg font-label font-bold text-sm text-primary hover:bg-surface-container-high"
-                >
-                  Cancel
+                  <span className="material-symbols-outlined">person_add</span>
+                  Invite
                 </button>
               </div>
-            </div>
-          )}
 
-          <div className="space-y-3">
-            {loadingComments ? (
-              <div className="flex justify-center py-8"><Spinner /></div>
-            ) : comments.length === 0 ? (
-              <div className="text-center py-12 bg-surface-container-lowest rounded-lg border border-dashed border-outline-variant/20">
-                <p className="text-on-surface-variant text-sm">No comments yet. Start collaborating!</p>
-              </div>
-            ) : (
-              comments.map((comment) => (
-                <div key={comment.id} className={`bg-surface-container-lowest border ${comment.resolved ? 'border-success/30 opacity-60' : 'border-outline-variant/10'} rounded-lg p-4`}>
-                  <div className="flex items-start justify-between mb-2">
+              {inviteMode && (
+                <div className="bg-surface-container-lowest p-6 rounded-lg border border-outline-variant/10 mb-6">
+                  <div className="grid md:grid-cols-3 gap-4">
                     <div>
-                      <p className="font-bold text-sm text-primary">{comment.author}</p>
-                      {comment.chapter && <p className="text-xs text-on-surface-variant">on {comment.chapter}</p>}
+                      <label htmlFor="invite-email" className="block font-label text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Email</label>
+                      <input
+                        id="invite-email"
+                        type="email"
+                        placeholder="collaborator@example.com"
+                        value={inviteEmail}
+                        onChange={(e) => setInviteEmail(e.target.value)}
+                        className="w-full bg-surface-container-low border border-outline-variant/20 rounded-lg px-4 py-2 text-sm font-label"
+                      />
                     </div>
-                    {comment.resolved && <span className="text-success text-xs font-bold">RESOLVED</span>}
+                    <div>
+                      <label htmlFor="invite-role" className="block font-label text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Role</label>
+                      <select
+                        id="invite-role"
+                        value={inviteRole}
+                        onChange={(e) => setInviteRole(e.target.value as 'editor' | 'reviewer' | 'contributor' | 'viewer')}
+                        className="w-full bg-surface-container-low border border-outline-variant/20 rounded-lg px-4 py-2 text-sm font-label"
+                      >
+                        <option value="editor">Editor</option>
+                        <option value="reviewer">Reviewer</option>
+                        <option value="contributor">Contributor</option>
+                        <option value="viewer">Viewer</option>
+                      </select>
+                    </div>
+                    <div className="flex items-end gap-2">
+                      <button
+                        onClick={() => inviteMutation.mutate({ email: inviteEmail, role: inviteRole })}
+                        disabled={inviteMutation.isPending || !inviteEmail.trim()}
+                        className="flex-1 bg-primary text-white px-4 py-2 rounded-lg font-label font-bold text-sm hover:bg-primary/90 disabled:opacity-50"
+                      >
+                        Send
+                      </button>
+                      <button
+                        onClick={() => setInviteMode(false)}
+                        className="flex-1 bg-surface-container px-4 py-2 rounded-lg font-label font-bold text-sm text-primary hover:bg-surface-container-high"
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   </div>
-                  <p className="text-sm text-on-surface-variant">{comment.content}</p>
-                  <p className="text-xs text-on-surface-variant/50 mt-2">{new Date(comment.created_at).toLocaleDateString()}</p>
                 </div>
-              ))
-            )}
-          </div>
-        </div>
-      )}
+              )}
 
-      {/* Activity Tab */}
-      {activeTab === 'activity' && (
-        <div>
-          <h3 className="text-lg font-bold text-primary mb-6">Activity Log</h3>
-          <div className="space-y-3">
-            {loadingActivity ? (
-              <div className="flex justify-center py-8"><Spinner /></div>
-            ) : activities.length === 0 ? (
-              <div className="text-center py-12 bg-surface-container-lowest rounded-lg border border-dashed border-outline-variant/20">
-                <p className="text-on-surface-variant text-sm">No activity yet.</p>
+              <div className="space-y-3">
+                {collaboratorsError ? (
+                  <QueryErrorState
+                    title="Unable to load collaborators"
+                    error={collaboratorsErrorValue}
+                    onRetry={() => void refetchCollaborators()}
+                  />
+                ) : loadingCollaborators ? (
+                  <div className="flex justify-center py-8"><Spinner /></div>
+                ) : collaborators.length === 0 ? (
+                  <div className="text-center py-12 bg-surface-container-lowest rounded-lg border border-dashed border-outline-variant/20">
+                    <p className="text-on-surface-variant text-sm">No collaborators yet. Invite team members to get started.</p>
+                  </div>
+                ) : (
+                  collaborators.map((collab) => (
+                    <div key={collab.id} className="bg-surface-container-lowest border border-outline-variant/10 rounded-lg p-4 flex items-center justify-between">
+                      <div className="flex-1">
+                        <p className="font-bold text-sm text-primary">{collab.name}</p>
+                        <p className="text-xs text-on-surface-variant">{collab.email || 'No email available'}</p>
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className="px-2 py-1 bg-secondary/10 text-secondary text-[10px] font-bold rounded uppercase">
+                            {collab.role}
+                          </span>
+                          {collab.is_accepted === false ? (
+                            <span className="px-2 py-1 bg-warning/15 text-warning text-[10px] font-bold rounded uppercase">
+                              pending
+                            </span>
+                          ) : null}
+                          {collab.last_active ? (
+                            <span className="text-[10px] text-on-surface-variant">Last active: {new Date(collab.last_active).toLocaleDateString()}</span>
+                          ) : null}
+                        </div>
+                      </div>
+                      {collab.role !== 'owner' && (
+                        <button
+                          onClick={() => removeCollaboratorMutation.mutate(collab.id)}
+                          className="text-error hover:opacity-70 transition-opacity"
+                        >
+                          <span className="material-symbols-outlined">close</span>
+                        </button>
+                      )}
+                    </div>
+                  ))
+                )}
               </div>
-            ) : (
-              activities.map((activity) => (
-                <div key={activity.id} className="bg-surface-container-lowest border border-outline-variant/10 rounded-lg p-4 flex items-start gap-3">
-                  <span className="material-symbols-outlined text-secondary flex-shrink-0">history</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-on-surface-variant">
-                      <span className="font-bold text-primary">{activity.user}</span> {activity.action}
-                      {activity.resource && <span className="text-secondary"> {activity.resource}</span>}
-                    </p>
-                    <p className="text-xs text-on-surface-variant/50">{new Date(activity.timestamp).toLocaleString()}</p>
+            </div>
+          )}
+
+          {/* Comments Tab */}
+          {activeTab === 'comments' && (
+            <div>
+              <div className="mb-6 flex justify-between items-center">
+                <h3 className="text-lg font-bold text-primary">Comments & Feedback</h3>
+                <button
+                  onClick={() => setCommentMode(!commentMode)}
+                  className="flex items-center gap-2 bg-secondary text-white px-4 py-2 rounded-lg font-label font-bold text-sm shadow-sm hover:bg-secondary/90 transition-all"
+                >
+                  <span className="material-symbols-outlined">add_comment</span>
+                  Add
+                </button>
+              </div>
+
+              {commentMode && (
+                <div className="bg-surface-container-lowest p-6 rounded-lg border border-outline-variant/10 mb-6">
+                  <div className="mb-4">
+                    <label htmlFor="comment-target" className="block font-label text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Target Chapter/Section (Optional)</label>
+                    <input
+                      id="comment-target"
+                      type="text"
+                      placeholder="e.g., Chapter 5"
+                      value={selectedChapter}
+                      onChange={(e) => setSelectedChapter(e.target.value)}
+                      className="w-full bg-surface-container-low border border-outline-variant/20 rounded-lg px-4 py-2 text-sm font-label"
+                    />
+                  </div>
+                  <div className="mb-4">
+                    <label htmlFor="comment-text" className="block font-label text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Comment</label>
+                    <textarea
+                      id="comment-text"
+                      placeholder="Add your feedback or comment..."
+                      value={commentText}
+                      onChange={(e) => setCommentText(e.target.value)}
+                      className="w-full bg-surface-container-low border border-outline-variant/20 rounded-lg px-4 py-3 text-sm font-label min-h-24 resize-none"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() =>
+                        addCommentMutation.mutate({
+                          content: commentText,
+                          target_type: selectedChapter.trim() ? 'chapter' : 'book',
+                          target_id: selectedChapter.trim() || undefined,
+                        })
+                      }
+                      disabled={addCommentMutation.isPending || !commentText.trim()}
+                      className="bg-primary text-white px-4 py-2 rounded-lg font-label font-bold text-sm hover:bg-primary/90 disabled:opacity-50"
+                    >
+                      Post
+                    </button>
+                    <button
+                      onClick={() => setCommentMode(false)}
+                      className="bg-surface-container px-4 py-2 rounded-lg font-label font-bold text-sm text-primary hover:bg-surface-container-high"
+                    >
+                      Cancel
+                    </button>
                   </div>
                 </div>
-              ))
-            )}
-          </div>
-        </div>
+              )}
+
+              <div className="space-y-3">
+                {commentsError ? (
+                  <QueryErrorState
+                    title="Unable to load comments"
+                    error={commentsErrorValue}
+                    onRetry={() => void refetchComments()}
+                  />
+                ) : loadingComments ? (
+                  <div className="flex justify-center py-8"><Spinner /></div>
+                ) : comments.length === 0 ? (
+                  <div className="text-center py-12 bg-surface-container-lowest rounded-lg border border-dashed border-outline-variant/20">
+                    <p className="text-on-surface-variant text-sm">No comments yet. Start collaborating!</p>
+                  </div>
+                ) : (
+                  comments.map((comment) => (
+                    <div key={comment.id} className={`bg-surface-container-lowest border ${comment.resolved ? 'border-success/30 opacity-60' : 'border-outline-variant/10'} rounded-lg p-4`}>
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <p className="font-bold text-sm text-primary">{comment.author}</p>
+                          {comment.chapter ? <p className="text-xs text-on-surface-variant">on {comment.chapter}</p> : null}
+                        </div>
+                        {comment.resolved ? <span className="text-success text-xs font-bold">RESOLVED</span> : null}
+                      </div>
+                      <p className="text-sm text-on-surface-variant">{comment.content}</p>
+                      <p className="text-xs text-on-surface-variant/50 mt-2">
+                        {comment.created_at ? new Date(comment.created_at).toLocaleDateString() : 'Recently'}
+                      </p>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Activity Tab */}
+          {activeTab === 'activity' && (
+            <div>
+              <h3 className="text-lg font-bold text-primary mb-6">Activity Log</h3>
+              <div className="space-y-3">
+                {activityError ? (
+                  <QueryErrorState
+                    title="Unable to load activity"
+                    error={activityErrorValue}
+                    onRetry={() => void refetchActivity()}
+                  />
+                ) : loadingActivity ? (
+                  <div className="flex justify-center py-8"><Spinner /></div>
+                ) : activities.length === 0 ? (
+                  <div className="text-center py-12 bg-surface-container-lowest rounded-lg border border-dashed border-outline-variant/20">
+                    <p className="text-on-surface-variant text-sm">No activity yet.</p>
+                  </div>
+                ) : (
+                  activities.map((activity) => (
+                    <div key={activity.id} className="bg-surface-container-lowest border border-outline-variant/10 rounded-lg p-4 flex items-start gap-3">
+                      <span className="material-symbols-outlined text-secondary flex-shrink-0">history</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-on-surface-variant">
+                          <span className="font-bold text-primary">{activity.user}</span> {activity.action}
+                          {activity.resource ? <span className="text-secondary"> {activity.resource}</span> : null}
+                        </p>
+                        <p className="text-xs text-on-surface-variant/50">
+                          {activity.timestamp ? new Date(activity.timestamp).toLocaleString() : 'Recently'}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

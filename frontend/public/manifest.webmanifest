@@ -1,0 +1,23 @@
+{
+  "name": "AI Book Writer",
+  "short_name": "Book Writer",
+  "description": "Transform voice notes and drafts into polished manuscripts.",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f6f8fb",
+  "theme_color": "#4657d6",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/favicon.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon"
+    }
+  ]
+}

@@ -9,6 +9,7 @@ import { ArrowLeft, FileText, Save, Sparkles, BookOpen, Copy, Lightbulb, Share2 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loading, Spinner } from '@/components/ui/spinner';
+import { QueryErrorState } from '@/components/ui/query-error-state';
 import { Textarea } from '@/components/ui/textarea';
 import { apiClient } from '@/lib/api-client';
 
@@ -49,7 +50,13 @@ export default function AudioTranscriptionPage() {
   const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
   const [showChapterSelector, setShowChapterSelector] = useState(false);
 
-  const { data: audioData, isLoading: isAudioLoading } = useQuery({
+  const {
+    data: audioData,
+    isLoading: isAudioLoading,
+    isError: isAudioError,
+    error: audioError,
+    refetch: refetchAudio,
+  } = useQuery({
     queryKey: ['audio', audioId],
     queryFn: () => apiClient.audio.get(audioId),
     enabled: Boolean(audioId),
@@ -64,6 +71,7 @@ export default function AudioTranscriptionPage() {
     data: transcriptionData,
     isLoading: isTranscriptionLoading,
     error: transcriptionError,
+    refetch: refetchTranscription,
   } = useQuery({
     queryKey: ['transcription-by-audio', audioId],
     queryFn: () => apiClient.transcriptions.getByAudio(audioId),
@@ -73,6 +81,7 @@ export default function AudioTranscriptionPage() {
 
   const transcription = transcriptionData?.data as TranscriptionRecord | undefined;
   const isTranscriptionMissing = (transcriptionError as ApiError)?.response?.status === 404;
+  const hasTranscriptionError = Boolean(transcriptionError) && !isTranscriptionMissing;
   const chapters: Chapter[] = chaptersData?.data?.items || [];
 
   useEffect(() => {
@@ -141,6 +150,16 @@ export default function AudioTranscriptionPage() {
 
   if (isAudioLoading || isTranscriptionLoading) {
     return <Loading message="Loading transcription..." />;
+  }
+
+  if (isAudioError) {
+    return (
+      <QueryErrorState
+        title="Unable to load audio file"
+        error={audioError}
+        onRetry={() => void refetchAudio()}
+      />
+    );
   }
 
   const audioTitle = audioData?.data?.title || audioData?.data?.original_filename || 'Audio file';
@@ -274,6 +293,15 @@ export default function AudioTranscriptionPage() {
           </CardContent>
         </Card>
       )}
+
+      {hasTranscriptionError ? (
+        <QueryErrorState
+          title="Unable to load transcription"
+          error={transcriptionError}
+          onRetry={() => void refetchTranscription()}
+          className="mb-4"
+        />
+      ) : null}
 
       {isTranscriptionMissing ? (
         <Card>

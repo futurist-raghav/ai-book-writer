@@ -6,18 +6,28 @@ import { useBookStore } from '@/stores/book-store';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Loading, Spinner } from '@/components/ui/spinner';
+import { QueryErrorState } from '@/components/ui/query-error-state';
 import { formatDate } from '@/lib/utils';
 import { toast } from 'sonner';
-import { calculateReadingLevel } from '@/lib/writing-metrics';
+import { calculateReadingLevel, calculateWritingStreak } from '@/lib/writing-metrics';
 import { WritingGoalsWidget } from '@/components/writing-goals-widget';
+import { ManuscriptHealthWidget } from '@/components/manuscript-health-widget';
 
 export default function ProjectOverviewPage() {
   const queryClient = useQueryClient();
   const { selectedBook, selectBook } = useBookStore();
   const [introDraft, setIntroDraft] = useState('');
   const [exportFormat, setExportFormat] = useState('docx');
+  const [synopsisLength, setSynopsisLength] = useState<'one_page' | 'three_page' | 'full'>('one_page');
+  const [synopsisDraft, setSynopsisDraft] = useState('');
 
-  const { data: booksData, isLoading: booksLoading } = useQuery({
+  const {
+    data: booksData,
+    isLoading: booksLoading,
+    isError: booksError,
+    error: booksErrorValue,
+    refetch: refetchBooks,
+  } = useQuery({
     queryKey: ['books'],
     queryFn: () => apiClient.books.list({ limit: 50 }),
   });
@@ -52,7 +62,13 @@ export default function ProjectOverviewPage() {
 
   const book = selectedBook;
 
-  const { data: bookDetailsData, isLoading: bookDetailsLoading } = useQuery({
+  const {
+    data: bookDetailsData,
+    isLoading: bookDetailsLoading,
+    isError: bookDetailsError,
+    error: bookDetailsErrorValue,
+    refetch: refetchBookDetails,
+  } = useQuery({
     queryKey: ['book', book?.id],
     queryFn: () => apiClient.books.get(book!.id),
     enabled: !!book?.id,
@@ -69,6 +85,11 @@ export default function ProjectOverviewPage() {
       setIntroDraft(bookDetailsData.data.introduction || '');
     }
   }, [bookDetailsData, book]);
+
+  useEffect(() => {
+    const storedSynopsis = (bookDetailsData?.data?.project_metadata as any)?.generated_synopsis?.[synopsisLength]?.text || '';
+    setSynopsisDraft(storedSynopsis);
+  }, [bookDetailsData, synopsisLength]);
 
   const saveIntroMutation = useMutation({
     mutationFn: () => book ? apiClient.books.updateFrontMatter(book.id, { introduction: introDraft }) : Promise.reject(),
@@ -97,9 +118,38 @@ export default function ProjectOverviewPage() {
     },
   });
 
+  const generateSynopsisMutation = useMutation({
+    mutationFn: () => book ? apiClient.books.generateSynopsis(book.id, { length: synopsisLength }) : Promise.reject(),
+    onSuccess: (response) => {
+      const synopsis = response?.data?.synopsis;
+      if (typeof synopsis === 'string') {
+        setSynopsisDraft(synopsis);
+      }
+      toast.success('Project synopsis generated.');
+      if (book) {
+        queryClient.invalidateQueries({ queryKey: ['book', book.id] });
+      }
+    },
+    onError: () => {
+      toast.error('Failed to generate synopsis.');
+    },
+  });
+
   // Now safe to have early returns after all hooks are defined
   if (booksLoading) {
     return <Loading message="Loading project..." />;
+  }
+
+  if (booksError) {
+    return (
+      <div className="max-w-6xl mx-auto pt-8 pb-24">
+        <QueryErrorState
+          title="Unable to load projects"
+          error={booksErrorValue}
+          onRetry={() => void refetchBooks()}
+        />
+      </div>
+    );
   }
 
   const bookDetails = bookDetailsData?.data;
@@ -107,20 +157,69 @@ export default function ProjectOverviewPage() {
   const chapters = bookDetails?.chapters?.sort((a: any, b: any) => a.order_index - b.order_index).map((c: any) => c.chapter) || [];
   const tags = Array.isArray(bookDetails?.tags) ? bookDetails.tags : [];
   const contextBrief = bookDetails?.project_context || bookDetails?.description;
+  const knownEntityNames = (() => {
+    const settings = (bookDetails?.project_settings as Record<string, unknown>) || {};
+    const unifiedEntities = Array.isArray(settings.entities) ? settings.entities : [];
+    const characters = Array.isArray(settings.characters) ? settings.characters : [];
+    const worldEntities = Array.isArray(settings.world_entities) ? settings.world_entities : [];
+    const entityPool = unifiedEntities.length > 0 ? unifiedEntities : [...characters, ...worldEntities];
+    const names = new Set<string>();
+
+    for (const entity of entityPool) {
+      const entityName = String(entity?.name || '').trim();
+      if (entityName) {
+        names.add(entityName);
+      }
+
+      if (Array.isArray(entity?.aliases)) {
+        for (const alias of entity.aliases) {
+          const aliasName = String(alias || '').trim();
+          if (aliasName) {
+            names.add(aliasName);
+          }
+        }
+      }
+    }
+
+    return [...names];
+  })();
 
   // Calculate writing stats
   const events = eventsData?.data?.items || [];
   const eventCount = events.length;
-  const totalEventWords = events.reduce((sum: number, event: any) => sum + ((event.content?.length || 0) / 5), 0); // Estimate ~5 chars per word
+  const totalWordCount = bookDetails?.word_count || book?.word_count || 0;
+  const averageWordsPerChapter = book.chapter_count > 0 ? Math.round((book.word_count || 0) / book.chapter_count) : 0;
+  const averageMinutesPerChapter = book.chapter_count > 0 ? Math.round((Math.ceil(totalWordCount / 200) * 60) / book.chapter_count) : 0;
   const progress = bookDetails?.target_word_count 
-    ? Math.round(((bookDetails?.word_count || book?.word_count || 0) / bookDetails.target_word_count) * 100)
+    ? Math.round((totalWordCount / bookDetails.target_word_count) * 100)
     : null;
-  const readingTime = Math.ceil((bookDetails?.word_count || book?.word_count || 0) / 200); // Average 200 words per minute
+  const readingTime = Math.ceil(totalWordCount / 200); // Average 200 words per minute
   const readingLevel = calculateReadingLevel(
     chapters
       .map((ch: any) => ch.compiled_content || '')
       .join(' ')
   );
+  const chapterEditDates = chapters
+    .map((chapter: any) => chapter.updated_at || chapter.created_at)
+    .filter((date: any): date is string => Boolean(date));
+  const chapterEditTimestamps = chapterEditDates
+    .map((date) => new Date(date).getTime())
+    .filter((value) => Number.isFinite(value));
+  const mostRecentChapterEdit = chapterEditTimestamps.length > 0
+    ? new Date(Math.max(...chapterEditTimestamps))
+    : null;
+  const { streak: writingStreak } = calculateWritingStreak(chapterEditDates);
+  const maxChapterWordCount = chapters.reduce(
+    (max: number, chapter: any) => Math.max(max, Number(chapter.word_count || 0)),
+    0
+  );
+  const synopsisMeta = ((bookDetails?.project_metadata as any)?.generated_synopsis || {})[synopsisLength] || null;
+  const synopsisLengthLabel =
+    synopsisLength === 'one_page'
+      ? '1 Page'
+      : synopsisLength === 'three_page'
+        ? '3 Pages'
+        : 'Full';
 
   if (!book) {
     return (
@@ -135,6 +234,18 @@ export default function ProjectOverviewPage() {
         <Link href="/dashboard/books" className="bg-surface-container-lowest border border-outline-variant/20 text-primary px-6 py-3 rounded-lg font-label font-bold text-sm shadow-sm hover:shadow-md transition-all active:scale-95">
           Select Project
         </Link>
+      </div>
+    );
+  }
+
+  if (bookDetailsError) {
+    return (
+      <div className="max-w-6xl mx-auto pt-8 pb-24">
+        <QueryErrorState
+          title="Unable to load project details"
+          error={bookDetailsErrorValue}
+          onRetry={() => void refetchBookDetails()}
+        />
       </div>
     );
   }
@@ -179,7 +290,7 @@ export default function ProjectOverviewPage() {
           </div>
           <p className="text-3xl font-body font-semibold text-primary">{book.chapter_count}</p>
           <p className="text-[11px] text-on-surface-variant mt-2">
-            {chapters.length > 0 ? `Avg ${Math.round(book.word_count / book.chapter_count)} words/chapter` : 'No chapters yet'}
+            {chapters.length > 0 ? `Avg ${averageWordsPerChapter} words/chapter` : 'No chapters yet'}
           </p>
         </div>
 
@@ -190,7 +301,7 @@ export default function ProjectOverviewPage() {
           </div>
           <p className="text-3xl font-body font-semibold text-primary">{readingTime}h</p>
           <p className="text-[11px] text-on-surface-variant mt-2">
-            ~{Math.round(readingTime * 60 / book.chapter_count) || 0} min per chapter
+            ~{averageMinutesPerChapter} min per chapter
           </p>
         </div>
 
@@ -207,7 +318,7 @@ export default function ProjectOverviewPage() {
       </div>
 
       {/* Reading Level & Manuscript Stats */}
-      <div className="mb-12 grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="mb-12 grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-gradient-to-br from-secondary/10 to-secondary/5 rounded-xl p-6 border border-secondary/20">
           <div className="flex items-center justify-between mb-3">
             <span className="material-symbols-outlined text-secondary text-2xl">analytics</span>
@@ -232,8 +343,26 @@ export default function ProjectOverviewPage() {
           </div>
           <div className="space-y-2">
             <p className="text-sm"><span className="font-bold">Total Reading Time:</span> ~{readingTime} hours</p>
-            <p className="text-sm"><span className="font-bold">Average Chapter:</span> ~{Math.round(book.word_count / book.chapter_count) || 0} words</p>
-            <p className="text-sm"><span className="font-bold">Estimated Pages:</span> ~{Math.round(book.word_count / 250)} (250 words/page)</p>
+            <p className="text-sm"><span className="font-bold">Average Chapter:</span> ~{averageWordsPerChapter} words</p>
+            <p className="text-sm"><span className="font-bold">Estimated Pages:</span> ~{Math.round((book.word_count || 0) / 250)} (250 words/page)</p>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl p-6 border border-primary/20">
+          <div className="flex items-center justify-between mb-3">
+            <span className="material-symbols-outlined text-primary text-2xl">local_fire_department</span>
+            <span className="font-label text-[10px] text-primary font-bold uppercase tracking-widest">Writing Streak</span>
+          </div>
+          <p className="text-2xl font-body font-semibold text-primary">
+            {writingStreak} day{writingStreak === 1 ? '' : 's'}
+          </p>
+          <div className="text-[11px] text-on-surface-variant mt-2 space-y-1">
+            <p>{writingStreak > 0 ? 'Keep the momentum going.' : 'Write today to start a streak.'}</p>
+            <p>
+              {mostRecentChapterEdit
+                ? `Last chapter edit: ${formatDate(mostRecentChapterEdit.toISOString())}`
+                : 'No chapter edits yet'}
+            </p>
           </div>
         </div>
       </div>
@@ -243,8 +372,113 @@ export default function ProjectOverviewPage() {
         <WritingGoalsWidget 
           dailyTarget={(bookDetails?.project_settings as any)?.daily_writing_goal || 0}
           wordCountToday={0}
-          lastEditDates={[]}
+          lastEditDates={chapterEditDates}
         />
+      </div>
+
+      {/* Manuscript Health Widget */}
+      <div className="mb-12">
+        <ManuscriptHealthWidget chapters={chapters} knownEntityNames={knownEntityNames} />
+      </div>
+
+      {/* Synopsis Generator */}
+      <div className="mb-12 rounded-xl border border-outline-variant/10 bg-surface-container-lowest p-6">
+        <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="font-label text-xs font-bold uppercase tracking-widest text-primary">Project Synopsis</p>
+            <p className="text-xs text-on-surface-variant mt-1">
+              Generate pitch-ready synopsis drafts in multiple lengths.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <select
+              value={synopsisLength}
+              onChange={(event) => setSynopsisLength(event.target.value as 'one_page' | 'three_page' | 'full')}
+              className="rounded-lg border border-outline-variant/30 bg-surface-container-low px-3 py-2 text-xs font-label uppercase tracking-wide text-on-surface"
+            >
+              <option value="one_page">1 Page</option>
+              <option value="three_page">3 Pages</option>
+              <option value="full">Full</option>
+            </select>
+            <button
+              onClick={() => generateSynopsisMutation.mutate()}
+              disabled={generateSynopsisMutation.isPending || chapters.length === 0}
+              className="rounded-lg bg-primary px-4 py-2 font-label text-xs font-bold uppercase tracking-wide text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {generateSynopsisMutation.isPending ? 'Generating...' : `Generate ${synopsisLengthLabel}`}
+            </button>
+          </div>
+        </div>
+
+        {synopsisMeta?.generated_at ? (
+          <p className="mb-3 text-[11px] text-on-surface-variant">
+            Last generated: {formatDate(synopsisMeta.generated_at)}
+            {typeof synopsisMeta.chapter_count === 'number' ? ` using ${synopsisMeta.chapter_count} chapter(s)` : ''}
+          </p>
+        ) : null}
+
+        {chapters.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-outline-variant/30 p-4 text-sm text-on-surface-variant">
+            Add at least one chapter to generate a project synopsis.
+          </div>
+        ) : synopsisDraft ? (
+          <div className="max-h-80 overflow-y-auto rounded-lg border border-outline-variant/20 bg-surface-container-high/30 p-4">
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-on-surface">{synopsisDraft}</p>
+          </div>
+        ) : (
+          <div className="rounded-lg border border-dashed border-outline-variant/30 p-4 text-sm text-on-surface-variant">
+            No synopsis generated for this length yet.
+          </div>
+        )}
+      </div>
+
+      {/* Chapter Word Count Breakdown */}
+      <div className="mb-12 rounded-xl border border-outline-variant/10 bg-surface-container-lowest p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <p className="font-label text-xs font-bold uppercase tracking-widest text-primary">Chapter Word Breakdown</p>
+            <p className="text-xs text-on-surface-variant mt-1">Compare chapter lengths and balance manuscript pacing.</p>
+          </div>
+          <span className="font-label text-[10px] text-on-surface-variant uppercase tracking-wider">
+            {chapters.length} chapters
+          </span>
+        </div>
+
+        {chapters.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-outline-variant/30 p-6 text-sm text-on-surface-variant">
+            Add chapters to see word-count distribution.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {chapters.map((chapter: any) => {
+              const chapterWordCount = Number(chapter.word_count || 0);
+              const relativeWidth = maxChapterWordCount > 0
+                ? Math.max(2, Math.round((chapterWordCount / maxChapterWordCount) * 100))
+                : 0;
+              const shareOfBook = totalWordCount > 0
+                ? Math.round((chapterWordCount / totalWordCount) * 100)
+                : 0;
+
+              return (
+                <div key={chapter.id} className="space-y-1">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-medium text-primary truncate">{chapter.title}</p>
+                    <p className="text-xs text-on-surface-variant whitespace-nowrap">
+                      {chapterWordCount.toLocaleString()} words ({shareOfBook}%)
+                    </p>
+                  </div>
+                  <div className="h-2 rounded-full bg-surface-container-high overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-secondary to-primary"
+                      style={{ width: `${relativeWidth}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Bento Grid Content */}

@@ -21,6 +21,7 @@ const newsreader = Newsreader({
 export const metadata: Metadata = {
   title: 'The Editorial Sanctuary - AI Book Writer',
   description: 'Transform your voice recordings into professionally formatted books using AI',
+  manifest: '/manifest.webmanifest',
 };
 
 export default function RootLayout({
@@ -32,6 +33,8 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="manifest" href="/manifest.webmanifest" />
+        <meta name="theme-color" content="#4657d6" />
         <link
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
           rel="stylesheet"

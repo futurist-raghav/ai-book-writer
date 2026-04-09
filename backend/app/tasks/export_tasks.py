@@ -33,7 +33,7 @@ async def _export_book_async(
     Args:
         book_id: UUID of the book.
         user_id: UUID of the user.
-        export_format: Export format (pdf, epub, docx, html, markdown).
+        export_format: Export format (pdf, epub, docx, html, markdown, latex, fountain).
         options: Export options.
 
     Returns:
@@ -81,6 +81,10 @@ async def _export_book_async(
                 _export_docx(content, filepath, book, options)
             elif export_format == "epub":
                 _export_epub(content, filepath, book, options)
+            elif export_format == "latex":
+                _export_latex(content, filepath)
+            elif export_format == "fountain":
+                _export_fountain(content, filepath)
             else:
                 return {"error": f"Unsupported format: {export_format}"}
 
@@ -199,6 +203,121 @@ def _export_markdown(content: dict, filepath: str) -> None:
     for key, text in content.get("back_matter", {}).items():
         lines.append(f"\n## {key.replace('_', ' ').title()}\n")
         lines.append(f"{text}\n")
+
+    with open(filepath, "w", encoding="utf-8") as f:
+        f.writelines(lines)
+
+
+def _latex_escape(text: str) -> str:
+    """Escape text for basic LaTeX output."""
+    replacements = {
+        "\\": r"\\textbackslash{}",
+        "&": r"\\&",
+        "%": r"\\%",
+        "$": r"\\$",
+        "#": r"\\#",
+        "_": r"\\_",
+        "{": r"\\{",
+        "}": r"\\}",
+        "~": r"\\textasciitilde{}",
+        "^": r"\\textasciicircum{}",
+    }
+    escaped = text
+    for source, target in replacements.items():
+        escaped = escaped.replace(source, target)
+    return escaped
+
+
+def _export_latex(content: dict, filepath: str) -> None:
+    """Export book to LaTeX format."""
+    lines = [
+        r"\\documentclass[12pt]{book}\n",
+        r"\\usepackage[utf8]{inputenc}\n",
+        r"\\usepackage[T1]{fontenc}\n",
+        r"\\usepackage{lmodern}\n",
+        r"\\usepackage{hyperref}\n",
+        "\n",
+        rf"\\title{{{_latex_escape(content.get('title', 'Untitled'))}}}\n",
+        rf"\\author{{{_latex_escape(content.get('author') or 'Unknown Author')}}}\n",
+        r"\\date{}\n",
+        "\n",
+        r"\\begin{document}\n",
+        r"\\maketitle\n",
+        r"\\tableofcontents\n",
+        r"\\clearpage\n",
+        "\n",
+    ]
+
+    if content.get("subtitle"):
+        lines.append(rf"\\chapter*{{{_latex_escape(content['subtitle'])}}}\n\n")
+
+    for key, text in content.get("front_matter", {}).items():
+        lines.append(rf"\\chapter*{{{_latex_escape(key.replace('_', ' ').title())}}}\n")
+        lines.append(_latex_escape(text).replace("\n", "\n\n") + "\n\n")
+
+    current_part = None
+    for chapter in content.get("chapters", []):
+        part_number = chapter.get("part_number")
+        if part_number and part_number != current_part:
+            current_part = part_number
+            part_title = chapter.get("part_title")
+            if part_title:
+                lines.append(rf"\\part{{{_latex_escape(str(part_title))}}}\n")
+            else:
+                lines.append(rf"\\part{{Part {_latex_escape(str(part_number))}}}\n")
+
+        lines.append(
+            rf"\\chapter{{{_latex_escape(f'Chapter {chapter.get("number", "")}: {chapter.get("title", "Untitled")}')}}}\n"
+        )
+        if chapter.get("subtitle"):
+            lines.append(rf"\\section*{{{_latex_escape(chapter['subtitle'])}}}\n")
+        lines.append(_latex_escape(chapter.get("content", "")).replace("\n", "\n\n") + "\n\n")
+
+    for key, text in content.get("back_matter", {}).items():
+        lines.append(rf"\\chapter*{{{_latex_escape(key.replace('_', ' ').title())}}}\n")
+        lines.append(_latex_escape(text).replace("\n", "\n\n") + "\n\n")
+
+    lines.append(r"\\end{document}\n")
+
+    with open(filepath, "w", encoding="utf-8") as f:
+        f.writelines(lines)
+
+
+def _export_fountain(content: dict, filepath: str) -> None:
+    """Export project to Fountain-like plain text format."""
+    lines = [
+        f"Title: {content.get('title', 'Untitled')}\n",
+        f"Author: {content.get('author') or 'Unknown Author'}\n",
+        "\n",
+    ]
+
+    if content.get("subtitle"):
+        lines.append(f"# {content['subtitle']}\n\n")
+
+    for key, text in content.get("front_matter", {}).items():
+        lines.append(f"# {key.replace('_', ' ').title()}\n")
+        lines.append(f"{text}\n\n")
+
+    current_part = None
+    for chapter in content.get("chapters", []):
+        part_number = chapter.get("part_number")
+        if part_number and part_number != current_part:
+            current_part = part_number
+            part_title = chapter.get("part_title")
+            header = f"PART {part_number}"
+            if part_title:
+                header = f"{header}: {part_title.upper()}"
+            lines.append(f"# {header}\n\n")
+
+        chapter_title = f"CHAPTER {chapter.get('number', '')}: {chapter.get('title', 'UNTITLED').upper()}"
+        lines.append(f"INT. {chapter_title} - DAY\n\n")
+        if chapter.get("subtitle"):
+            lines.append(f"> {chapter['subtitle']}\n\n")
+        lines.append(f"{chapter.get('content', '').strip()}\n\n")
+
+    for key, text in content.get("back_matter", {}).items():
+        lines.append(f"# {key.replace('_', ' ').title()}\n")
+        lines.append(f"{text}\n\n")
 
     with open(filepath, "w", encoding="utf-8") as f:
         f.writelines(lines)

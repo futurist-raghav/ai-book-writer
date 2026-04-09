@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
@@ -18,6 +19,17 @@ export function Header() {
   const pathname = usePathname();
   const { logout } = useAuthStore();
   const { openHelp } = useKeyboardShortcutsContext();
+
+  useEffect(() => {
+    const handleAuthExpired = () => {
+      router.push('/login');
+    };
+
+    window.addEventListener('auth:expired', handleAuthExpired);
+    return () => {
+      window.removeEventListener('auth:expired', handleAuthExpired);
+    };
+  }, [router]);
 
   const handleLogout = () => {
     logout();

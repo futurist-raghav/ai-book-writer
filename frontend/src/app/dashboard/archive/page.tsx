@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
 import { Spinner } from '@/components/ui/spinner';
+import { QueryErrorState } from '@/components/ui/query-error-state';
 import { toast } from 'sonner';
 import { formatDate } from '@/lib/utils';
 
@@ -18,7 +19,7 @@ interface ArchivedProject {
 export default function ArchivePage() {
   const queryClient = useQueryClient();
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['books', 'archive'],
     queryFn: () => apiClient.books.list({ limit: 100 }),
   });
@@ -46,6 +47,18 @@ export default function ArchivePage() {
 
   if (isLoading) {
     return <div className="flex h-64 items-center justify-center"><Spinner className="w-8 h-8 text-primary" /></div>;
+  }
+
+  if (isError) {
+    return (
+      <div className="max-w-5xl mx-auto pt-8 pb-24">
+        <QueryErrorState
+          title="Unable to load archive"
+          error={error}
+          onRetry={() => void refetch()}
+        />
+      </div>
+    );
   }
 
   return (

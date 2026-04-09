@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Spinner } from '@/components/ui/spinner';
+import { QueryErrorState } from '@/components/ui/query-error-state';
 import { apiClient } from '@/lib/api-client';
 import { formatDate } from '@/lib/utils';
 import { useBookStore } from '@/stores/book-store';
@@ -69,7 +70,13 @@ export default function FlowPage() {
   const flowTypes = FLOW_ITEM_TYPES[projectCategory] || FLOW_ITEM_TYPES.generic;
 
   // Fetch book details (flow stored in project_settings)
-  const { data: bookData, isLoading: bookLoading } = useQuery({
+  const {
+    data: bookData,
+    isLoading: bookLoading,
+    isError: bookError,
+    error: bookErrorValue,
+    refetch: refetchBook,
+  } = useQuery({
     queryKey: ['book', selectedBook?.id],
     queryFn: () => (selectedBook?.id ? apiClient.books.get(selectedBook.id) : null),
     enabled: !!selectedBook?.id,
@@ -187,6 +194,18 @@ export default function FlowPage() {
     return (
       <div className="flex h-64 items-center justify-center">
         <Spinner className="w-8 h-8 text-primary" />
+      </div>
+    );
+  }
+
+  if (bookError) {
+    return (
+      <div className="max-w-6xl mx-auto pt-8 pb-24">
+        <QueryErrorState
+          title="Unable to load flow data"
+          error={bookErrorValue}
+          onRetry={() => void refetchBook()}
+        />
       </div>
     );
   }

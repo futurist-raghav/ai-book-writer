@@ -4,6 +4,7 @@ import { use } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
 import { Loading } from '@/components/ui/spinner';
+import { QueryErrorState } from '@/components/ui/query-error-state';
 import Link from 'next/link';
 import { ChapterVersionManagementPanel } from '@/components/chapter-version-panel';
 
@@ -14,13 +15,25 @@ export default function ChapterVersionsPage({
 }) {
   const { chapterId } = use(params);
 
-  const { data: chapterData, isLoading } = useQuery({
+  const { data: chapterData, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['chapter', chapterId],
     queryFn: () => apiClient.chapters.get(chapterId),
   });
 
   if (isLoading) {
     return <Loading message="Loading chapter..." />;
+  }
+
+  if (isError) {
+    return (
+      <div className="max-w-4xl mx-auto pt-8">
+        <QueryErrorState
+          title="Unable to load chapter"
+          error={error}
+          onRetry={() => void refetch()}
+        />
+      </div>
+    );
   }
 
   const chapter = chapterData?.data;

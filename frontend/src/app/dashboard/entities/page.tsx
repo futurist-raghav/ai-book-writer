@@ -1,11 +1,12 @@
 'use client';
 
-import Link from 'next/link';
 import { useState, useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { apiClient } from '@/lib/api-client';
 import { Spinner } from '@/components/ui/spinner';
+import { QueryErrorState } from '@/components/ui/query-error-state';
+import { EntityRelationshipMap } from '@/components/entity-relationship-map';
 import { useBookStore } from '@/stores/book-store';
 import { ProjectType, ProjectTypeConfigService } from '@/lib/project-types';
 
@@ -26,13 +27,74 @@ interface Entity {
   source?: 'character' | 'location';
 }
 
-interface EntityEvent {
+interface DiscoveredEntityReference {
+  chapter_id: string;
+  chapter_title: string;
+  chapter_number: number;
+  chapter_order: number;
+  mentions: number;
+  context_snippet?: string | null;
+}
+
+interface DiscoveredEntity {
   id: string;
-  title?: string;
-  summary?: string;
-  content?: string;
-  location?: string;
-  people?: Array<string | { name?: string; relationship?: string }>;
+  name: string;
+  entity_type: 'character' | 'location' | 'object';
+  frequency: number;
+  first_mention_chapter_id: string;
+  first_mention_chapter_title: string;
+  first_mention_chapter_number: number;
+  first_mention_chapter_order: number;
+  context_snippet?: string | null;
+  references: DiscoveredEntityReference[];
+}
+
+function mapDiscoveredTypeToEntityType(
+  discoveredType: DiscoveredEntity['entity_type'],
+  allowedEntityTypes: string[]
+): string {
+  if (allowedEntityTypes.includes(discoveredType)) {
+    return discoveredType;
+  }
+
+  if (discoveredType === 'character') {
+    return (
+      allowedEntityTypes.find((type) => ['character', 'persona', 'person', 'researcher'].includes(type)) ||
+      allowedEntityTypes[0] ||
+      'character'
+    );
+  }
+
+  if (discoveredType === 'location') {
+    return (
+      allowedEntityTypes.find((type) => ['location', 'setting', 'place', 'institution'].includes(type)) ||
+      allowedEntityTypes[0] ||
+      'location'
+    );
+  }
+
+  return (
+    allowedEntityTypes.find((type) => ['item', 'object', 'prop', 'symbol', 'motif', 'concept'].includes(type)) ||
+    allowedEntityTypes[0] ||
+    'concept'
+  );
+}
+
+function inferEntitySource(entityType: string): 'character' | 'location' {
+  if (['character', 'persona', 'person', 'researcher'].includes(entityType)) {
+    return 'character';
+  }
+  return 'location';
+}
+
+function buildFallbackEntityId(source: 'character' | 'location', name: string, index: number): string {
+  const normalizedName = name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  const safeName = normalizedName || 'entity';
+  return `${source}-${safeName}-${index}`;
 }
 
 const ENTITY_TYPE_STYLES: Record<string, { icon: string; colorClass: string; bgClass: string; borderClass: string }> = {
@@ -130,7 +192,7 @@ export default function EntitiesPage() {
   const queryClient = useQueryClient();
   const { selectedBook } = useBookStore();
 
-  const [activeTab, setActiveTab] = useState<'entities' | 'discovered'>('entities');
+  const [activeTab, setActiveTab] = useState<'entities' | 'discovered' | 'relationships'>('entities');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [entityTypeFilter, setEntityTypeFilter] = useState<string>('all');
@@ -158,43 +220,129 @@ export default function EntitiesPage() {
   const allowedEntityTypes = entityConfig.entityTypes;
 
   // Fetch book details
-  const { data: bookData, isLoading: bookLoading } = useQuery({
+  const {
+    data: bookData,
+    isLoading: bookLoading,
+    isError: bookError,
+    error: bookErrorValue,
+    refetch: refetchBook,
+  } = useQuery({
     queryKey: ['book', selectedBook?.id],
     queryFn: () => (selectedBook?.id ? apiClient.books.get(selectedBook.id) : null),
     enabled: !!selectedBook?.id,
   });
 
-  // Fetch events for discovered entities
-  const { data: eventsData, isLoading: eventsLoading } = useQuery({
-    queryKey: ['events', 'entities'],
+  const extractionAnchorChapterId = bookData?.data?.chapters?.[0]?.chapter?.id as string | undefined;
+
+  // Fetch discovered entities from chapter extraction endpoint
+  const {
+    data: discoveredEntitiesData,
+    isLoading: discoveredEntitiesLoading,
+    isError: discoveredEntitiesError,
+    error: discoveredEntitiesErrorValue,
+    refetch: refetchDiscoveredEntities,
+  } = useQuery({
+    queryKey: ['chapters', 'extract-entities', selectedBook?.id, extractionAnchorChapterId],
     queryFn: async () => {
-      const listResponse = await apiClient.events.list({ limit: 100 });
-      const events = listResponse.data.items || [];
-      const details = await Promise.allSettled(events.map((event: any) => apiClient.events.get(event.id)));
-      return details
-        .filter((result): result is PromiseFulfilledResult<any> => result.status === 'fulfilled')
-        .map((result) => result.value.data);
+      if (!extractionAnchorChapterId) {
+        return [];
+      }
+
+      const response = await apiClient.chapters.extractEntities(extractionAnchorChapterId);
+      return response?.data?.entities || [];
     },
+    enabled: !!extractionAnchorChapterId,
   });
 
   const entities: Entity[] = useMemo(() => {
     try {
-      const settings = bookData?.data?.project_settings || {};
+      const settings = (bookData?.data?.project_settings || {}) as Record<string, unknown>;
+      const unifiedEntities = Array.isArray(settings.entities) ? settings.entities : [];
+
+      const normalizedUnifiedEntities = unifiedEntities
+        .filter((entity): entity is Record<string, unknown> => typeof entity === 'object' && entity !== null)
+        .map((entity, index) => {
+          const name = typeof entity.name === 'string' ? entity.name.trim() : '';
+          if (!name) {
+            return null;
+          }
+
+          const rawType = typeof entity.type === 'string' ? entity.type.trim() : '';
+          const rawSource =
+            entity.source === 'character' || entity.source === 'location'
+              ? entity.source
+              : undefined;
+          const resolvedType = rawType || (rawSource === 'character' ? 'character' : 'location');
+          const resolvedSource = rawSource || inferEntitySource(resolvedType);
+          const id =
+            typeof entity.id === 'string' && entity.id.trim()
+              ? entity.id.trim()
+              : buildFallbackEntityId(resolvedSource, name, index);
+
+          return {
+            ...entity,
+            id,
+            name,
+            type: resolvedType,
+            source: resolvedSource,
+          } as Entity;
+        })
+        .filter((entity): entity is Entity => Boolean(entity));
+
+      if (normalizedUnifiedEntities.length > 0) {
+        return normalizedUnifiedEntities;
+      }
+
       const characters = Array.isArray(settings.characters) ? settings.characters : [];
       const worldEntities = Array.isArray(settings.world_entities) ? settings.world_entities : [];
 
-      return [
-        ...characters.map((c: any) => ({
-          ...c,
-          type: c.type || 'character',
-          source: 'character' as const,
-        })),
-        ...worldEntities.map((w: any) => ({
-          ...w,
-          type: w.type || 'location',
-          source: 'location' as const,
-        })),
-      ];
+      const normalizedCharacters = characters
+        .filter((entity): entity is Record<string, unknown> => typeof entity === 'object' && entity !== null)
+        .map((entity, index) => {
+          const name = typeof entity.name === 'string' ? entity.name.trim() : '';
+          if (!name) {
+            return null;
+          }
+
+          const id =
+            typeof entity.id === 'string' && entity.id.trim()
+              ? entity.id.trim()
+              : buildFallbackEntityId('character', name, index);
+
+          return {
+            ...entity,
+            id,
+            name,
+            type: typeof entity.type === 'string' && entity.type.trim() ? entity.type.trim() : 'character',
+            source: 'character' as const,
+          } as Entity;
+        })
+        .filter((entity): entity is Entity => Boolean(entity));
+
+      const normalizedWorldEntities = worldEntities
+        .filter((entity): entity is Record<string, unknown> => typeof entity === 'object' && entity !== null)
+        .map((entity, index) => {
+          const name = typeof entity.name === 'string' ? entity.name.trim() : '';
+          if (!name) {
+            return null;
+          }
+
+          const id =
+            typeof entity.id === 'string' && entity.id.trim()
+              ? entity.id.trim()
+              : buildFallbackEntityId('location', name, index);
+
+          return {
+            ...entity,
+            id,
+            name,
+            type: typeof entity.type === 'string' && entity.type.trim() ? entity.type.trim() : 'location',
+            source: 'location' as const,
+          } as Entity;
+        })
+        .filter((entity): entity is Entity => Boolean(entity));
+
+      return [...normalizedCharacters, ...normalizedWorldEntities];
     } catch {
       return [];
     }
@@ -213,15 +361,42 @@ export default function EntitiesPage() {
 
   const saveEntities = useMutation({
     mutationFn: async (updatedEntities: Entity[]) => {
-      const characters = updatedEntities.filter((e) => e.source === 'character');
-      const worldEntities = updatedEntities.filter((e) => e.source === 'location');
+      const normalizedEntities = updatedEntities
+        .map((entity, index) => {
+          const name = entity.name.trim();
+          if (!name) {
+            return null;
+          }
+
+          const resolvedSource = entity.source || inferEntitySource(entity.type || 'location');
+          const resolvedType = entity.type?.trim() || (resolvedSource === 'character' ? 'character' : 'location');
+          const id = entity.id?.trim() || buildFallbackEntityId(resolvedSource, name, index);
+
+          return {
+            ...entity,
+            id,
+            name,
+            type: resolvedType,
+            source: resolvedSource,
+          };
+        })
+        .filter((entity): entity is Entity => Boolean(entity));
+
+      const unifiedEntities = normalizedEntities.map((entity) => ({ ...entity }));
+      const characters = normalizedEntities
+        .filter((entity) => entity.source === 'character')
+        .map(({ source, ...rest }) => rest);
+      const worldEntities = normalizedEntities
+        .filter((entity) => entity.source === 'location')
+        .map(({ source, ...rest }) => rest);
 
       return selectedBook?.id
         ? apiClient.books.update(selectedBook.id, {
             project_settings: {
               ...(bookData?.data?.project_settings || {}),
-              characters: characters.map(({ source, ...rest }) => rest),
-              world_entities: worldEntities.map(({ source, ...rest }) => rest),
+              entities: unifiedEntities,
+              characters,
+              world_entities: worldEntities,
             },
           })
         : Promise.reject('No book selected');
@@ -284,26 +459,80 @@ export default function EntitiesPage() {
     setShowForm(true);
   };
 
-  // Extract discovered entities from events
-  const events = (eventsData || []) as EntityEvent[];
-  const discoveredPeople = new Set<string>();
-  const discoveredLocations = new Set<string>();
+  const handlePromoteDiscoveredEntity = async (discoveredEntity: DiscoveredEntity) => {
+    const normalizedName = discoveredEntity.name.trim().toLowerCase();
+    if (!normalizedName) {
+      return;
+    }
 
-  events.forEach((event) => {
-    const people = Array.isArray(event.people) ? event.people : [];
-    people.forEach((person) => {
-      const name = typeof person === 'string' ? person.trim() : person?.name?.trim();
-      if (name) discoveredPeople.add(name);
-    });
-    if (event.location?.trim()) discoveredLocations.add(event.location.trim());
-  });
+    const alreadyExists = entities.some((entity) => entity.name.trim().toLowerCase() === normalizedName);
+    if (alreadyExists) {
+      toast.message(`"${discoveredEntity.name}" is already in your entities list.`);
+      return;
+    }
 
-  const isLoading = bookLoading || eventsLoading;
+    const preferredType = mapDiscoveredTypeToEntityType(
+      discoveredEntity.entity_type,
+      allowedEntityTypes
+    );
+    const firstReference = discoveredEntity.references?.[0];
+    const summaryText = discoveredEntity.context_snippet || firstReference?.context_snippet || '';
+
+    const newEntity: Entity = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      name: discoveredEntity.name,
+      type: preferredType,
+      description: summaryText,
+      source: inferEntitySource(preferredType),
+      tags: [
+        `discovered:${discoveredEntity.entity_type}`,
+        `mentions:${discoveredEntity.frequency}`,
+      ],
+    };
+
+    await saveEntities.mutateAsync([...entities, newEntity]);
+  };
+
+  const discoveredEntities = (discoveredEntitiesData || []) as DiscoveredEntity[];
+  const discoveredCharacters = discoveredEntities.filter((entity) => entity.entity_type === 'character');
+  const discoveredLocations = discoveredEntities.filter((entity) => entity.entity_type === 'location');
+  const discoveredObjects = discoveredEntities.filter((entity) => entity.entity_type === 'object');
+  const discoveredCount = discoveredEntities.length;
+  const relationshipCount = entities.reduce(
+    (total, entity) => total + (entity.relationships?.length || 0),
+    0
+  );
+
+  const isLoading = bookLoading || (activeTab === 'discovered' && discoveredEntitiesLoading);
 
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
         <Spinner className="w-8 h-8 text-primary" />
+      </div>
+    );
+  }
+
+  if (bookError) {
+    return (
+      <div className="max-w-6xl mx-auto pt-8 pb-24">
+        <QueryErrorState
+          title="Unable to load entities"
+          error={bookErrorValue}
+          onRetry={() => void refetchBook()}
+        />
+      </div>
+    );
+  }
+
+  if (discoveredEntitiesError && activeTab === 'discovered' && extractionAnchorChapterId) {
+    return (
+      <div className="max-w-6xl mx-auto pt-8 pb-24">
+        <QueryErrorState
+          title="Unable to load discovered entities"
+          error={discoveredEntitiesErrorValue}
+          onRetry={() => void refetchDiscoveredEntities()}
+        />
       </div>
     );
   }
@@ -368,7 +597,17 @@ export default function EntitiesPage() {
               : 'border-transparent text-on-surface-variant hover:text-primary'
           }`}
         >
-          Discovered ({(discoveredPeople.size || 0) + (discoveredLocations.size || 0)})
+          Discovered ({discoveredCount})
+        </button>
+        <button
+          onClick={() => setActiveTab('relationships')}
+          className={`px-4 py-3 font-label text-xs font-bold uppercase tracking-wider transition-colors border-b-2 ${
+            activeTab === 'relationships'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-on-surface-variant hover:text-primary'
+          }`}
+        >
+          Relationship Map ({relationshipCount})
         </button>
       </div>
 
@@ -653,50 +892,212 @@ export default function EntitiesPage() {
       {/* Discovered Tab */}
       {activeTab === 'discovered' && (
         <div className="bg-surface-container-lowest p-8 rounded-xl border border-outline-variant/10">
-          {discoveredPeople.size === 0 && discoveredLocations.size === 0 ? (
+          {!extractionAnchorChapterId ? (
             <p className="font-label text-sm text-on-surface-variant text-center py-8">
-              No entities detected in events. Create events with people and location metadata to auto-discover entities.
+              Add at least one chapter to run entity extraction.
+            </p>
+          ) : discoveredEntitiesLoading ? (
+            <div className="flex items-center justify-center py-10">
+              <Spinner className="w-7 h-7 text-primary" />
+            </div>
+          ) : discoveredCount === 0 ? (
+            <p className="font-label text-sm text-on-surface-variant text-center py-8">
+              No entities detected in chapter content yet. Add chapter material, then revisit this tab.
             </p>
           ) : (
             <>
-              {discoveredPeople.size > 0 && (
+              {discoveredCharacters.length > 0 && (
                 <div className="mb-8">
                   <h3 className="font-label text-xs font-bold uppercase tracking-widest text-primary mb-4">
                     Discovered {entityConfig.characterLabel}
                   </h3>
-                  <div className="flex flex-wrap gap-3">
-                    {Array.from(discoveredPeople).map((name) => (
-                      <div key={name} className="px-4 py-2 rounded-lg bg-secondary-container/20 border border-secondary/30 hover:bg-secondary-container/40 transition-all cursor-pointer group">
-                        <p className="font-label text-xs font-bold text-secondary uppercase tracking-tight">{name}</p>
-                      </div>
-                    ))}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {discoveredCharacters.map((entity) => {
+                      const alreadyExists = entities.some(
+                        (existing) => existing.name.trim().toLowerCase() === entity.name.trim().toLowerCase()
+                      );
+
+                      return (
+                        <div
+                          key={entity.id}
+                          className="rounded-xl border border-secondary/20 bg-secondary-container/10 p-4"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="font-label text-xs font-bold uppercase tracking-wider text-secondary">{entity.name}</p>
+                              <p className="mt-1 text-[11px] text-on-surface-variant">
+                                Mentioned {entity.frequency} time{entity.frequency === 1 ? '' : 's'}
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => void handlePromoteDiscoveredEntity(entity)}
+                              disabled={saveEntities.isPending || alreadyExists}
+                              className="rounded-lg bg-secondary text-white px-3 py-1.5 font-label text-[10px] font-bold uppercase tracking-wider hover:opacity-90 disabled:opacity-40"
+                            >
+                              {alreadyExists ? 'Imported' : 'Promote'}
+                            </button>
+                          </div>
+
+                          <p className="mt-3 text-xs text-on-surface-variant">
+                            First mention: Chapter {entity.first_mention_chapter_number} - {entity.first_mention_chapter_title}
+                          </p>
+                          {entity.references.length > 1 ? (
+                            <p className="mt-1 text-[11px] text-on-surface-variant">
+                              Also in:{' '}
+                              {entity.references
+                                .slice(1, 4)
+                                .map((reference) => `Ch ${reference.chapter_number}`)
+                                .join(', ')}
+                              {entity.references.length > 4 ? ` +${entity.references.length - 4}` : ''}
+                            </p>
+                          ) : null}
+                          {entity.context_snippet ? (
+                            <p className="mt-2 text-xs italic text-on-surface-variant line-clamp-3">
+                              "{entity.context_snippet}"
+                            </p>
+                          ) : null}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
 
-              {discoveredLocations.size > 0 && (
+              {discoveredLocations.length > 0 && (
                 <div>
                   <h3 className="font-label text-xs font-bold uppercase tracking-widest text-primary mb-4">
                     Discovered {entityConfig.locationLabel}
                   </h3>
-                  <div className="flex flex-wrap gap-3">
-                    {Array.from(discoveredLocations).map((location) => (
-                      <div key={location} className="px-4 py-2 rounded-lg bg-tertiary-container/20 border border-tertiary/30 hover:bg-tertiary-container/40 transition-all cursor-pointer group">
-                        <p className="font-label text-xs font-bold text-tertiary uppercase tracking-tight">{location}</p>
-                      </div>
-                    ))}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {discoveredLocations.map((entity) => {
+                      const alreadyExists = entities.some(
+                        (existing) => existing.name.trim().toLowerCase() === entity.name.trim().toLowerCase()
+                      );
+
+                      return (
+                        <div
+                          key={entity.id}
+                          className="rounded-xl border border-tertiary/20 bg-tertiary-container/10 p-4"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="font-label text-xs font-bold uppercase tracking-wider text-tertiary">{entity.name}</p>
+                              <p className="mt-1 text-[11px] text-on-surface-variant">
+                                Mentioned {entity.frequency} time{entity.frequency === 1 ? '' : 's'}
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => void handlePromoteDiscoveredEntity(entity)}
+                              disabled={saveEntities.isPending || alreadyExists}
+                              className="rounded-lg bg-tertiary text-white px-3 py-1.5 font-label text-[10px] font-bold uppercase tracking-wider hover:opacity-90 disabled:opacity-40"
+                            >
+                              {alreadyExists ? 'Imported' : 'Promote'}
+                            </button>
+                          </div>
+
+                          <p className="mt-3 text-xs text-on-surface-variant">
+                            First mention: Chapter {entity.first_mention_chapter_number} - {entity.first_mention_chapter_title}
+                          </p>
+                          {entity.references.length > 1 ? (
+                            <p className="mt-1 text-[11px] text-on-surface-variant">
+                              Also in:{' '}
+                              {entity.references
+                                .slice(1, 4)
+                                .map((reference) => `Ch ${reference.chapter_number}`)
+                                .join(', ')}
+                              {entity.references.length > 4 ? ` +${entity.references.length - 4}` : ''}
+                            </p>
+                          ) : null}
+                          {entity.context_snippet ? (
+                            <p className="mt-2 text-xs italic text-on-surface-variant line-clamp-3">
+                              "{entity.context_snippet}"
+                            </p>
+                          ) : null}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {discoveredObjects.length > 0 && (
+                <div className="mt-8">
+                  <h3 className="font-label text-xs font-bold uppercase tracking-widest text-primary mb-4">
+                    Discovered Objects
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {discoveredObjects.map((entity) => {
+                      const alreadyExists = entities.some(
+                        (existing) => existing.name.trim().toLowerCase() === entity.name.trim().toLowerCase()
+                      );
+
+                      return (
+                        <div
+                          key={entity.id}
+                          className="rounded-xl border border-error/20 bg-error/10 p-4"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="font-label text-xs font-bold uppercase tracking-wider text-error">{entity.name}</p>
+                              <p className="mt-1 text-[11px] text-on-surface-variant">
+                                Mentioned {entity.frequency} time{entity.frequency === 1 ? '' : 's'}
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => void handlePromoteDiscoveredEntity(entity)}
+                              disabled={saveEntities.isPending || alreadyExists}
+                              className="rounded-lg bg-error text-white px-3 py-1.5 font-label text-[10px] font-bold uppercase tracking-wider hover:opacity-90 disabled:opacity-40"
+                            >
+                              {alreadyExists ? 'Imported' : 'Promote'}
+                            </button>
+                          </div>
+
+                          <p className="mt-3 text-xs text-on-surface-variant">
+                            First mention: Chapter {entity.first_mention_chapter_number} - {entity.first_mention_chapter_title}
+                          </p>
+                          {entity.references.length > 1 ? (
+                            <p className="mt-1 text-[11px] text-on-surface-variant">
+                              Also in:{' '}
+                              {entity.references
+                                .slice(1, 4)
+                                .map((reference) => `Ch ${reference.chapter_number}`)
+                                .join(', ')}
+                              {entity.references.length > 4 ? ` +${entity.references.length - 4}` : ''}
+                            </p>
+                          ) : null}
+                          {entity.context_snippet ? (
+                            <p className="mt-2 text-xs italic text-on-surface-variant line-clamp-3">
+                              "{entity.context_snippet}"
+                            </p>
+                          ) : null}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
 
               <div className="mt-8 p-4 bg-white rounded-lg border border-outline-variant/10">
-                <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold mb-3">Tip: Import to Entities</p>
+                <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold mb-3">Tip: Promote in One Click</p>
                 <p className="text-xs text-on-surface-variant leading-relaxed">
-                  Click "New Entity" and create detailed profiles for discovered entities to assign roles, backstories, and relationships.
+                  Use Promote to create a draft entity profile from a discovered mention, then enrich it with role, traits, and relationships.
                 </p>
               </div>
             </>
           )}
+        </div>
+      )}
+
+      {/* Relationship Map Tab */}
+      {activeTab === 'relationships' && (
+        <div className="bg-surface-container-lowest p-6 rounded-xl border border-outline-variant/10">
+          <EntityRelationshipMap
+            entities={entities}
+            isSaving={saveEntities.isPending}
+            onSaveEntities={async (updatedEntities) => {
+              await saveEntities.mutateAsync(updatedEntities as Entity[]);
+            }}
+          />
         </div>
       )}
     </div>
