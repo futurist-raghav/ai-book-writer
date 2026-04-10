@@ -16,12 +16,11 @@ interface FlowEvent {
   title: string;
   description?: string;
   event_type: string;
-  status?: 'draft' | 'active' | 'archived';
-  position?: number;
-  start_date?: string;
-  end_date?: string;
-  tags?: string[];
-  notes?: string;
+  timeline_position: number;
+  duration?: number;
+  status: 'planned' | 'in_progress' | 'completed' | 'archived';
+  order_index: number;
+  metadata?: Record<string, any>;
   created_at: string;
   updated_at: string;
 }
@@ -58,10 +57,10 @@ export default function FlowPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<Partial<FlowEvent>>({
-    event_type: 'milestone',
+    event_type: 'beat',
     title: '',
     description: '',
-    tags: [],
+    metadata: {},
   });
 
   const projectType = (selectedBook?.project_type || 'novel') as ProjectType;
@@ -119,9 +118,11 @@ export default function FlowPage() {
         ? apiClient.flowEvents.create(selectedBook.id, {
             title: data.title || '',
             description: data.description,
-            event_type: data.event_type || 'milestone',
-            tags: data.tags,
-            notes: data.notes,
+            event_type: data.event_type || 'beat',
+            timeline_position: data.timeline_position || 0,
+            duration: data.duration,
+            status: data.status || 'planned',
+            metadata: data.metadata,
           })
         : Promise.reject('No book selected'),
     onSuccess: () => {
@@ -130,7 +131,7 @@ export default function FlowPage() {
       queryClient.invalidateQueries({ queryKey: ['flowTimeline', selectedBook?.id] });
       setIsCreating(false);
       setEditingId(null);
-      setFormData({ event_type: 'milestone', title: '', description: '', tags: [] });
+      setFormData({ event_type: 'beat', title: '', description: '', metadata: {} });
     },
     onError: () => {
       toast.error('Failed to create event');
@@ -145,9 +146,10 @@ export default function FlowPage() {
             title: data.updates.title,
             description: data.updates.description,
             event_type: data.updates.event_type,
-            tags: data.updates.tags,
-            notes: data.updates.notes,
+            timeline_position: data.updates.timeline_position,
+            duration: data.updates.duration,
             status: data.updates.status,
+            metadata: data.updates.metadata,
           })
         : Promise.reject('No book selected'),
     onSuccess: () => {
@@ -156,7 +158,7 @@ export default function FlowPage() {
       queryClient.invalidateQueries({ queryKey: ['flowTimeline', selectedBook?.id] });
       setIsCreating(false);
       setEditingId(null);
-      setFormData({ event_type: 'milestone', title: '', description: '', tags: [] });
+      setFormData({ event_type: 'beat', title: '', description: '', metadata: {} });
     },
     onError: () => {
       toast.error('Failed to update event');
@@ -240,7 +242,7 @@ export default function FlowPage() {
         </div>
         <button
           onClick={() => {
-            setFormData({ event_type: flowTypes[0] || 'milestone', title: '', description: '', tags: [] });
+            setFormData({ event_type: flowTypes[0] || 'beat', title: '', description: '', metadata: {} });
             setEditingId(null);
             setIsCreating(true);
           }}
@@ -324,7 +326,7 @@ export default function FlowPage() {
           </p>
           <button
             onClick={() => {
-              setFormData({ event_type: flowTypes[0] || 'milestone', title: '', description: '', tags: [] });
+              setFormData({ event_type: flowTypes[0] || 'beat', title: '', description: '', metadata: {} });
               setEditingId(null);
               setIsCreating(true);
             }}
@@ -368,9 +370,9 @@ export default function FlowPage() {
                   </div>
 
                   {/* Tags */}
-                  {(flow.tags || []).length > 0 && (
+                  {(flow.metadata?.tags || []).length > 0 && (
                     <div className="flex flex-wrap gap-2 mt-3">
-                      {flow.tags.map((tag) => (
+                      {(flow.metadata?.tags || []).map((tag: string) => (
                         <span
                           key={tag}
                           className="px-2 py-1 rounded-full bg-tertiary/10 text-tertiary text-[9px] font-bold uppercase tracking-tighter"
@@ -428,9 +430,9 @@ export default function FlowPage() {
               </div>
 
               {/* Tags */}
-              {(flow.tags || []).length > 0 && (
+              {(flow.metadata?.tags || []).length > 0 && (
                 <div className="px-4 py-3 bg-surface-container-lowest border-t border-outline-variant/10 flex flex-wrap gap-2">
-                  {flow.tags.map((tag) => (
+                  {(flow.metadata?.tags || []).map((tag: string) => (
                     <span key={tag} className="px-2 py-1 rounded-full bg-tertiary/10 text-tertiary text-[9px] font-bold uppercase tracking-tighter">
                       {tag}
                     </span>
@@ -471,7 +473,7 @@ export default function FlowPage() {
                 onClick={() => {
                   setIsCreating(false);
                   setEditingId(null);
-                  setFormData({ event_type: 'milestone', title: '', description: '', tags: [] });
+                  setFormData({ event_type: 'beat', title: '', description: '', metadata: {} });
                 }}
                 className="text-on-surface-variant hover:text-primary transition-colors"
               >
@@ -528,7 +530,7 @@ export default function FlowPage() {
                   onClick={() => {
                     setIsCreating(false);
                     setEditingId(null);
-                    setFormData({ event_type: 'milestone', title: '', description: '', tags: [] });
+                    setFormData({ event_type: 'beat', title: '', description: '', metadata: {} });
                   }}
                   className="px-4 py-2 rounded-lg border border-outline-variant/20 text-primary font-label text-xs font-bold uppercase tracking-wider hover:bg-surface-container-high transition-colors"
                 >
