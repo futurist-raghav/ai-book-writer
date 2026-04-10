@@ -25,38 +25,66 @@ This top section is the source of truth for immediate execution. Historical deep
 
 ## Immediate Next Work (Ordered by Priority)
 
-**🚧 CURRENT SESSION - STARTING NOW:**
+**✅ CURRENT SESSION - P2.2.1 ENDPOINTS COMPLETE:**
 
-### 1. **P2.2.1: Flow Engine API Endpoints** (🚧 IN PROGRESS - 4-5 hours)
-Build complete REST API for flow event management
+### 1. **P2.2.1: Flow Engine API Endpoints** (✅ IMPLEMENTATION COMPLETE)
 
-**Endpoints to Implement:**
+**Completed:**
 ```
-Flow Events CRUD:
-POST   /books/{book_id}/flow-events           - Create event
-GET    /books/{book_id}/flow-events           - List all
-GET    /books/{book_id}/flow-events/{id}      - Get with dependencies
-PATCH  /books/{book_id}/flow-events/{id}      - Update
-DELETE /books/{book_id}/flow-events/{id}      - Delete
+Flow Events CRUD: ✅
+  POST   /books/{book_id}/flow-events           - Create event
+  GET    /books/{book_id}/flow-events           - List all with pagination/filters
+  GET    /books/{book_id}/flow-events/{id}      - Get with dependencies
+  PATCH  /books/{book_id}/flow-events/{id}      - Update (partial)
+  DELETE /books/{book_id}/flow-events/{id}      - Delete (cascades)
 
-Dependencies & Queries:
-POST   /books/{book_id}/flow-events/{id}/dependencies              - Add dependency
-DELETE /books/{book_id}/flow-events/{id}/dependencies/{target_id}  - Remove
-GET    /books/{book_id}/timeline                                   - Timeline view
-GET    /books/{book_id}/dependencies                                - Dependency graph
+Dependencies & Queries: ✅
+  POST   /books/{book_id}/flow-events/{id}/dependencies              - Add dependency
+  GET    /books/{book_id}/flow-events/{id}/dependencies              - List dependencies
+  DELETE /books/{book_id}/flow-events/{id}/dependencies/{target_id}  - Remove
+  GET    /books/{book_id}/timeline                                   - Timeline view (sorted)
+  GET    /books/{book_id}/dependencies                                - Dependency graph
 ```
+
+**Implementation Details:**
+- ✅ Pydantic schemas in `/backend/app/schemas/flow_event.py` (8 enums, 10 models)
+- ✅ FastAPI router in `/backend/app/api/v1/flow_events.py` (15 endpoints)
+- ✅ Comprehensive test coverage: `/backend/tests/test_flow_events.py` (11 test classes, 30+ cases)
+- ✅ All endpoints follow book-scoped pattern (verify user owns book)
+- ✅ Proper error handling (404, 400, 422)
+- ✅ Authorization checks on all endpoints
+
+**Router Integrated:**
+- ✅ Added to `/backend/app/api/v1/router.py` with tags: ["Flow Engine"]
+- ✅ No prefix needed (endpoints use full `/books/{book_id}/flow-events` paths)
+
+**Testing Status:**
+- Test structure created and compiles successfully
+- Ready for pytest execution (will verify in next steps)
+
+---
+
+### 2. **P2.2.1: Test Execution & Validation** (🚧 NEXT)
 
 **Steps:**
-1. [ ] Pydantic schemas (FlowEventRequest/Response, dependency schemas)
-2. [ ] Router with CRUD endpoints
-3. [ ] Dependency management endpoints
-4. [ ] Timeline query endpoint
-5. [ ] Comprehensive tests
+1. [ ] Run backend tests: `pytest backend/tests/test_flow_events.py -v`
+2. [ ] Fix any runtime issues (import errors, schema mismatches)
+3. [ ] Verify all 30+ test cases pass
+4. [ ] Test edge cases and error scenarios
 
-**Why This First:**
-- Unblocks frontend timeline UI work
-- P1.9 manual tests can run in parallel
-- Phase 2.2 MVP will be complete with working API
+**Estimated Time:** 1-2 hours
+
+---
+
+### 3. **P2.2.2: Frontend Timeline Visualization** (⏳ BLOCKING)
+
+Once P2.2.1 tests pass, build frontend UI:
+- Timeline/Gantt visualization component
+- Dependency graph visualization
+- Event creation/editing modal
+- Drag-to-reorder timeline events
+
+**Estimated Time:** 4-5 hours
 
 ### 2. **P1.9 Manual Offline Verification** (30 min) - Can run in parallel
 - Run 5 offline tests from P1.9_OFFLINE_VERIFICATION_TESTS.md
