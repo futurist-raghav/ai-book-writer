@@ -6,7 +6,7 @@ Combines all API routes into a single router.
 
 from fastapi import APIRouter
 
-from app.api.v1 import ai, audio, auth, books, chapters, chapter_versions, collaboration, entities, events, export, flow_events, references, transcriptions
+from app.api.v1 import ai, audio, auth, books, chapters, chapter_versions, collaboration, entities, events, export, flow_engine, references, transcriptions
 
 api_router = APIRouter()
 
@@ -18,7 +18,7 @@ api_router.include_router(
     transcriptions.router, prefix="/transcriptions", tags=["Transcriptions"]
 )
 api_router.include_router(events.router, prefix="/events", tags=["Events"])
-api_router.include_router(flow_events.router, tags=["Flow Engine"])
+api_router.include_router(flow_engine.router, tags=["Flow Engine"])
 api_router.include_router(chapters.router, prefix="/chapters", tags=["Chapters"])
 api_router.include_router(chapter_versions.router, prefix="", tags=["Chapter Versions"])
 api_router.include_router(books.router, prefix="/books", tags=["Books"])
