@@ -339,7 +339,7 @@ export default function FlowPage() {
         // Timeline View
         <div className="space-y-3">
           {filteredFlows
-            .sort((a, b) => (a.position || 0) - (b.position || 0))
+            .sort((a, b) => (a.timeline_position || 0) - (b.timeline_position || 0))
             .map((flow, index) => (
               <div
                 key={flow.id}
