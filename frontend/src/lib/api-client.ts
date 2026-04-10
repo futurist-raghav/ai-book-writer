@@ -578,6 +578,24 @@ export const apiClient = {
     deleteValue: async (bookId: string, entityType: string, entityId: string, fieldId: string) =>
       api.delete(`/books/${bookId}/entities/${entityType}/${entityId}/custom-fields/${fieldId}/value`),
   },
+
+  // Import/Export
+  import: {
+    uploadFile: async (bookId: string | number, formData: FormData) =>
+      api.post(`/books/${bookId}/import/upload`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      }),
+    getPreview: async (bookId: string | number, sourceId: string | number) =>
+      api.get(`/books/${bookId}/import/${sourceId}/preview`),
+    applyImport: async (bookId: string | number, sourceId: string | number, data: any) =>
+      api.post(`/books/${bookId}/import/${sourceId}/apply`, data),
+    listSources: async (bookId: string | number) =>
+      api.get(`/books/${bookId}/import`),
+    getSource: async (bookId: string | number, sourceId: string | number) =>
+      api.get(`/books/${bookId}/import/${sourceId}`),
+    deleteSource: async (bookId: string | number, sourceId: string | number) =>
+      api.delete(`/books/${bookId}/import/${sourceId}`),
+  },
 };
 
 // ============================================================================
@@ -639,4 +657,58 @@ export interface ChapterCitation {
   bibliography?: Bibliography;
   created_at: string;
   updated_at: string;
+}
+
+// ============================================================================
+// Type Exports for Import/Export (P2.7)
+// ============================================================================
+
+export interface ImportSourceResponse {
+  id: number;
+  book_id: number;
+  filename: string;
+  format: string;
+  status: string;
+  file_size: number;
+  total_characters: number;
+  detected_structure: Record<string, any>;
+  import_settings: Record<string, any>;
+  error_message?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ImportedSectionResponse {
+  section_index: number;
+  title: string;
+  content: string;
+  estimated_word_count: number;
+  content_type: string;
+}
+
+export interface ImportPreviewResponse {
+  source_id: number;
+  filename: string;
+  format: string;
+  total_sections: number;
+  total_word_count: number;
+  detected_structure: Record<string, any>;
+  sections: ImportedSectionResponse[];
+}
+
+export interface ImportApplyRequest {
+  source_id: number;
+  section_indices?: number[];
+  create_as_chapters?: boolean;
+  split_by?: string;
+  parent_part_id?: number;
+  start_at_chapter_number?: number;
+}
+
+export interface ImportApplyResponse {
+  import_source_id: number;
+  chapters_created: number;
+  total_word_count: number;
+  created_chapter_ids: number[];
+  completed_at: string;
 }
