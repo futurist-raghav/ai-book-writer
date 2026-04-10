@@ -255,6 +255,24 @@ function extractNameCandidates(text: string): string[] {
   return matches.filter(isLikelyNameCandidate);
 }
 
+// Cache for Levenshtein distance calculations to optimize for large books
+const levenshteinCache = new Map<string, number>();
+
+function cachedLevenshteinDistance(a: string, b: string): number {
+  const key = `${a}::${b}`;
+  const cached = levenshteinCache.get(key);
+  if (cached !== undefined) {
+    return cached;
+  }
+
+  const distance = levenshteinDistance(a, b);
+  if (levenshteinCache.size > 10000) {
+    levenshteinCache.clear();
+  }
+  levenshteinCache.set(key, distance);
+  return distance;
+}
+
 function findClosestKnownName(
   candidateNormalized: string,
   knownEntityNormalizedNames: string[],
@@ -270,6 +288,8 @@ function findClosestKnownName(
   const candidateTokens = normalizedCandidate.split(' ').length;
   let bestMatch: { knownName: string; distance: number; similarity: number } | null = null;
 
+  // Early exit: stop after finding a perfect match or 5 candidates
+  let candidateCount = 0;
   for (const knownNormalized of knownEntityNormalizedNames) {
     if (!knownNormalized || knownNormalized === normalizedCandidate || knownNormalized.length < 4) {
       continue;
@@ -291,7 +311,7 @@ function findClosestKnownName(
       continue;
     }
 
-    const distance = levenshteinDistance(normalizedCandidate, knownNormalized);
+    const distance = cachedLevenshteinDistance(normalizedCandidate, knownNormalized);
     const similarity = calculateAliasSimilarity(normalizedCandidate, knownNormalized);
 
     if (
@@ -304,6 +324,10 @@ function findClosestKnownName(
         distance,
         similarity,
       };
+      candidateCount += 1;
+      if (candidateCount > 5) {
+        break;
+      }
     }
   }
 
@@ -569,19 +593,21 @@ export function buildManuscriptHealthReport(
 
   const inferredAliasMismatchCandidates = allUnknownNameCandidates
     .filter((candidate) => !candidate.possibleMismatch)
-    .sort((a, b) => b.chapterCount - a.chapterCount || a.name.localeCompare(b.name));
+    .sort((a, b) => b.chapterCount - a.chapterCount || a.name.localeCompare(b.name))
+    .slice(0, 50); // Performance: limit to top 50 candidates
 
   const inferredAliasMismatchMap = new Map<
     string,
     { possibleMismatch: string; chapterIds: string[]; mismatchDistance: number }
   >();
 
+  // Performance: use quadratic search only for top candidates instead of all
   for (let index = 0; index < inferredAliasMismatchCandidates.length; index += 1) {
     const firstCandidate = inferredAliasMismatchCandidates[index];
 
     for (
       let comparisonIndex = index + 1;
-      comparisonIndex < inferredAliasMismatchCandidates.length;
+      comparisonIndex < Math.min(index + 10, inferredAliasMismatchCandidates.length); // limiting comparison window
       comparisonIndex += 1
     ) {
       const secondCandidate = inferredAliasMismatchCandidates[comparisonIndex];
@@ -615,7 +641,7 @@ export function buildManuscriptHealthReport(
       inferredAliasMismatchMap.set(pairKey, {
         possibleMismatch: `${variantCandidate.name} -> ${canonicalCandidate.name}`,
         chapterIds: variantCandidate.chapterIds,
-        mismatchDistance: levenshteinDistance(
+        mismatchDistance: cachedLevenshteinDistance(
           variantCandidate.normalizedName,
           canonicalCandidate.normalizedName
         ),
