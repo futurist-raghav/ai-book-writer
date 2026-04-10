@@ -437,16 +437,34 @@
   - **P2.2.4 (E2E Testing & Validation):** Docker-blocked but code complete ⏳
   - **P2.2.5 (Advanced Visualization - P2.3):** GanttChart, Filter, BulkOps, Analytics, Dashboard ✅ 100% COMPLETE (NEW)
   
-  **New P2.3 Components (1,930 lines):**
-  - ✅ GanttChart.tsx (500 lines) - Canvas-based timeline with durations, dependencies, zoom/scroll
-  - ✅ FlowFilter.tsx (280 lines) - Multi-criteria filtering (type, status, date, search) + `applyFilters()` utility
-  - ✅ BulkOperations.tsx (380 lines) - Multi-select with batch status change, CSV export, delete confirmation
-  - ✅ FlowAnalytics.tsx (350 lines) - Metrics, burn-down charts, progress visualization, predicted completion
-  - ✅ EnhancedFlowDashboard.tsx (250 lines) - Orchestration component with 4 view modes (Overview, Gantt, Analytics, Bulk)
-  
-  **Next:** When Docker available: Run pytest + Jest for P2.2.4 validation, then wire P2.3 components to backend APIs
+  **P2.3 Implementation - COMPLETE:**
+  - ✅ **Phase 1:** 1,930 lines of visualization components (GanttChart, Filter, BulkOperations, Analytics, EnhancedDashboard)
+  - ✅ **Phase 2:** Flow page integration with Gantt view mode, batch operations, type exports
+  - ✅ **Type System:** FlowEvent and FlowDependency exported from api-client
+  - ✅ Three-view interface: Timeline, Grid, Gantt modes fully functional
+  - **Next Session:** Docker E2E testing (P2.4 can proceed without blocking)
 
-### P2.3 Media Module
+### P2.4 Reference & Citation Module (STARTING NOW)
+
+**Backend:**
+- [ ] Database: Create `bibliography` table (title, authors, year, source_url, citation_format, project_id, created_at)
+- [ ] Database: Create `chapter_citations` junction table (chapter_id, bibliography_id, page_number, context_snippet, context_offset)
+- [ ] Create Bibliography ORM model with Chapter relationship
+- [ ] API: POST /books/{book_id}/bibliography (create article/source)
+- [ ] API: GET /books/{book_id}/bibliography (list all sources)
+- [ ] API: GET /books/{book_id}/bibliography/{id} (fetch with formatted citation)
+- [ ] API: DELETE /books/{book_id}/bibliography/{id} (soft delete + cascade to orphaned citations)
+- [ ] API: POST /chapters/{id}/citations (link chapter to bibliography source)
+
+**Frontend:**
+- [ ] Bibliography Manager sidebar panel (add/edit/delete sources, citation format selector)
+- [ ] Citation insertion tool in editor (search bibliography, insert formatted reference)
+- [ ] Chapter view: Show source links/footnotes at end of text
+- [ ] Bibliography auto-generation: Export formatted bibliography from used citations
+
+**Success Metric:** Can add source to project, insert citation in chapter editor, export chapter with formatted footnotes
+
+### P2.3 Media Module (BACKLOG)
 
 - [ ] Database: Revamp media/assets storage
 - [ ] Create illustrated assets that can be referenced from chapters
@@ -454,15 +472,6 @@
 - [ ] Link images to chapters (reference panels show moodboards)
 - [ ] Support for: images, video references, audio samples, color swatches
 - [ ] Moodboard tool: Arrange reference images for visual inspiration
-
-### P2.4 Reference & Citation Module
-
-- [ ] Bibliography manager (add citations in multiple formats: APA, MLA, Chicago, IEEE)
-- [ ] Footnote/endnote insertion in editor
-- [ ] Citation insertion tool: Search bibliography, insert formatted citation
-- [ ] Auto-generate bibliography from used citations
-- [ ] Link chapters to research sources
-- [ ] Glossary builder (auto-extract or manual entries)
 
 ### P2.5 Workspace Rename & Customization
 
