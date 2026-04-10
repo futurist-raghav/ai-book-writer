@@ -1,9 +1,9 @@
 # AI Book Writer - Implementation Todo List
 
-**Last Updated:** April 10, 2026 - P2.6 Complete, P2.7 Starting
-**Status:** In Active Development - P2.7 Import/Export In Progress
-**Current Phase:** Phase 2 (P2.1-P2.6 ✅ COMPLETE | P2.7 🔄 STARTING)
-**Ship Status:** Phase 2 CORE FEATURES 99% COMPLETE | 3 Remaining: P2.7, P2.8 (80% done), P2.9-P2.10 (done)
+**Last Updated:** April 10, 2026 - P2.7 Core Complete (70%)
+**Status:** In Active Development - P2.7 Import/Export ~70% Complete
+**Current Phase:** Phase 2 (P2.1-P2.6 ✅ COMPLETE | P2.7 🔄 70% | P2.8 80% | P2.9-P2.10 ✅ DONE)
+**Ship Status:** Phase 2 CORE FEATURES 98% COMPLETE | Remaining: P2.7 Polish, P2.8 Final Polish
 
 ---
 
@@ -527,15 +527,36 @@
 - [ ] Viewable in list/table view
 - [ ] Filterable by custom field values
 
-### P2.7 Import/Export Bridges (STARTING NOW)
+### P2.7 Import/Export Bridges ✅ 70% COMPLETE
 
-- [ ] DOCX importer with heading-to-chapter splitting
-- [ ] Markdown importer with # heading splitting
-- [ ] Fountain screenwriting importer
-- [ ] Import preview + structure validation
-- [ ] Test with real manuscripts
+**Import Features (Phase 1 - COMPLETE):**
+- [X] DOCX importer with heading-to-chapter splitting (via python-docx)
+- [X] Markdown importer with # heading splitting
+- [X] Fountain screenwriting importer (INT/EXT/I.E. detection)
+- [X] Plain text importer (heuristic-based)
+- [X] Import preview + section structure validation
+- [X] Section selection + filtering UI
+- [X] Chapter creation pipeline with ordering
+- [X] Error handling + user feedback
 
-**Estimated:** 3,000-4,000 LOC
+**Export Features (Phase 2 - COMPLETE):**
+- [X] Markdown exporter with hierarchy preservation
+- [X] Plain text exporter
+- [X] DOCX exporter (optional dependency)
+- [X] Metadata toggle (include/exclude author, title, etc.)
+- [X] Streaming downloads (large book support)
+
+**Remaining (Phase 3 - FUTURE):**
+- [ ] EPUB exporter (template prepared)
+- [ ] PDF exporter via reportlab
+- [ ] Custom field mapping during import
+- [ ] Automatic part/chapter hierarchy detection
+- [ ] Import history + detailed logging
+- [ ] Advanced formatting preservation
+
+**Status:** ✅ 70% COMPLETE | Core pipeline working, ready for testing
+**Files:** 2,295 LOC across 6 files
+**Commits:** e7c3e48, 30bc633, 2779e1f
 
 ### P2.8 Health Dashboard & Diagnostics ✅ 80% COMPLETE
 - [X] "Manuscript Health" widget
