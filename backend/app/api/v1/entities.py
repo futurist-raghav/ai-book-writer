@@ -139,7 +139,7 @@ async def create_entity(
         name=request.name,
         type=request.type,
         description=request.description,
-        metadata=request.metadata or {},
+        entity_metadata=request.metadata or {},
     )
 
     db.add(entity)
@@ -192,7 +192,7 @@ async def update_entity(
     if request.description is not None:
         entity.description = request.description
     if request.metadata is not None:
-        entity.metadata = request.metadata
+        entity.entity_metadata = request.metadata
 
     await db.commit()
     await db.refresh(entity)

@@ -315,6 +315,7 @@ class ExtractedEntity(BaseModel):
     first_mention_chapter_order: int
     context_snippet: Optional[str] = None
     references: List[ExtractedEntityReference] = []
+    db_entity_id: Optional[UUID] = None  # UUID if entity was persisted to Entities table
 
 
 class ChapterEntityExtractionResponse(BaseModel):

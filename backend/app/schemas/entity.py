@@ -68,12 +68,13 @@ class EntityResponse(BaseModel):
     name: str
     type: str
     description: Optional[str]
-    metadata: Optional[dict]
+    metadata: Optional[dict] = Field(None, alias="entity_metadata")
     created_at: datetime
     updated_at: datetime
 
     class Config:
         from_attributes = True
+        populate_by_name = True
 
 
 class EntityListResponse(BaseModel):

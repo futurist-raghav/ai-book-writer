@@ -62,7 +62,7 @@ class ReferenceResponse(BaseSchema, IDMixin, TimestampMixin):
     title: str
     authors: List[str]
     url: Optional[str] = None
-    metadata: dict
+    metadata: dict = Field(alias="reference_metadata")
     notes: Optional[str] = None
     tags: List[str]
     citation_format: str
@@ -71,6 +71,10 @@ class ReferenceResponse(BaseSchema, IDMixin, TimestampMixin):
     chicago_citation: Optional[str] = None
     ieee_citation: Optional[str] = None
     harvard_citation: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+        populate_by_name = True
 
 
 class ReferenceListResponse(BaseModel):

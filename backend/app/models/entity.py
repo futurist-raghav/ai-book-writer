@@ -75,7 +75,9 @@ class Entity(Base):
     # For characters: age, gender, personality, background, etc.
     # For locations: geography, climate, political system, etc.
     # For concepts: definition, examples, related_concepts, etc.
-    metadata: Mapped[Optional[dict]] = mapped_column(
+    # Named 'entity_metadata' to avoid conflict with SQLAlchemy reserved 'metadata' attribute
+    entity_metadata: Mapped[Optional[dict]] = mapped_column(
+        "metadata",  # Database column name stays as 'metadata'
         JSONB,
         default=dict,
         nullable=True,

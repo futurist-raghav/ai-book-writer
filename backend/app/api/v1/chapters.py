@@ -847,6 +847,20 @@ def _upsert_extracted_entity_occurrence(
     }
 
 
+def _map_extraction_type_to_entity_type(extraction_type: str) -> str:
+    """Map extracted entity type to Entity model type.
+    
+    Extraction types: character, location, object
+    Entity types: character, location, concept, faction, item, theme, custom
+    """
+    type_map = {
+        "character": "character",
+        "location": "location",
+        "object": "item",  # Generic objects map to "item" type
+    }
+    return type_map.get(extraction_type, "concept")
+
+
 def _run_entity_extraction(chapters_data: List[Dict[str, Any]]) -> List[ExtractedEntity]:
     """Extract character/location/object entities from chapter text deterministically."""
     entity_occurrences: Dict[Tuple[str, str], Dict[str, Any]] = {}
@@ -2958,6 +2972,36 @@ async def extract_chapter_entities(
 
     entities = _run_entity_extraction(chapter_payload)
     generated_at = datetime.now(timezone.utc)
+
+    # Persist extracted entities to Entities table if book is linked
+    if linked_book_id:
+        from app.models.entity import Entity
+        
+        created_entities = []
+        for extracted_entity in entities:
+            # Map extraction entity_type to Entity type
+            entity_type = _map_extraction_type_to_entity_type(extracted_entity.entity_type)
+            
+            # Create Entity record
+            entity = Entity(
+                book_id=linked_book_id,
+                type=entity_type,
+                name=extracted_entity.name,
+                description=extracted_entity.context_snippet,
+                entity_metadata={
+                    "extraction_frequency": extracted_entity.frequency,
+                    "extraction_first_mention_chapter_id": str(extracted_entity.first_mention_chapter_id),
+                    "extraction_context": extracted_entity.context_snippet,
+                },
+            )
+            db.add(entity)
+            created_entities.append(entity)
+        
+        await db.flush()  # Get IDs without committing
+        
+        # Update entities with their db IDs
+        for created_entity, extracted_entity in zip(created_entities, entities):
+            extracted_entity.db_entity_id = created_entity.id
 
     workspace = _ensure_workspace_settings(chapter)
     workspace["last_entity_extraction_at"] = generated_at.isoformat()

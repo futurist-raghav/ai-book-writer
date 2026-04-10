@@ -85,12 +85,14 @@ class Reference(Base):
     url: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
 
     # Source-specific fields stored as JSONB
-    metadata: Mapped[dict] = mapped_column(
+    # Named 'reference_metadata' to avoid conflict with SQLAlchemy reserved 'metadata' attribute
+    reference_metadata: Mapped[dict] = mapped_column(
+        "metadata",  # Database column name stays as 'metadata'
         JSONB,
         default=dict,
         nullable=False,
     )
-    # metadata can contain:
+    # reference_metadata can contain:
     # - For books: publisher, isbn, year, edition, pages, doi
     # - For articles: journal, issue, volume, pages, doi, issn
     # - For websites: accessed_date, website_name

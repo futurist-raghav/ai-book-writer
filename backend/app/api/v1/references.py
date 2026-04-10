@@ -34,25 +34,25 @@ def _generate_citation(reference: Reference, format: str) -> str:
     title = reference.title
 
     if format == "apa":
-        year = reference.metadata.get("year", "n.d.")
+        year = reference.reference_metadata.get("year", "n.d.")
         return f"{authors_str} ({year}). {title}."
 
     elif format == "mla":
-        year = reference.metadata.get("year", "")
+        year = reference.reference_metadata.get("year", "")
         year_str = f" {year}" if year else ""
         return f"{authors_str}. \"{title}.\" {year_str}"
 
     elif format == "chicago":
-        year = reference.metadata.get("year", "")
+        year = reference.reference_metadata.get("year", "")
         return f"{authors_str}, {title}. Accessed {year}."
 
     elif format == "ieee":
-        year = reference.metadata.get("year", "")
+        year = reference.reference_metadata.get("year", "")
         year_str = f", {year}" if year else ""
         return f"[1] {authors_str}, \"${title},\"{year_str}."
 
     elif format == "harvard":
-        year = reference.metadata.get("year", "n.d.")
+        year = reference.reference_metadata.get("year", "n.d.")
         return f"{authors_str}, {year}. {title}."
 
     return title
@@ -207,7 +207,7 @@ async def create_reference(
         title=reference_data.title,
         authors=reference_data.authors,
         url=reference_data.url,
-        metadata=reference_data.metadata,
+        reference_metadata=reference_data.metadata,
         notes=reference_data.notes,
         tags=reference_data.tags,
         citation_format=reference_data.citation_format,
@@ -282,7 +282,7 @@ async def update_reference(
     if reference_data.url is not None:
         reference.url = reference_data.url
     if reference_data.metadata is not None:
-        reference.metadata = reference_data.metadata
+        reference.reference_metadata = reference_data.metadata
     if reference_data.notes is not None:
         reference.notes = reference_data.notes
     if reference_data.tags is not None:
