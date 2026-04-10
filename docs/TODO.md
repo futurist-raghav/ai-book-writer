@@ -1,9 +1,9 @@
 # AI Book Writer - Implementation Todo List
 
-**Last Updated:** April 10, 2026 (Session: P2.1 Complete - Frontend Integration Done | P2.2 Next)
+**Last Updated:** April 10, 2026 (Session: P2.1 & P1.9 COMPLETE | P2.2.1 Flow Engine API - IN PROGRESS)
 **Status:** In Active Development
-**Current Phase:** Phase 1 Final (90%) → Phase 2.1 (100% Complete) → Phase 2.2 (In Progress)
-**Ship Status:** Phase 1 core features READY | Phase 2.1 Backend 100% + Frontend 100% COMPLETE
+**Current Phase:** Phase 1 (99% - Manual verification gate) → Phase 2.1 (✅ 100%) → Phase 2.2 (🚧 In Progress)
+**Ship Status:** Phase 1 LAUNCH READY (manual tests pending) | Phase 2.1 COMPLETE | Phase 2.2 Starting
 
 ---
 
@@ -415,12 +415,25 @@
 
 ### P2.2 Flow Engine (Timeline / Dependencies / Logic)
 
-- [ ] Create Events/Flow table with timeline position, dependencies, logical relationships
-- [ ] Timeline view: Show events chronologically with visual Gantt bar
-- [ ] Dependency view: Show which events must complete before others
-- [ ] Chapter-to-Event linking: Show which chapter(s) cover which events
-- [ ] For textbooks: Show prerequisite dependencies between chapters
-- [ ] For novels: Show character arc milestones
+- [X] Create flow_events, flow_dependencies, flow_chapter_events tables (migration 010)
+- [X] Implement FlowEvent, FlowDependency, FlowChapterEvent ORM models
+- [X] Add enums: FlowEventType, FlowEventStatus, FlowDependencyType
+- [X] Update Chapter model with flow event relationships
+- [X] Export all flow models from app/models/__init__.py
+- [ ] Create Pydantic schemas for flow events (FlowEventCreateRequest, FlowEventResponse, etc.)
+- [ ] Create router with CRUD endpoints: GET/POST/PATCH/DELETE /books/{book_id}/events
+- [ ] Create dependency endpoints: GET/POST/DELETE /books/{book_id}/events/{event_id}/dependencies
+- [ ] Create timeline query endpoint: GET /books/{book_id}/timeline (chronological, Gantt metadata)
+- [ ] Add test coverage for flow engine (25+ tests)
+- [ ] Create frontend components: TimelineView, EventCard, DependencyManager
+- [ ] Build flow page UI: /dashboard/flow
+  **Status:** ✅ 50% COMPLETE (Database + ORM done)
+  - Alembic migration 010 created with all tables and indexes
+  - FlowEvent model with relationships to books, dependencies, chapters
+  - FlowDependency model with cycle prevention (check constraint)
+  - FlowChapterEvent association model
+  - All enums properly defined and exported
+  - **NOW:** Creating Pydantic schemas and API endpoints for flow events
 
 ### P2.3 Media Module
 

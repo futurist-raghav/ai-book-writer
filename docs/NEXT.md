@@ -4,36 +4,73 @@ This top section is the source of truth for immediate execution. Historical deep
 
 ## Just Completed
 
-- ✅ P2.1 Part 4: Frontend Entity Cross-Reference Integration (complete)
-  - EntityCrossReferences component integrated into entity cards
+- ✅ P2.1 Part 4: Frontend Entity Cross-Reference Integration (UI complete)
+  - EntityCrossReferences component now integrated in entity detail cards
   - Shows chapters where entity appears with mention counts and context snippets
-  - Click-to-navigate functionality to chapter workspace operational
-  - Full backend-to-frontend pipeline now live and tested
+  - Click-to-navigate to chapter workspace fully operational
+  
+- ✅ P1.9: Offline Verification - Implementation COMPLETE
+  - Service worker + PWA manifest fully implemented
+  - Offline chapter caching + autosave queue complete
+  - Created P1.9_OFFLINE_VERIFICATION_TESTS.md with 5 manual test scenarios
+  - Status: Implementation 100% done, manual testing gate documented
+  
+- ✅ P2.2 Flow Engine: Database Layer (backend foundation complete)
+  - Created migration 010 with flow_events, flow_dependencies, flow_chapter_events tables
+  - FlowEvent, FlowDependency, FlowChapterEvent ORM models implemented
+  - Event type enum with scene, beat, milestone, act, chapter, subplot, branch, custom
+  - Dependency type enum supporting blocks, triggers, follows, required_before
+  - Cycle prevention via check constraint in flow_dependencies
+  - Chapter model updated with flow event relationships
 
 ## Immediate Next Work (Ordered by Priority)
 
-**CRITICAL PRIORITY ORDERING:**
+**🚧 CURRENT SESSION - STARTING NOW:**
 
-### 1. ⏰ **P1.9 Manual Offline Verification** (30 min) - **PHASE 1 FINAL BLOCKER** (DO THIS NEXT)
-- Verify cached chapter viewing while offline
-- Verify queued chapter edits replay correctly when reconnecting
-- Document outcomes in MANUAL_TESTING_GUIDE.md
-**Impact:** Unlock Phase 1 production launch
+### 1. **P2.2.1: Flow Engine API Endpoints** (🚧 IN PROGRESS - 4-5 hours)
+Build complete REST API for flow event management
 
-### 2. ⏰ **P2.2 Flow Engine: Timeline & Dependencies** (4-5 hours) - Next Major Feature
-- Define Events/Flow table with timeline position, dependency chains
-- Chapter-to-Event linking constraints
-- Timeline query contract for frontend rendering
-- Initial event list API + timeline Gantt contract
+**Endpoints to Implement:**
+```
+Flow Events CRUD:
+POST   /books/{book_id}/flow-events           - Create event
+GET    /books/{book_id}/flow-events           - List all
+GET    /books/{book_id}/flow-events/{id}      - Get with dependencies
+PATCH  /books/{book_id}/flow-events/{id}      - Update
+DELETE /books/{book_id}/flow-events/{id}      - Delete
 
-### 3. ⏰ **P3.5 Rewrite-with-Diff UX** (3-4 hours) - AI Enhancement
-- AI suggestions show before/after diff (not silent overwrites)
-- User accepts/rejects individual suggestions
-- Multiple suggestion options (Formal, Casual, Shorter, etc.)
+Dependencies & Queries:
+POST   /books/{book_id}/flow-events/{id}/dependencies              - Add dependency
+DELETE /books/{book_id}/flow-events/{id}/dependencies/{target_id}  - Remove
+GET    /books/{book_id}/timeline                                   - Timeline view
+GET    /books/{book_id}/dependencies                                - Dependency graph
+```
+
+**Steps:**
+1. [ ] Pydantic schemas (FlowEventRequest/Response, dependency schemas)
+2. [ ] Router with CRUD endpoints
+3. [ ] Dependency management endpoints
+4. [ ] Timeline query endpoint
+5. [ ] Comprehensive tests
+
+**Why This First:**
+- Unblocks frontend timeline UI work
+- P1.9 manual tests can run in parallel
+- Phase 2.2 MVP will be complete with working API
+
+### 2. **P1.9 Manual Offline Verification** (30 min) - Can run in parallel
+- Run 5 offline tests from P1.9_OFFLINE_VERIFICATION_TESTS.md
+- Document results
+- Unlock Phase 1 production launch
+
+### 3. **P2.2.2: Frontend Flow Engine UI** (After P2.2.1 API complete)
+- Timeline/Gantt visualization component
+- Event dependency indicators
+- Dependency graph visualization
 
 ## Execution Rule
 - Keep shipping vertical slices with tests and doc deltas in the same session.
-- **NEXT SESSION FOCUS:** P1.9 offline verification → Phase 1 LAUNCH
+- **This session focus:** Complete P2.2.1 API with full test coverage → P2.2 backend MVP
 
 ---
 
