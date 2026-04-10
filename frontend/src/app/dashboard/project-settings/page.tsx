@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { apiClient } from '@/lib/api-client';
 import { useBookStore } from '@/stores/book-store';
 import { WorkspaceCustomizationPanel } from '@/components/workspace-customization/WorkspaceCustomizationPanel';
+import { CustomFieldManager } from '@/components/custom-fields';
 
 interface ProjectFormState {
   title: string;
@@ -579,6 +580,11 @@ export default function ProjectSettingsPage() {
       {/* Workspace Customization Section */}
       <div className="mt-8">
         <WorkspaceCustomizationPanel bookId={project.id} />
+      </div>
+
+      {/* Custom Fields Section */}
+      <div className="mt-8">
+        <CustomFieldManager bookId={project.id} />
       </div>
     </div>
   );
