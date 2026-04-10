@@ -10,33 +10,32 @@ This top section is the source of truth for immediate execution. Historical deep
 - ✅ Pydantic schemas for entity request/response handling
 - ✅ Router integration + Book model relationship setup
 - ✅ Auto-migration of existing project_settings entity data to Entities table
+- ✅ P2.1 Continuation: Entity Extraction Integration (comprehensive test suite: 9/9 passing)
+  - Extract-entities endpoint now creates Entity records in DB
+  - Type mapping: character→character, location→location, object→item, unknown→concept
+  - Fixed SQLAlchemy reserved 'metadata' attribute conflicts (Entity, Reference models)
+  - ExtractedEntity schema extended with optional db_entity_id field
 
 ## Immediate Next Work (Ordered by Priority)
 
-1. **P2.1 Continuation: Entity Extraction Integration** (2-3 hours) - **UNBLOCKS practical Phase 2 usage**
-   - Update POST /chapters/{id}/extract-entities to populate Entities table (not just project_settings)
-   - Add test coverage for entity creation from extracted entities
-   - Verify extracted entities appear in book's entities list
-   - Update frontend Entities > Discovered tab to read from DB instead of just project_settings
-
-2. **P2.1 Continuation: Chapter References for Entities** (2-3 hours)
+1. **P2.1 Continuation: Chapter References for Entities** (2-3 hours)
    - Create entity_references table linking chapters to entities
    - Update extraction to record which chapter mentions which entity
    - Implement GET /books/{book_id}/entities/{entity_id}/chapters for cross-reference queries
    - Update EntityWithChapterReferences schema to populate real chapter data
 
-3. **P1.9 Manual Offline Verification** (30 min) - **FINAL Phase 1 blocker**
+2. **P1.9 Manual Offline Verification** (30 min) - **FINAL Phase 1 blocker**
    - Verify cached chapter viewing while offline
    - Verify queued chapter edits replay correctly when reconnecting
    - Document outcomes in MANUAL_TESTING_GUIDE.md
 
-4. **P2.2 Flow Engine: Timeline & Dependencies** (4-5 hours)
+3. **P2.2 Flow Engine: Timeline & Dependencies** (4-5 hours)
    - Define Events/Flow table with timeline position, dependency chains
    - Chapter-to-Event linking constraints
    - Timeline query contract for frontend rendering
    - Initial event list API + timeline Gantt contract
 
-5. **P3.5 Rewrite-with-Diff UX** (3-4 hours)
+4. **P3.5 Rewrite-with-Diff UX** (3-4 hours)
    - AI suggestions show before/after diff (not silent overwrites)
    - User accepts/rejects individual suggestions
    - Multiple suggestion variants (Formal, Casual, Shorter, etc.)

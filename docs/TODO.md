@@ -1,8 +1,8 @@
 # AI Book Writer - Implementation Todo List
 
-**Last Updated:** April 10, 2026 (Session: Complete P1.9 Offline Verification + Phase 2.1 Entity Migration)
+**Last Updated:** April 10, 2026 (Session: P2.1 Entity Extraction Integration Complete + Type Mapping)
 **Status:** In Active Development
-**Current Phase:** Phase 1 Final (90%) → Phase 2 (Universal Writer OS)
+**Current Phase:** Phase 1 Final (90%) → Phase 2.1 (85% - Entity Model Complete with Tests)
 **Ship Status:** Phase 1 core features NOW PRODUCTION READY
 
 ---
@@ -371,10 +371,12 @@
 - [X] Entity types: character, concept, location, faction, item, theme, etc.
 - [X] Add entity_metadata JSON field for custom fields
 - [X] Entities persistence model + ORM class created
-- [ ] Allow users to create custom entity types (backend factory methods)
+- [X] Allow users to create custom entity types (backend factory methods)
+- [X] Extract-entities endpoint now creates Entity records in database (type mapping + persistence)
+- [X] Entity extraction test suite (9 tests covering type mapping, detection, metadata, schema)
 - [ ] World Building and Characters pages now read from same Entities table (frontend integration)
 - [ ] Link preview showing all chapters where entity appears (entity cross-reference API)
-  **Status:** 🚧 70% COMPLETE (Database architecture complete). Alembic migration 008 creates Entities table + auto-migrates project_settings data. ORM model, API endpoints (CRUD), schemas, and router integration all complete. **Next:** Run migration test, update discovered entity extraction to populate Entities table (currently only uses project_settings), frontend integration for backward-compatible unified entity reads.
+  **Status:** 🚧 85% COMPLETE (Database architecture + extraction integration complete). Alembic migration 008 creates Entities table + auto-migrates project_settings data. ORM model, API endpoints (CRUD), schemas, extraction integration, and comprehensive test coverage (9/9 passing) all complete. Fixed SQLAlchemy reserved 'metadata' attribute conflicts. **Next:** Chapter reference linking table, frontend integration for unified entity discovery.
 
 ### P2.2 Flow Engine (Timeline / Dependencies / Logic)
 
