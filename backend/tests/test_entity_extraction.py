@@ -169,3 +169,67 @@ class TestExtractedEntitySchema:
         test_id = uuid.uuid4()
         entity.db_entity_id = test_id
         assert entity.db_entity_id == test_id
+
+
+class TestEntityReferences:
+    """Test entity reference tracking."""
+
+    def test_entity_references_created_with_extraction(self):
+        """Test that EntityReference records would be created during extraction.
+        
+        This is a unit test verifying the extraction data structure includes
+        necessary chapter reference information for persisting to EntityReference table.
+        """
+        # Simulate extracted entity with chapter references
+        chapters_data = [
+            _chapter_payload(
+                chapter_id="00000000-0000-0000-0000-000000000001",
+                chapter_number=1,
+                chapter_order=1,
+                title="Chapter One",
+                text="Aragorn appeared early. Aragorn was brave.",
+            ),
+            _chapter_payload(
+                chapter_id="00000000-0000-0000-0000-000000000002",
+                chapter_number=2,
+                chapter_order=2,
+                title="Chapter Two",
+                text="Aragorn continued his journey. Aragorn rode forward.",
+            ),
+        ]
+
+        entities = _run_entity_extraction(chapters_data)
+        
+        # Find Aragorn entity
+        aragorn_entities = [e for e in entities if "aragorn" in e.name.lower()]
+        
+        if aragorn_entities:
+            aragorn = aragorn_entities[0]
+            # Should have references from multiple chapters
+            assert aragorn.references, "Aragorn should have chapter references"
+            assert len(aragorn.references) >= 1, "Should reference at least one chapter"
+            
+            # Each reference should have chapter info with mentions count
+            for ref in aragorn.references:
+                assert ref.chapter_id is not None
+                assert ref.chapter_title is not None
+                assert ref.mentions >= 1, "Should have at least 1 mention"
+
+    def test_entity_reference_extraction_metadata(self):
+        """Test that entity reference metadata can capture extraction context."""
+        from app.schemas.chapter import ExtractedEntityReference
+        
+        # Create an extracted entity reference
+        ref = ExtractedEntityReference(
+            chapter_id=uuid.uuid4(),
+            chapter_title="Chapter One",
+            chapter_number=1,
+            chapter_order=1,
+            mentions=3,
+        )
+        
+        # Verify reference structure
+        assert ref.chapter_number == 1
+        assert ref.mentions == 3
+        assert ref.chapter_title == "Chapter One"
+

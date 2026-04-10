@@ -114,3 +114,24 @@ class EntityWithChapterReferences(EntityResponse):
 
     class Config:
         from_attributes = True
+
+
+class ChapterReferenceResponse(BaseModel):
+    """Response for a single chapter reference."""
+
+    chapter_id: UUID
+    chapter_title: str
+    chapter_number: int
+    mention_count: int
+    context_snippet: Optional[str] = None
+    extraction_metadata: Optional[dict] = None
+
+
+class EntityChaptersResponse(BaseModel):
+    """Response for chapters where an entity appears."""
+
+    entity_id: UUID
+    entity_name: str
+    entity_type: str
+    total_mentions: int
+    chapters: list[ChapterReferenceResponse]

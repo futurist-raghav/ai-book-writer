@@ -7,19 +7,22 @@ Endpoints for managing project entities (characters, locations, concepts, etc.).
 from uuid import UUID
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_current_user, get_db
 from app.models.user import User
-from app.models.entity import Entity
+from app.models.entity import Entity, EntityReference
 from app.models.book import Book
+from app.models.chapter import Chapter
 from app.schemas.entity import (
     EntityCreateRequest,
     EntityUpdateRequest,
     EntityResponse,
     EntityListResponse,
     EntityWithChapterReferences,
+    EntityChaptersResponse,
+    ChapterReferenceResponse,
 )
 
 router = APIRouter(prefix="/api/v1/books", tags=["entities"])
@@ -238,3 +241,86 @@ async def delete_entity(
 
     await db.delete(entity)
     await db.commit()
+
+
+@router.get("/{book_id}/entities/{entity_id}/chapters", response_model=EntityChaptersResponse)
+async def get_entity_chapters(
+    book_id: UUID,
+    entity_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> EntityChaptersResponse:
+    """
+    Get all chapters where an entity appears with mention counts and context.
+    
+    Returns the entity with a list of chapters that mention it, including:
+    - Mention count (how many times mentioned in that chapter)
+    - Context snippet (text sample showing the entity)
+    - Extraction metadata (confidence, tags, etc.)
+    """
+    # Verify book ownership
+    book_query = select(Book).where(
+        Book.id == book_id,
+        Book.user_id == current_user.id,
+    )
+    result = await db.execute(book_query)
+    book = result.scalars().first()
+
+    if not book:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Book not found",
+        )
+
+    # Get entity
+    entity_query = select(Entity).where(
+        Entity.id == entity_id,
+        Entity.book_id == book_id,
+    )
+    result = await db.execute(entity_query)
+    entity = result.scalars().first()
+
+    if not entity:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Entity not found",
+        )
+
+    # Get all chapter references for this entity
+    references_query = (
+        select(
+            EntityReference,
+            Chapter.id,
+            Chapter.title,
+            Chapter.chapter_number,
+        )
+        .join(Chapter, EntityReference.chapter_id == Chapter.id)
+        .where(EntityReference.entity_id == entity_id)
+        .order_by(Chapter.chapter_number.asc())
+    )
+    result = await db.execute(references_query)
+    rows = result.all()
+
+    # Build chapter references list
+    chapters = []
+    total_mentions = 0
+    for ref, chapter_id, chapter_title, chapter_number in rows:
+        total_mentions += ref.mention_count
+        chapters.append(
+            ChapterReferenceResponse(
+                chapter_id=chapter_id,
+                chapter_title=chapter_title,
+                chapter_number=chapter_number,
+                mention_count=ref.mention_count,
+                context_snippet=ref.context_snippet,
+                extraction_metadata=ref.extraction_metadata,
+            )
+        )
+
+    return EntityChaptersResponse(
+        entity_id=entity.id,
+        entity_name=entity.name,
+        entity_type=entity.type,
+        total_mentions=total_mentions,
+        chapters=chapters,
+    )

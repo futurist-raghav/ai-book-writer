@@ -2975,7 +2975,7 @@ async def extract_chapter_entities(
 
     # Persist extracted entities to Entities table if book is linked
     if linked_book_id:
-        from app.models.entity import Entity
+        from app.models.entity import Entity, EntityReference
         
         created_entities = []
         for extracted_entity in entities:
@@ -2995,13 +2995,40 @@ async def extract_chapter_entities(
                 },
             )
             db.add(entity)
-            created_entities.append(entity)
+            created_entities.append((entity, extracted_entity))
         
         await db.flush()  # Get IDs without committing
         
+        # Create EntityReference records linking entities to this chapter
+        entity_references = []
+        for entity, extracted_entity in created_entities:
+            entity_ref = EntityReference(
+                entity_id=entity.id,
+                chapter_id=chapter.id,
+                mention_count=extracted_entity.frequency,
+                context_snippet=extracted_entity.context_snippet,
+                extraction_metadata={
+                    "first_mention_chapter_id": str(extracted_entity.first_mention_chapter_id),
+                    "first_mention_chapter_title": extracted_entity.first_mention_chapter_title,
+                    "first_mention_chapter_number": extracted_entity.first_mention_chapter_number,
+                    "references": [
+                        {
+                            "chapter_id": str(ref.chapter_id),
+                            "chapter_title": ref.chapter_title,
+                            "chapter_number": ref.chapter_number,
+                        }
+                        for ref in extracted_entity.references
+                    ] if extracted_entity.references else [],
+                },
+            )
+            db.add(entity_ref)
+            entity_references.append(entity_ref)
+        
+        await db.flush()
+        
         # Update entities with their db IDs
-        for created_entity, extracted_entity in zip(created_entities, entities):
-            extracted_entity.db_entity_id = created_entity.id
+        for (entity, extracted_entity), entity_ref in zip(created_entities, entity_references):
+            extracted_entity.db_entity_id = entity.id
 
     workspace = _ensure_workspace_settings(chapter)
     workspace["last_entity_extraction_at"] = generated_at.isoformat()
