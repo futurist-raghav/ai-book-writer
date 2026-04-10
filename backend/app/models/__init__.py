@@ -5,6 +5,7 @@ from app.models.bibliography import Bibliography, ChapterCitation  # noqa: F401
 from app.models.chapter import Chapter  # noqa: F401
 from app.models.chapter_version import ChapterVersion  # noqa: F401
 from app.models.collaboration import Activity, BookComment, Collaborator  # noqa: F401
+from app.models.custom_fields import CustomField, CustomFieldValue, CustomFieldType, CustomFieldEntity  # noqa: F401
 from app.models.entity import Entity, EntityType, EntityReference  # noqa: F401
 from app.models.event import Event  # noqa: F401
 from app.models.export import Export  # noqa: F401
@@ -26,6 +27,10 @@ __all__ = [
     "Activity",
     "BookComment",
     "Collaborator",
+    "CustomField",
+    "CustomFieldValue",
+    "CustomFieldType",
+    "CustomFieldEntity",
     "Entity",
     "EntityType",
     "EntityReference",

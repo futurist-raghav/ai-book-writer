@@ -555,6 +555,29 @@ export const apiClient = {
     reset: async (bookId: string) =>
       api.post(`/books/${bookId}/workspace-customization/reset`),
   },
+
+  // Custom Fields
+  customFields: {
+    // Custom field management
+    list: async (bookId: string, entityType?: string) =>
+      api.get(`/books/${bookId}/custom-fields`, { params: entityType ? { entity_type: entityType } : {} }),
+    get: async (bookId: string, fieldId: string) =>
+      api.get(`/books/${bookId}/custom-fields/${fieldId}`),
+    create: async (bookId: string, data: { entity_type: string; name: string; description?: string; field_type: string; required?: boolean; default_value?: any; options?: string[]; order_index?: string; is_visible_in_list?: boolean; is_filterable?: boolean; metadata?: Record<string, any> }) =>
+      api.post(`/books/${bookId}/custom-fields`, data),
+    update: async (bookId: string, fieldId: string, data: Partial<{ name: string; description: string; required: boolean; default_value: any; options: string[]; order_index: string; is_visible_in_list: boolean; is_filterable: boolean; metadata: Record<string, any> }>) =>
+      api.patch(`/books/${bookId}/custom-fields/${fieldId}`, data),
+    delete: async (bookId: string, fieldId: string) =>
+      api.delete(`/books/${bookId}/custom-fields/${fieldId}`),
+
+    // Custom field values
+    getEntityValues: async (bookId: string, entityType: string, entityId: string) =>
+      api.get(`/books/${bookId}/entities/${entityType}/${entityId}/custom-field-values`),
+    setValue: async (bookId: string, entityType: string, entityId: string, fieldId: string, value: any) =>
+      api.post(`/books/${bookId}/entities/${entityType}/${entityId}/custom-fields/${fieldId}/value`, { value }),
+    deleteValue: async (bookId: string, entityType: string, entityId: string, fieldId: string) =>
+      api.delete(`/books/${bookId}/entities/${entityType}/${entityId}/custom-fields/${fieldId}/value`),
+  },
 };
 
 // ============================================================================
