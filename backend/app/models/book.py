@@ -206,6 +206,12 @@ class Book(Base):
         cascade="all, delete-orphan",
         foreign_keys="Bibliography.book_id",
     )
+    glossary_entries: Mapped[List["GlossaryEntry"]] = relationship(
+        "GlossaryEntry",
+        back_populates="book",
+        cascade="all, delete-orphan",
+        foreign_keys="GlossaryEntry.book_id",
+    )
 
     def __repr__(self) -> str:
         return f"<Book {self.title}>"

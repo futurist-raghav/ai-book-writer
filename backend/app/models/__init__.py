@@ -10,6 +10,7 @@ from app.models.entity import Entity, EntityType, EntityReference  # noqa: F401
 from app.models.event import Event  # noqa: F401
 from app.models.export import Export  # noqa: F401
 from app.models.flow_engine import FlowEvent, FlowDependency, FlowChapterEvent, FlowEventType, FlowEventStatus, FlowDependencyType  # noqa: F401
+from app.models.glossary import GlossaryEntry  # noqa: F401
 from app.models.reference import Reference  # noqa: F401
 from app.models.transcription import Transcription  # noqa: F401
 from app.models.user import User  # noqa: F401
@@ -42,6 +43,7 @@ __all__ = [
     "FlowEventType",
     "FlowEventStatus",
     "FlowDependencyType",
+    "GlossaryEntry",
     "Reference",
     "Transcription",
     "User",
