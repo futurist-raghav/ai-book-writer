@@ -519,3 +519,33 @@ export const apiClient = {
       api.delete(`/books/${bookId}/flow-events/${eventId}/chapters/${chapterId}`),
   },
 };
+
+// ============================================================================
+// Type Exports for Flow Events
+// ============================================================================
+
+export interface FlowEvent {
+  id: string;
+  book_id: string;
+  title: string;
+  description?: string;
+  event_type: string;
+  timeline_position: number;
+  duration?: number;
+  status: 'planned' | 'in_progress' | 'completed' | 'archived';
+  order_index: number;
+  metadata?: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FlowDependency {
+  id: string;
+  book_id: string;
+  from_event_id: string;
+  to_event_id: string;
+  dependency_type?: 'sequence' | 'causality' | 'parallel' | 'optional';
+  description?: string;
+  created_at: string;
+  updated_at: string;
+}

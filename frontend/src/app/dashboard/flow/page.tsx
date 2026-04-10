@@ -5,24 +5,16 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Spinner } from '@/components/ui/spinner';
 import { QueryErrorState } from '@/components/ui/query-error-state';
-import { apiClient } from '@/lib/api-client';
-import { formatDate } from '@/lib/utils';
+import { apiClient, FlowEvent, FlowDependency } from '@/lib/api-client';
 import { useBookStore } from '@/stores/book-store';
 import { ProjectType, ProjectTypeConfigService } from '@/lib/project-types';
+import { EnhancedFlowDashboard } from '@/components/flow';
 
-interface FlowEvent {
-  id: string;
-  book_id: string;
+interface FlowEventFormData {
+  event_type: string;
   title: string;
   description?: string;
-  event_type: string;
-  timeline_position: number;
-  duration?: number;
-  status: 'planned' | 'in_progress' | 'completed' | 'archived';
-  order_index: number;
   metadata?: Record<string, any>;
-  created_at: string;
-  updated_at: string;
 }
 
 const FLOW_ITEM_TYPES = {
@@ -50,7 +42,7 @@ export default function FlowPage() {
   const queryClient = useQueryClient();
   const { selectedBook } = useBookStore();
 
-  const [viewMode, setViewMode] = useState<'timeline' | 'grid'>('timeline');
+  const [viewMode, setViewMode] = useState<'timeline' | 'grid' | 'gantt'>('timeline');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -110,6 +102,15 @@ export default function FlowPage() {
       return true;
     });
   }, [flows, selectedType, searchQuery]);
+
+  // Extract dependencies from dependencyData
+  const dependencies = useMemo(() => {
+    if (!dependencyData) return [];
+    if (Array.isArray(dependencyData)) return dependencyData;
+    if (dependencyData.data?.items) return dependencyData.data.items;
+    if (dependencyData.data) return Array.isArray(dependencyData.data) ? dependencyData.data : [];
+    return [];
+  }, [dependencyData]);
 
   // Create flow event
   const createMutation = useMutation({
@@ -207,6 +208,31 @@ export default function FlowPage() {
     setIsCreating(true);
   };
 
+  const handleUpdateFlow = async (eventId: string, data: Partial<FlowEvent>) => {
+    await updateMutation.mutateAsync({
+      id: eventId,
+      updates: data,
+    });
+  };
+
+  const handleBatchStatusChange = async (eventIds: string[], newStatus: string) => {
+    // Call API to batch update status
+    for (const id of eventIds) {
+      await updateMutation.mutateAsync({
+        id,
+        updates: { status: newStatus as FlowEvent['status'] },
+      });
+    }
+  };
+
+  const handleBatchDelete = async (eventIds: string[]) => {
+    if (confirm(`Are you sure you want to delete ${eventIds.length} event(s)?`)) {
+      for (const id of eventIds) {
+        await deleteMutation.mutateAsync(id);
+      }
+    }
+  };
+
   if (eventsLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
@@ -276,6 +302,17 @@ export default function FlowPage() {
         >
           <span className="material-symbols-outlined inline mr-2 text-sm">dashboard</span>
           Grid
+        </button>
+        <button
+          onClick={() => setViewMode('gantt')}
+          className={`px-4 py-3 font-label text-xs font-bold uppercase tracking-wider transition-colors border-b-2 ${
+            viewMode === 'gantt'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-on-surface-variant hover:text-primary'
+          }`}
+        >
+          <span className="material-symbols-outlined inline mr-2 text-sm">bar_chart</span>
+          Gantt
         </button>
       </div>
 
@@ -404,6 +441,18 @@ export default function FlowPage() {
               </div>
             ))}
         </div>
+      ) : viewMode === 'gantt' ? (
+        // Gantt View with Advanced Visualization
+        <EnhancedFlowDashboard 
+          bookId={selectedBook?.id || ''}
+          events={filteredFlows}
+          dependencies={dependencies}
+          onEventUpdate={(eventId: string, data: Partial<FlowEvent>) => handleUpdateFlow(eventId, data)}
+          onBatchStatusChange={handleBatchStatusChange}
+          onBatchDelete={handleBatchDelete}
+          isLoading={eventsLoading}
+          error={eventsError ? 'Failed to load data' : undefined}
+        />
       ) : (
         // Grid View
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
