@@ -10,12 +10,45 @@ export { DependencyGraphEditor } from './DependencyGraphEditor';
 export { FlowEventEditor } from './FlowEventEditor';
 export { FlowDashboard } from './FlowDashboard';
 
-// P2.3 Advanced Features
+// P2.3 Advanced Visualization
 export { GanttChart } from './GanttChart';
 export { FlowFilter, applyFilters } from './FlowFilter';
 export type { FlowFilterState } from './FlowFilter';
 export { BulkOperations } from './BulkOperations';
 export { FlowAnalytics } from './FlowAnalytics';
 export { EnhancedFlowDashboard } from './EnhancedFlowDashboard';
+
+// P2.3 Enhancements - Drag & Drop
+export { DraggableGanttChart } from './DraggableGanttChart';
+
+// P2.3 Enhancements - Cycle Detection
+export {
+  detectCycles,
+  wouldCreateCycle,
+  getDependentEvents,
+  buildDependencyGraph,
+  useCycleDetection,
+} from './CycleDetection';
+export type { CycleDetectionResult, DependencyGraph } from './CycleDetection';
+
+// P2.3 Enhancements - Keyboard Shortcuts
+export {
+  FLOW_SHORTCUTS,
+  useFlowKeyboardShortcuts,
+  getShortcutLabel,
+  getFormattedShortcuts,
+} from './FlowKeyboardShortcuts';
+export type { KeyboardShortcut } from './FlowKeyboardShortcuts';
+
+// P2.3 Enhancements - Export/Import
+export {
+  exportToCSV,
+  exportToJSON,
+  exportToHTML,
+  downloadCSV,
+  downloadJSON,
+  downloadHTML,
+} from './TimelineExport';
+export type { ExportOptions } from './TimelineExport';
 
 export type * from './types';

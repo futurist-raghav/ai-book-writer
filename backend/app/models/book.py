@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     from app.models.collaboration import Activity, BookComment, Collaborator
     from app.models.entity import Entity
     from app.models.export import Export
+    from app.models.bibliography import Bibliography
     from app.models.reference import Reference
     from app.models.user import User
 
@@ -198,6 +199,12 @@ class Book(Base):
         "Export",
         foreign_keys="Export.book_id",
         cascade="all, delete-orphan",
+    )
+    bibliography_entries: Mapped[List["Bibliography"]] = relationship(
+        "Bibliography",
+        back_populates="book",
+        cascade="all, delete-orphan",
+        foreign_keys="Bibliography.book_id",
     )
 
     def __repr__(self) -> str:

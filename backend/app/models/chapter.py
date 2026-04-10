@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     from app.models.collaboration import Activity
     from app.models.event import Event
     from app.models.flow_engine import FlowChapterEvent, FlowEvent
+    from app.models.bibliography import ChapterCitation
     from app.models.user import User
     from app.models.event import Event
     from app.models.user import User
@@ -150,6 +151,11 @@ class Chapter(Base):
         secondary="flow_chapter_events",
         back_populates="chapters",
         viewonly=True,
+    )
+    citations: Mapped[List["ChapterCitation"]] = relationship(
+        "ChapterCitation",
+        back_populates="chapter",
+        cascade="all, delete-orphan",
     )
 
     def __repr__(self) -> str:
