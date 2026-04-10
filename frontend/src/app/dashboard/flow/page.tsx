@@ -337,7 +337,7 @@ export default function FlowPage() {
         // Timeline View
         <div className="space-y-3">
           {filteredFlows
-            .sort((a, b) => (a.order_index || 0) - (b.order_index || 0))
+            .sort((a, b) => (a.position || 0) - (b.position || 0))
             .map((flow, index) => (
               <div
                 key={flow.id}
@@ -528,7 +528,7 @@ export default function FlowPage() {
                   onClick={() => {
                     setIsCreating(false);
                     setEditingId(null);
-                    setFormData({ type: 'milestone', title: '', description: '', tags: [] });
+                    setFormData({ event_type: 'milestone', title: '', description: '', tags: [] });
                   }}
                   className="px-4 py-2 rounded-lg border border-outline-variant/20 text-primary font-label text-xs font-bold uppercase tracking-wider hover:bg-surface-container-high transition-colors"
                 >
@@ -536,10 +536,10 @@ export default function FlowPage() {
                 </button>
                 <button
                   onClick={handleSaveFlow}
-                  disabled={saveFlows.isPending || !formData.title?.trim()}
+                  disabled={createMutation.isPending || updateMutation.isPending || !formData.title?.trim()}
                   className="px-6 py-2 rounded-lg bg-primary text-white font-label text-xs font-bold uppercase tracking-wider hover:opacity-90 disabled:opacity-50 transition-all"
                 >
-                  {saveFlows.isPending ? <Spinner className="w-3 h-3 mr-2 inline-block" /> : null}
+                  {createMutation.isPending || updateMutation.isPending ? <Spinner className="w-3 h-3 mr-2 inline-block" /> : null}
                   {editingId ? 'Update' : 'Add'} Item
                 </button>
               </div>
