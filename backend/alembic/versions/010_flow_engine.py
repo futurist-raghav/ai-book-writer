@@ -35,7 +35,7 @@ def upgrade():
         sa.Column('duration', sa.Integer, nullable=True),  # days/hours/minutes
         sa.Column('status', sa.String(50), nullable=False, server_default='planned'),  # planned, in_progress, completed, blocked
         sa.Column('order_index', sa.Integer, nullable=False, server_default='0'),
-        sa.Column('metadata', postgresql.JSONB, nullable=True, server_default='{}'),
+        sa.Column('event_metadata', postgresql.JSONB, nullable=True, server_default='{}'),
         sa.Column('created_at', sa.DateTime, nullable=False, server_default=sa.func.now()),
         sa.Column('updated_at', sa.DateTime, nullable=False, server_default=sa.func.now(), onupdate=sa.func.now()),
         sa.ForeignKeyConstraint(['book_id'], ['books.id'], ondelete='CASCADE'),
@@ -52,7 +52,7 @@ def upgrade():
         sa.Column('from_event_id', postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column('to_event_id', postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column('dependency_type', sa.String(50), nullable=False, server_default='blocks'),  # blocks, triggers, follows, required_before
-        sa.Column('metadata', postgresql.JSONB, nullable=True, server_default='{}'),
+        sa.Column('dependency_metadata', postgresql.JSONB, nullable=True, server_default='{}'),
         sa.Column('created_at', sa.DateTime, nullable=False, server_default=sa.func.now()),
         sa.ForeignKeyConstraint(['from_event_id'], ['flow_events.id'], ondelete='CASCADE'),
         sa.ForeignKeyConstraint(['to_event_id'], ['flow_events.id'], ondelete='CASCADE'),
