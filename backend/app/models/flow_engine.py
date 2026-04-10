@@ -62,7 +62,7 @@ class FlowEvent(Base):
     duration = Column(Integer, nullable=True)  # days/hours/minutes
     status = Column(String(50), nullable=False, default=FlowEventStatus.PLANNED.value)
     order_index = Column(Integer, nullable=False, default=0)
-    metadata = Column(JSONB, nullable=True, default={})
+    event_metadata = Column(JSONB, nullable=True, default={})
     created_at = Column(DateTime, nullable=False, server_default=func.now(), index=True)
     updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
 
@@ -109,7 +109,7 @@ class FlowDependency(Base):
     from_event_id = Column(PG_UUID(as_uuid=True), ForeignKey("flow_events.id", ondelete="CASCADE"), nullable=False, index=True)
     to_event_id = Column(PG_UUID(as_uuid=True), ForeignKey("flow_events.id", ondelete="CASCADE"), nullable=False, index=True)
     dependency_type = Column(String(50), nullable=False, default=FlowDependencyType.BLOCKS.value)
-    metadata = Column(JSONB, nullable=True, default={})
+    dependency_metadata = Column(JSONB, nullable=True, default={})
     created_at = Column(DateTime, nullable=False, server_default=func.now())
 
     # Relationships

@@ -11,7 +11,7 @@ from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.core.database import get_db
+from app.core.database import get_async_session
 from app.core.dependencies import get_current_user
 from app.models import Book, FlowEvent, FlowDependency, FlowChapterEvent, User, Chapter
 from app.schemas.flow_engine import (
@@ -43,10 +43,10 @@ async def list_flow_events(
     limit: int = Query(10, ge=1, le=100),
     event_type: Optional[str] = None,
     status: Optional[str] = None,
-    sort_by: str = Query("timeline_position", regex="^(timeline_position|created_at|title)$"),
-    sort_order: str = Query("asc", regex="^(asc|desc)$"),
+    sort_by: str = Query("timeline_position", pattern="^(timeline_position|created_at|title)$"),
+    sort_order: str = Query("asc", pattern="^(asc|desc)$"),
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_async_session),
 ) -> FlowEventListResponse:
     """
     Get all flow events for a book.
@@ -107,7 +107,7 @@ async def list_flow_events(
 async def get_timeline(
     book_id: UUID,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_async_session),
 ) -> FlowTimelineResponse:
     """
     Get timeline view of all events in a book.
@@ -192,7 +192,7 @@ async def get_flow_event(
     book_id: UUID,
     event_id: UUID,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_async_session),
 ) -> FlowEventDetailResponse:
     """Get a single flow event with all relationships."""
 
@@ -245,7 +245,7 @@ async def create_flow_event(
     book_id: UUID,
     request: FlowEventCreateRequest,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_async_session),
 ) -> FlowEventResponse:
     """Create a new flow event."""
 
@@ -264,7 +264,7 @@ async def create_flow_event(
         timeline_position=request.timeline_position,
         duration=request.duration,
         status=request.status,
-        metadata=request.metadata or {},
+        event_event_dependency_metadata=request.metadata or {},
     )
 
     db.add(event)
@@ -285,7 +285,7 @@ async def update_flow_event(
     event_id: UUID,
     request: FlowEventUpdateRequest,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_async_session),
 ) -> FlowEventResponse:
     """Update a flow event."""
 
@@ -324,7 +324,7 @@ async def delete_flow_event(
     book_id: UUID,
     event_id: UUID,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_async_session),
 ) -> None:
     """Delete a flow event."""
 
@@ -358,7 +358,7 @@ async def create_dependency(
     event_id: UUID,
     request: FlowDependencyCreateRequest,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_async_session),
 ) -> FlowDependencyResponse:
     """
     Create a dependency where event_id blocks/triggers/precedes to_event_id.
@@ -408,7 +408,7 @@ async def create_dependency(
         from_event_id=event_id,
         to_event_id=request.to_event_id,
         dependency_type=request.dependency_type,
-        metadata=request.metadata or {},
+        event_event_dependency_metadata=request.metadata or {},
     )
 
     db.add(dependency)
@@ -428,7 +428,7 @@ async def get_dependencies(
     book_id: UUID,
     event_id: UUID,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_async_session),
 ) -> dict:
     """Get all dependencies for an event."""
 
@@ -469,7 +469,7 @@ async def delete_dependency(
     event_id: UUID,
     to_event_id: UUID,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_async_session),
 ) -> None:
     """Delete a dependency."""
 
@@ -508,7 +508,7 @@ async def link_chapter_to_event(
     event_id: UUID,
     request: FlowChapterEventRequest,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_async_session),
 ) -> FlowChapterEventResponse:
     """Link a chapter to a flow event."""
 
@@ -569,7 +569,7 @@ async def unlink_chapter_from_event(
     event_id: UUID,
     chapter_id: UUID,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_async_session),
 ) -> None:
     """Unlink a chapter from a flow event."""
 

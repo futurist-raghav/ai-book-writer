@@ -10,19 +10,20 @@ import { formatDate } from '@/lib/utils';
 import { useBookStore } from '@/stores/book-store';
 import { ProjectType, ProjectTypeConfigService } from '@/lib/project-types';
 
-interface Flow {
+interface FlowEvent {
   id: string;
-  title?: string;
-  summary?: string;
+  book_id: string;
+  title: string;
   description?: string;
-  type?: string;
+  event_type: string;
+  status?: 'draft' | 'active' | 'archived';
+  position?: number;
+  start_date?: string;
+  end_date?: string;
   tags?: string[];
-  people?: Array<string | { name: string; relationship?: string }>;
-  location?: string;
-  is_featured: boolean;
-  order_index: number;
-  created_at?: string;
-  flow_date?: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 const FLOW_ITEM_TYPES = {
@@ -56,8 +57,8 @@ export default function FlowPage() {
   const [isCreating, setIsCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  const [formData, setFormData] = useState<Partial<Flow>>({
-    type: 'milestone',
+  const [formData, setFormData] = useState<Partial<FlowEvent>>({
+    event_type: 'milestone',
     title: '',
     description: '',
     tags: [],
@@ -69,55 +70,40 @@ export default function FlowPage() {
   const projectCategory = getProjectCategory(projectType);
   const flowTypes = FLOW_ITEM_TYPES[projectCategory] || FLOW_ITEM_TYPES.generic;
 
-  // Fetch book details (flow stored in project_settings)
+  // Fetch flow events from backend API
   const {
-    data: bookData,
-    isLoading: bookLoading,
-    isError: bookError,
-    error: bookErrorValue,
-    refetch: refetchBook,
+    data: eventsData,
+    isLoading: eventsLoading,
+    isError: eventsError,
+    error: eventsErrorValue,
+    refetch: refetchEvents,
   } = useQuery({
-    queryKey: ['book', selectedBook?.id],
-    queryFn: () => (selectedBook?.id ? apiClient.books.get(selectedBook.id) : null),
+    queryKey: ['flowEvents', selectedBook?.id],
+    queryFn: () => (selectedBook?.id ? apiClient.flowEvents.list(selectedBook.id) : null),
     enabled: !!selectedBook?.id,
   });
 
-  // Fetch events as fallback
-  const { data: eventsData } = useQuery({
-    queryKey: ['events'],
-    queryFn: () => apiClient.events.list({ limit: 100 }),
+  // Fetch timeline data for timeline view
+  const { data: timelineData } = useQuery({
+    queryKey: ['flowTimeline', selectedBook?.id],
+    queryFn: () => (selectedBook?.id ? apiClient.flowEvents.getTimeline(selectedBook.id) : null),
+    enabled: !!selectedBook?.id && viewMode === 'timeline',
   });
 
-  const flows: Flow[] = useMemo(() => {
-    try {
-      const settings = bookData?.data?.project_settings || {};
-      const stored = settings.flow_items as Flow[] | undefined;
-      if (Array.isArray(stored) && stored.length > 0) {
-        return stored;
-      }
-      // Fallback: convert events to flow items
-      const events = eventsData?.data?.items || [];
-      return events.map((e: any) => ({
-        id: e.id,
-        title: e.title,
-        description: e.content || e.summary,
-        type: e.category || 'milestone',
-        tags: e.tags || [],
-        people: e.people || [],
-        location: e.location,
-        is_featured: e.is_featured || false,
-        order_index: e.order_index || 0,
-        created_at: e.created_at,
-        flow_date: e.event_date,
-      }));
-    } catch {
-      return [];
-    }
-  }, [bookData, eventsData]);
+  // Fetch dependency graph
+  const { data: dependencyData } = useQuery({
+    queryKey: ['flowDependencies', selectedBook?.id],
+    queryFn: () => (selectedBook?.id ? apiClient.flowEvents.getDependencyGraph(selectedBook.id) : null),
+    enabled: !!selectedBook?.id,
+  });
+
+  const flows: FlowEvent[] = useMemo(() => {
+    return (eventsData?.data?.items || eventsData?.data || []) as FlowEvent[];
+  }, [eventsData]);
 
   const filteredFlows = useMemo(() => {
     return flows.filter((f) => {
-      if (selectedType && f.type !== selectedType) return false;
+      if (selectedType && f.event_type !== selectedType) return false;
       if (searchQuery) {
         const lower = searchQuery.toLowerCase();
         return f.title?.toLowerCase().includes(lower) || f.description?.toLowerCase().includes(lower);
@@ -126,25 +112,68 @@ export default function FlowPage() {
     });
   }, [flows, selectedType, searchQuery]);
 
-  const saveFlows = useMutation({
-    mutationFn: (updatedFlows: Flow[]) =>
+  // Create flow event
+  const createMutation = useMutation({
+    mutationFn: (data: Partial<FlowEvent>) =>
       selectedBook?.id
-        ? apiClient.books.update(selectedBook.id, {
-            project_settings: {
-              ...(bookData?.data?.project_settings || {}),
-              flow_items: updatedFlows,
-            },
+        ? apiClient.flowEvents.create(selectedBook.id, {
+            title: data.title || '',
+            description: data.description,
+            event_type: data.event_type || 'milestone',
+            tags: data.tags,
+            notes: data.notes,
           })
         : Promise.reject('No book selected'),
     onSuccess: () => {
-      toast.success('Flow saved');
-      queryClient.invalidateQueries({ queryKey: ['book', selectedBook?.id] });
+      toast.success('Event created');
+      queryClient.invalidateQueries({ queryKey: ['flowEvents', selectedBook?.id] });
+      queryClient.invalidateQueries({ queryKey: ['flowTimeline', selectedBook?.id] });
       setIsCreating(false);
       setEditingId(null);
-      setFormData({ type: 'milestone', title: '', description: '', tags: [] });
+      setFormData({ event_type: 'milestone', title: '', description: '', tags: [] });
     },
     onError: () => {
-      toast.error('Failed to save flow');
+      toast.error('Failed to create event');
+    },
+  });
+
+  // Update flow event
+  const updateMutation = useMutation({
+    mutationFn: (data: { id: string; updates: Partial<FlowEvent> }) =>
+      selectedBook?.id
+        ? apiClient.flowEvents.update(selectedBook.id, data.id, {
+            title: data.updates.title,
+            description: data.updates.description,
+            event_type: data.updates.event_type,
+            tags: data.updates.tags,
+            notes: data.updates.notes,
+            status: data.updates.status,
+          })
+        : Promise.reject('No book selected'),
+    onSuccess: () => {
+      toast.success('Event updated');
+      queryClient.invalidateQueries({ queryKey: ['flowEvents', selectedBook?.id] });
+      queryClient.invalidateQueries({ queryKey: ['flowTimeline', selectedBook?.id] });
+      setIsCreating(false);
+      setEditingId(null);
+      setFormData({ event_type: 'milestone', title: '', description: '', tags: [] });
+    },
+    onError: () => {
+      toast.error('Failed to update event');
+    },
+  });
+
+  // Delete flow event
+  const deleteMutation = useMutation({
+    mutationFn: (eventId: string) =>
+      selectedBook?.id ? apiClient.flowEvents.delete(selectedBook.id, eventId) : Promise.reject('No book selected'),
+    onSuccess: () => {
+      toast.success('Event deleted');
+      queryClient.invalidateQueries({ queryKey: ['flowEvents', selectedBook?.id] });
+      queryClient.invalidateQueries({ queryKey: ['flowTimeline', selectedBook?.id] });
+    },
+    onError: () => {
+      toast.error('Failed to delete event');
     },
   });
 
@@ -154,43 +183,29 @@ export default function FlowPage() {
       return;
     }
 
-    const updatedFlows = editingId
-      ? flows.map((f) => (f.id === editingId ? { ...f, ...formData } : f))
-      : [
-          ...flows,
-          {
-            ...formData,
-            id: Date.now().toString(),
-            created_at: new Date().toISOString(),
-            type: formData.type || 'milestone',
-            title: formData.title,
-            description: formData.description || '',
-            tags: formData.tags || [],
-            is_featured: false,
-            order_index: flows.length,
-          } as Flow,
-        ];
-
-    await saveFlows.mutateAsync(updatedFlows);
+    if (editingId) {
+      await updateMutation.mutateAsync({
+        id: editingId,
+        updates: formData,
+      });
+    } else {
+      await createMutation.mutateAsync(formData);
+    }
   };
 
   const handleDeleteFlow = async (id: string) => {
-    const updatedFlows = flows.filter((f) => f.id !== id);
-    await saveFlows.mutateAsync(updatedFlows);
+    if (confirm('Are you sure you want to delete this event?')) {
+      await deleteMutation.mutateAsync(id);
+    }
   };
 
-  const handleEditFlow = (flow: Flow) => {
+  const handleEditFlow = (flow: FlowEvent) => {
     setFormData(flow);
     setEditingId(flow.id);
     setIsCreating(true);
   };
 
-  const handleToggleFeatured = async (id: string, featured: boolean) => {
-    const updatedFlows = flows.map((f) => (f.id === id ? { ...f, is_featured: !featured } : f));
-    await saveFlows.mutateAsync(updatedFlows);
-  };
-
-  if (bookLoading) {
+  if (eventsLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
         <Spinner className="w-8 h-8 text-primary" />
@@ -198,13 +213,13 @@ export default function FlowPage() {
     );
   }
 
-  if (bookError) {
+  if (eventsError) {
     return (
       <div className="max-w-6xl mx-auto pt-8 pb-24">
         <QueryErrorState
           title="Unable to load flow data"
-          error={bookErrorValue}
-          onRetry={() => void refetchBook()}
+          error={eventsErrorValue}
+          onRetry={() => void refetchEvents()}
         />
       </div>
     );
@@ -225,7 +240,7 @@ export default function FlowPage() {
         </div>
         <button
           onClick={() => {
-            setFormData({ type: flowTypes[0] || 'milestone', title: '', description: '', tags: [] });
+            setFormData({ event_type: flowTypes[0] || 'milestone', title: '', description: '', tags: [] });
             setEditingId(null);
             setIsCreating(true);
           }}
@@ -309,7 +324,7 @@ export default function FlowPage() {
           </p>
           <button
             onClick={() => {
-              setFormData({ type: flowTypes[0] || 'milestone', title: '', description: '', tags: [] });
+              setFormData({ event_type: flowTypes[0] || 'milestone', title: '', description: '', tags: [] });
               setEditingId(null);
               setIsCreating(true);
             }}
@@ -341,22 +356,15 @@ export default function FlowPage() {
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <h3 className="text-lg font-body font-semibold text-primary mb-1">{flow.title}</h3>
-                      {flow.type && (
+                      {flow.event_type && (
                         <span className="inline-block px-2 py-1 rounded-full bg-secondary/10 text-secondary text-[9px] font-bold uppercase tracking-tighter mb-2">
-                          {flow.type.replace('-', ' ')}
+                          {flow.event_type.replace('-', ' ')}
                         </span>
                       )}
                       {flow.description && (
                         <p className="text-sm text-on-surface-variant line-clamp-3">{flow.description}</p>
                       )}
                     </div>
-                    <button
-                      onClick={() => handleToggleFeatured(flow.id, flow.is_featured)}
-                      className={`flex-shrink-0 transition-all ${flow.is_featured ? 'text-secondary' : 'text-on-surface-variant/40'}`}
-                      title={flow.is_featured ? 'Unstar' : 'Star'}
-                    >
-                      <span className="material-symbols-outlined">star</span>
-                    </button>
                   </div>
 
                   {/* Tags */}
@@ -406,16 +414,10 @@ export default function FlowPage() {
               <div className="bg-surface-container-lowest p-4 border-b border-outline-variant/10">
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <h3 className="text-lg font-body font-semibold text-primary line-clamp-2 flex-1">{flow.title}</h3>
-                  <button
-                    onClick={() => handleToggleFeatured(flow.id, flow.is_featured)}
-                    className={`transition-all ${flow.is_featured ? 'text-secondary' : 'text-on-surface-variant/40'}`}
-                  >
-                    <span className="material-symbols-outlined">star</span>
-                  </button>
                 </div>
-                {flow.type && (
+                {flow.event_type && (
                   <span className="inline-block px-2 py-1 rounded-full bg-secondary/10 text-secondary text-[9px] font-bold uppercase tracking-tighter">
-                    {flow.type.replace('-', ' ')}
+                    {flow.event_type.replace('-', ' ')}
                   </span>
                 )}
               </div>
@@ -469,7 +471,7 @@ export default function FlowPage() {
                 onClick={() => {
                   setIsCreating(false);
                   setEditingId(null);
-                  setFormData({ type: 'milestone', title: '', description: '', tags: [] });
+                  setFormData({ event_type: 'milestone', title: '', description: '', tags: [] });
                 }}
                 className="text-on-surface-variant hover:text-primary transition-colors"
               >
@@ -483,8 +485,8 @@ export default function FlowPage() {
                   Item Type
                 </label>
                 <select
-                  value={formData.type || flowTypes[0] || 'milestone'}
-                  onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                  value={formData.event_type || flowTypes[0] || 'milestone'}
+                  onChange={(e) => setFormData({ ...formData, event_type: e.target.value })}
                   className="w-full bg-surface-container-low border border-outline-variant/20 rounded-lg px-4 py-3 text-sm font-body focus:border-secondary transition-colors"
                 >
                   {flowTypes.map((type) => (
