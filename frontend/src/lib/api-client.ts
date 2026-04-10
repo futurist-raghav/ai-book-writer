@@ -373,6 +373,12 @@ export const apiClient = {
       api.post(`/books/${bookId}/export`, { format, ...(options || {}) }),
   },
 
+  // Entities
+  entities: {
+    getChapters: async (bookId: string, entityId: string) =>
+      api.get(`/books/${bookId}/entities/${entityId}/chapters`),
+  },
+
   // Collaboration
   collaboration: {
     members: async (params?: { page?: number; limit?: number }) =>

@@ -2,11 +2,13 @@
 
 import { useState, useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { apiClient } from '@/lib/api-client';
 import { Spinner } from '@/components/ui/spinner';
 import { QueryErrorState } from '@/components/ui/query-error-state';
 import { EntityRelationshipMap } from '@/components/entity-relationship-map';
+import { EntityCrossReferences } from '@/components/entity-cross-references';
 import { useBookStore } from '@/stores/book-store';
 import { ProjectType, ProjectTypeConfigService } from '@/lib/project-types';
 
@@ -189,6 +191,7 @@ function getEntityTypeStyle(type: string) {
 }
 
 export default function EntitiesPage() {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const { selectedBook } = useBookStore();
 
@@ -457,6 +460,12 @@ export default function EntitiesPage() {
     setFormData(entity);
     setEditingId(entity.id);
     setShowForm(true);
+  };
+
+  const handleNavigateToChapter = (chapterId: string, chapterTitle: string) => {
+    if (selectedBook?.id) {
+      router.push(`/dashboard/chapters/${chapterId}/workspace`);
+    }
   };
 
   const handlePromoteDiscoveredEntity = async (discoveredEntity: DiscoveredEntity) => {
@@ -861,6 +870,19 @@ export default function EntitiesPage() {
                               </span>
                             ))}
                           </div>
+                        </div>
+                      )}
+
+                      {/* Cross-References */}
+                      {selectedBook?.id && (
+                        <div className="pt-2 border-t border-outline-variant/10">
+                          <p className="font-label text-[10px] font-bold uppercase tracking-wide text-on-surface-variant mb-2">References</p>
+                          <EntityCrossReferences
+                            bookId={selectedBook.id}
+                            entityId={entity.id}
+                            entityName={entity.name}
+                            onNavigateToChapter={handleNavigateToChapter}
+                          />
                         </div>
                       )}
                     </div>
