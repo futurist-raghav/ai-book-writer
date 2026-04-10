@@ -4,7 +4,65 @@ This top section is the source of truth for immediate execution. Historical deep
 
 ## Just Completed
 
-- ✅ **P2.3 Phase 2: Flow Page Integration with Gantt View** (100% COMPLETE)
+- ✅ **P2.4 Phase 1: Reference & Citation Backend** (INITIAL - 40% COMPLETE)
+  - Migration 011 creates bibliography and chapter_citations tables
+  - Bibliography ORM models with relationships to Book and ChapterCitation
+  - ChapterCitation model for chapter-to-source linking
+  - 9 bibliography API endpoints (CRUD + chapter citations + export)
+  - Citation formatting utilities (APA, MLA, Chicago, IEEE)
+  - Bibliography router integrated into API v1
+  - Frontend API client methods (8 methods for bibliography operations)
+  - Bibliography Manager React component with add/delete/search
+
+- ✅ **P2.3 Advanced Flow Visualization** (100% COMPLETE)
+  - Flow page integration with Gantt view
+  - Batch operation handlers and dependencies
+  - Three-view interface: Timeline, Grid, Gantt
+  - Enhanced dashboard component
+
+## Immediate Next Work
+
+### **P2.4 Reference & Citation Module** (🚧 40% COMPLETE - PHASE 1 DONE)
+
+**Completed Components:**
+
+✅ **Backend Database & API (13 files, 1,794 insertions)**
+- Migration 011: bibliography + chapter_citations tables
+- ORM models: Bibliography, ChapterCitation with relationships
+- 9 RESTful endpoints:
+  - POST `/books/{id}/bibliography` (create entry)
+  - GET `/books/{id}/bibliography` (list with pagination)
+  - GET/PATCH/DELETE for individual entries
+  - POST `/chapters/{id}/citations` (add citation)
+  - GET `/chapters/{id}/citations` (list chapter citations)
+  - DELETE `/chapters/{id}/citations/{id}` (remove citation)
+  - GET `/books/{id}/bibliography-formatted` (for export)
+- Citation formatting: APA, MLA, Chicago, IEEE styles
+- Book & Chapter models updated with bibliography relationships
+
+✅ **Frontend API Integration (58 insertions)**
+- 8 methods in `apiClient.bibliography`
+- Bibliography and ChapterCitation TypeScript interfaces
+- Ready for component integration
+
+✅ **Bibliography Manager Component (210 lines)**
+- Sidebar panel for book sources
+- Add/delete bibliography entries
+- Search and filter bibliography
+- Select citation for insertion
+
+**Still TODO (Next Steps):**
+
+- [ ] Citation insertion tool in TipTap editor (insert formatted citation at cursor)
+- [ ] Chapter view: Display citation footnotes at end of text
+- [ ] Export integration: Include bibliography section in chapter export
+- [ ] Wire Bibliography Manager to chapter editor sidebar
+- [ ] Test E2E: Add source → Insert citation → Export chapter with bibliography
+- [ ] UI: Format citation dropdown (APA/MLA/Chicago/IEEE selector)
+
+**Status:** Phase 1 (Backend + Manager UI) DONE. Phase 2 (Editor integration) READY TO START
+
+---
   - Added EnhancedFlowDashboard integration to Flow page
   - Implemented batch operation handlers (statusChange, delete, update)
   - Added dependency data fetching and extraction
