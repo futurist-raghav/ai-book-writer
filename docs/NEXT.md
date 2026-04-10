@@ -4,45 +4,36 @@ This top section is the source of truth for immediate execution. Historical deep
 
 ## Just Completed
 
-- ✅ P2.1 Database architecture: Unified entity model migration (008_unified_entity_model.py)
-- ✅ Entity ORM model with type enum (character, location, concept, faction, item, theme, custom)
-- ✅ Full CRUD API endpoints for entities (/api/v1/books/{book_id}/entities/*)
-- ✅ Pydantic schemas for entity request/response handling
-- ✅ Router integration + Book model relationship setup
-- ✅ Auto-migration of existing project_settings entity data to Entities table
-- ✅ P2.1 Continuation: Entity Extraction Integration (comprehensive test suite: 9/9 passing)
-  - Extract-entities endpoint now creates Entity records in DB
-  - Type mapping: character→character, location→location, object→item, unknown→concept
-  - Fixed SQLAlchemy reserved 'metadata' attribute conflicts (Entity, Reference models)
-  - ExtractedEntity schema extended with optional db_entity_id field
+- ✅ P2.1 Part 4: Frontend Entity Cross-Reference Integration (complete)
+  - EntityCrossReferences component integrated into entity cards
+  - Shows chapters where entity appears with mention counts and context snippets
+  - Click-to-navigate functionality to chapter workspace operational
+  - Full backend-to-frontend pipeline now live and tested
 
 ## Immediate Next Work (Ordered by Priority)
 
-1. **P2.1 Continuation: Chapter References for Entities** (2-3 hours)
-   - Create entity_references table linking chapters to entities
-   - Update extraction to record which chapter mentions which entity
-   - Implement GET /books/{book_id}/entities/{entity_id}/chapters for cross-reference queries
-   - Update EntityWithChapterReferences schema to populate real chapter data
+**CRITICAL PRIORITY ORDERING:**
 
-2. **P1.9 Manual Offline Verification** (30 min) - **FINAL Phase 1 blocker**
-   - Verify cached chapter viewing while offline
-   - Verify queued chapter edits replay correctly when reconnecting
-   - Document outcomes in MANUAL_TESTING_GUIDE.md
+### 1. ⏰ **P1.9 Manual Offline Verification** (30 min) - **PHASE 1 FINAL BLOCKER** (DO THIS NEXT)
+- Verify cached chapter viewing while offline
+- Verify queued chapter edits replay correctly when reconnecting
+- Document outcomes in MANUAL_TESTING_GUIDE.md
+**Impact:** Unlock Phase 1 production launch
 
-3. **P2.2 Flow Engine: Timeline & Dependencies** (4-5 hours)
-   - Define Events/Flow table with timeline position, dependency chains
-   - Chapter-to-Event linking constraints
-   - Timeline query contract for frontend rendering
-   - Initial event list API + timeline Gantt contract
+### 2. ⏰ **P2.2 Flow Engine: Timeline & Dependencies** (4-5 hours) - Next Major Feature
+- Define Events/Flow table with timeline position, dependency chains
+- Chapter-to-Event linking constraints
+- Timeline query contract for frontend rendering
+- Initial event list API + timeline Gantt contract
 
-4. **P3.5 Rewrite-with-Diff UX** (3-4 hours)
-   - AI suggestions show before/after diff (not silent overwrites)
-   - User accepts/rejects individual suggestions
-   - Multiple suggestion variants (Formal, Casual, Shorter, etc.)
+### 3. ⏰ **P3.5 Rewrite-with-Diff UX** (3-4 hours) - AI Enhancement
+- AI suggestions show before/after diff (not silent overwrites)
+- User accepts/rejects individual suggestions
+- Multiple suggestion options (Formal, Casual, Shorter, etc.)
 
 ## Execution Rule
-
 - Keep shipping vertical slices with tests and doc deltas in the same session.
+- **NEXT SESSION FOCUS:** P1.9 offline verification → Phase 1 LAUNCH
 
 ---
 
