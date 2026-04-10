@@ -12,6 +12,7 @@ from app.models.flow_engine import FlowEvent, FlowDependency, FlowChapterEvent, 
 from app.models.reference import Reference  # noqa: F401
 from app.models.transcription import Transcription  # noqa: F401
 from app.models.user import User  # noqa: F401
+from app.models.workspace_customization import WorkspaceCustomization  # noqa: F401
 
 __all__ = [
     "AudioFile",
@@ -39,5 +40,6 @@ __all__ = [
     "Reference",
     "Transcription",
     "User",
+    "WorkspaceCustomization",
 ]
 

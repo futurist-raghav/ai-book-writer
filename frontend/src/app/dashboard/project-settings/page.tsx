@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { apiClient } from '@/lib/api-client';
 import { useBookStore } from '@/stores/book-store';
+import { WorkspaceCustomizationPanel } from '@/components/workspace-customization/WorkspaceCustomizationPanel';
 
 interface ProjectFormState {
   title: string;
@@ -573,6 +574,11 @@ export default function ProjectSettingsPage() {
             )}
           </div>
         </section>
+      </div>
+
+      {/* Workspace Customization Section */}
+      <div className="mt-8">
+        <WorkspaceCustomizationPanel bookId={project.id} />
       </div>
     </div>
   );

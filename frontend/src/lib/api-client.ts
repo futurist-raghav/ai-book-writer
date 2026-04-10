@@ -545,6 +545,16 @@ export const apiClient = {
     getFormattedBibliography: async (bookId: string) =>
       api.get(`/books/${bookId}/bibliography-formatted`),
   },
+
+  // Workspace Customization
+  workspaceCustomization: {
+    get: async (bookId: string) =>
+      api.get(`/books/${bookId}/workspace-customization`),
+    update: async (bookId: string, data: { terminology?: Record<string, string>; layout_preferences?: Record<string, any> }) =>
+      api.patch(`/books/${bookId}/workspace-customization`, data),
+    reset: async (bookId: string) =>
+      api.post(`/books/${bookId}/workspace-customization/reset`),
+  },
 };
 
 // ============================================================================

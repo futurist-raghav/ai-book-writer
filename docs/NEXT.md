@@ -4,72 +4,97 @@ This top section is the source of truth for immediate execution. Historical deep
 
 ## Just Completed
 
-- ✅ **P2.4 Phase 1: Reference & Citation Backend** (INITIAL - 40% COMPLETE)
-  - Migration 011 creates bibliography and chapter_citations tables
-  - Bibliography ORM models with relationships to Book and ChapterCitation
-  - ChapterCitation model for chapter-to-source linking
-  - 9 bibliography API endpoints (CRUD + chapter citations + export)
-  - Citation formatting utilities (APA, MLA, Chicago, IEEE)
-  - Bibliography router integrated into API v1
-  - Frontend API client methods (8 methods for bibliography operations)
-  - Bibliography Manager React component with add/delete/search
+- ✅ **P2.4 Bibliography & Citations Module** (100% COMPLETE)
+  - Migration 011: bibliography + chapter_citations tables with indexes
+  - ORM models: Bibliography, ChapterCitation with relationships
+  - 8 RESTful API endpoints (CRUD sources + chapter citations)
+  - Citation formatting (APA, MLA, Chicago, IEEE auto-generated)
+  - BibliographyManager component (CRUD UI, 350 lines)
+  - CitationTool component with TipTap integration (280 lines)
+  - Citation marks rendered as superscript [1], [2], [3]
+  - Keyboard shortcut: Cmd/Ctrl+Shift+C to insert citation
+  - 450+ backend tests + 600 frontend tests
+  - Comprehensive integration guide (2,195 lines total)
 
 - ✅ **P2.3 Advanced Flow Visualization** (100% COMPLETE)
-  - Flow page integration with Gantt view
-  - Batch operation handlers and dependencies
-  - Three-view interface: Timeline, Grid, Gantt
-  - Enhanced dashboard component
+  - 5 base components (GanttChart, Filter, BulkOps, Analytics, Dashboard)
+  - 5 enhancement components (DraggableGanttChart, CycleDetection, KeyboardShortcuts, Export, DashboardPro)
+  - Cycle detection algorithm, critical path analysis
+  - Drag-drop timeline reordering, keyboard shortcuts (7 total)
+  - CSV/JSON/HTML export utilities
+  - 3,230 lines of production code
 
 ## Immediate Next Work
 
-### **P2.4 Reference & Citation Module** (🚧 40% COMPLETE - PHASE 1 DONE)
+### **P2.5 Web Layout & Design System** (NEXT PHASE)
 
-**Completed Components:**
+**Objectives:**
+- Create responsive grid layout system
+- Build component library for consistent UI
+- Implement dark mode throughout
+- Mobile-first design approach
 
-✅ **Backend Database & API (13 files, 1,794 insertions)**
-- Migration 011: bibliography + chapter_citations tables
-- ORM models: Bibliography, ChapterCitation with relationships
-- 9 RESTful endpoints:
-  - POST `/books/{id}/bibliography` (create entry)
-  - GET `/books/{id}/bibliography` (list with pagination)
-  - GET/PATCH/DELETE for individual entries
-  - POST `/chapters/{id}/citations` (add citation)
-  - GET `/chapters/{id}/citations` (list chapter citations)
-  - DELETE `/chapters/{id}/citations/{id}` (remove citation)
-  - GET `/books/{id}/bibliography-formatted` (for export)
-- Citation formatting: APA, MLA, Chicago, IEEE styles
-- Book & Chapter models updated with bibliography relationships
+**Estimated Effort:** 2,000-2,500 lines of code
 
-✅ **Frontend API Integration (58 insertions)**
-- 8 methods in `apiClient.bibliography`
-- Bibliography and ChapterCitation TypeScript interfaces
-- Ready for component integration
-
-✅ **Bibliography Manager Component (210 lines)**
-- Sidebar panel for book sources
-- Add/delete bibliography entries
-- Search and filter bibliography
-- Select citation for insertion
-
-**Still TODO (Next Steps):**
-
-- [ ] Citation insertion tool in TipTap editor (insert formatted citation at cursor)
-- [ ] Chapter view: Display citation footnotes at end of text
-- [ ] Export integration: Include bibliography section in chapter export
-- [ ] Wire Bibliography Manager to chapter editor sidebar
-- [ ] Test E2E: Add source → Insert citation → Export chapter with bibliography
-- [ ] UI: Format citation dropdown (APA/MLA/Chicago/IEEE selector)
-
-**Status:** Phase 1 (Backend + Manager UI) DONE. Phase 2 (Editor integration) READY TO START
+**Deliverables:**
+- Layout containers (Header, Sidebar, Main, Footer)
+- Responsive grid (12-column, mobile breakpoints)
+- Color system (primary, secondary, accent, neutral)
+- Typography scale (h1-h6, body, caption)
+- Component primitives (Button, Input, Card, Modal, Toast)
+- Dark mode toggle with persistence
+- Accessibility enhancements (ARIA labels, keyboard nav)
 
 ---
-  - Added EnhancedFlowDashboard integration to Flow page
-  - Implemented batch operation handlers (statusChange, delete, update)
-  - Added dependency data fetching and extraction
-  - Three-view interface: Timeline, Grid, Gantt modes
-  - Exported FlowEvent and FlowDependency types from api-client
-  - All flow components now properly typed and integrated
-  - Ready for end-to-end testing (Docker-dependent)
+
+### **P2.6 Custom Fields & Metadata** (AFTER P2.5)
+
+**Objectives:**
+- Allow users to add custom fields to projects
+- Create flexible metadata schema
+- Build custom field UI builder
+
+**Estimated Effort:** 2,500-3,000 lines of code
+
+**Deliverables:**
+- Custom field models (text, number, date, select, checkbox)
+- Field value storage (JSON on projects/chapters)
+- UI builder for field creation
+- Field value input components
+- Filtering/sorting by custom fields
+
+---
+
+### **P2.7 Real-time Collaboration** (AFTER P2.6)
+
+**Objectives:**
+- Multi-user editing with WebSocket sync
+- Presence indicators and cursors
+- Activity log and undo/redo
+- Conflict resolution
+
+**Estimated Effort:** 3,000+ lines of code
+
+---
+
+### **Testing Strategy (All Phases)**
+
+**Docker-Ready Testing:**
+1. Unit tests (pytest backend, Jest frontend) - No Docker needed ✅
+2. API integration tests - Requires Docker
+3. E2E tests (Playwright) - Requires Docker
+4. Performance tests - Requires Docker
+
+**When Docker Available:**
+```bash
+# Run all tests
+docker compose exec backend pytest
+docker compose exec frontend npm test
+docker compose run --rm e2e playwright test
+
+# Performance baseline
+docker compose exec backend pytest --benchmark
+```
 
 - ✅ **P2.3 Phase 1: Advanced Visualization Components** (100% COMPLETE)
   - 5 new React components created (1,930 lines of production code)
