@@ -17,6 +17,8 @@ export type { FlowFilterState } from './FlowFilter';
 export { BulkOperations } from './BulkOperations';
 export { FlowAnalytics } from './FlowAnalytics';
 export { EnhancedFlowDashboard } from './EnhancedFlowDashboard';
+export { EnhancedFlowDashboardPro } from './EnhancedFlowDashboardPro';
+export type { EnhancedFlowDashboardProProps } from './EnhancedFlowDashboardPro';
 
 // P2.3 Enhancements - Drag & Drop
 export { DraggableGanttChart } from './DraggableGanttChart';
