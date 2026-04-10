@@ -518,6 +518,33 @@ export const apiClient = {
     unlinkChapter: async (bookId: string, eventId: string, chapterId: string) =>
       api.delete(`/books/${bookId}/flow-events/${eventId}/chapters/${chapterId}`),
   },
+
+  // Bibliography & Citations (P2.4)
+  bibliography: {
+    // Bibliography CRUD
+    list: async (bookId: string, page = 1, pageSize = 50) =>
+      api.get(`/books/${bookId}/bibliography`, { params: { page, page_size: pageSize } }),
+    get: async (bookId: string, bibliographyId: string) =>
+      api.get(`/books/${bookId}/bibliography/${bibliographyId}`),
+    create: async (bookId: string, data: { title: string; authors?: string[]; year?: number; source_type?: string; source_url?: string; notes?: string }) =>
+      api.post(`/books/${bookId}/bibliography`, data),
+    update: async (bookId: string, bibliographyId: string, data: Partial<{ title: string; authors: string[]; year: number; source_type: string; source_url: string; notes: string }>) =>
+      api.patch(`/books/${bookId}/bibliography/${bibliographyId}`, data),
+    delete: async (bookId: string, bibliographyId: string) =>
+      api.delete(`/books/${bookId}/bibliography/${bibliographyId}`),
+
+    // Chapter Citations
+    listChapterCitations: async (chapterId: string) =>
+      api.get(`/chapters/${chapterId}/citations`),
+    addCitation: async (chapterId: string, data: { bibliography_id: string; page_number?: string; context_offset?: number; context_snippet?: string; citation_format?: string }) =>
+      api.post(`/chapters/${chapterId}/citations`, data),
+    removeCitation: async (chapterId: string, citationId: string) =>
+      api.delete(`/chapters/${chapterId}/citations/${citationId}`),
+
+    // Export
+    getFormattedBibliography: async (bookId: string) =>
+      api.get(`/books/${bookId}/bibliography-formatted`),
+  },
 };
 
 // ============================================================================
@@ -546,6 +573,37 @@ export interface FlowDependency {
   to_event_id: string;
   dependency_type?: 'sequence' | 'causality' | 'parallel' | 'optional';
   description?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// ============================================================================
+// Type Exports for Bibliography & Citations
+// ============================================================================
+
+export interface Bibliography {
+  id: string;
+  book_id: string;
+  title: string;
+  authors?: string[];
+  year?: number;
+  source_type?: string;
+  source_url?: string;
+  citation_formats?: Record<string, string>;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ChapterCitation {
+  id: string;
+  chapter_id: string;
+  bibliography_id: string;
+  page_number?: string;
+  context_offset?: number;
+  context_snippet?: string;
+  citation_format: string;
+  bibliography?: Bibliography;
   created_at: string;
   updated_at: string;
 }
