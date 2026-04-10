@@ -14,6 +14,7 @@ import { apiClient } from '@/lib/api-client';
 import { useBookStore } from '@/stores/book-store';
 import { WorkspaceCustomizationPanel } from '@/components/workspace-customization/WorkspaceCustomizationPanel';
 import { CustomFieldManager } from '@/components/custom-fields';
+import { ImportManager } from '@/components/import/ImportManager';
 
 interface ProjectFormState {
   title: string;
@@ -585,6 +586,19 @@ export default function ProjectSettingsPage() {
       {/* Custom Fields Section */}
       <div className="mt-8">
         <CustomFieldManager bookId={project.id} />
+      </div>
+
+      {/* Import/Export Section */}
+      <div className="mt-8">
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <h2 className="text-xl font-bold mb-4">Import Manuscript</h2>
+          <p className="text-gray-600 mb-6">
+            Import chapters from DOCX, Markdown, Fountain, or text files into your project.
+          </p>
+          <ImportManager onImportComplete={() => {
+            refetchBooks();
+          }} />
+        </div>
       </div>
     </div>
   );
