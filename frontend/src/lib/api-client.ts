@@ -447,4 +447,75 @@ export const apiClient = {
       api.put(`/references/${id}`, data),
     delete: async (id: string) => api.delete(`/references/${id}`),
   },
+
+  // Flow Events  
+  flowEvents: {
+    // CRUD Operations
+    list: async (
+      bookId: string,
+      params?: { page?: number; limit?: number; event_type?: string; status?: string }
+    ) => api.get(`/books/${bookId}/flow-events`, { params }),
+    get: async (bookId: string, eventId: string) =>
+      api.get(`/books/${bookId}/flow-events/${eventId}`),
+    create: async (
+      bookId: string,
+      data: {
+        title: string;
+        description?: string;
+        event_type?: string;
+        timeline_position?: number;
+        duration?: number;
+        status?: string;
+        metadata?: Record<string, unknown>;
+      }
+    ) => api.post(`/books/${bookId}/flow-events`, data),
+    update: async (
+      bookId: string,
+      eventId: string,
+      data: Partial<{
+        title?: string;
+        description?: string;
+        event_type?: string;
+        timeline_position?: number;
+        duration?: number;
+        status?: string;
+        metadata?: Record<string, unknown>;
+      }>
+    ) => api.patch(`/books/${bookId}/flow-events/${eventId}`, data),
+    delete: async (bookId: string, eventId: string) =>
+      api.delete(`/books/${bookId}/flow-events/${eventId}`),
+
+    // Dependencies
+    addDependency: async (
+      bookId: string,
+      eventId: string,
+      data: {
+        to_event_id: string;
+        dependency_type: 'blocks' | 'triggers' | 'follows' | 'required_before';
+        metadata?: Record<string, unknown>;
+      }
+    ) => api.post(`/books/${bookId}/flow-events/${eventId}/dependencies`, data),
+    getDependencies: async (bookId: string, eventId: string) =>
+      api.get(`/books/${bookId}/flow-events/${eventId}/dependencies`),
+    removeDependency: async (bookId: string, eventId: string, targetEventId: string) =>
+      api.delete(`/books/${bookId}/flow-events/${eventId}/dependencies/${targetEventId}`),
+
+    // Timeline & Queries
+    getTimeline: async (bookId: string) =>
+      api.get(`/books/${bookId}/timeline`),
+    getDependencyGraph: async (bookId: string) =>
+      api.get(`/books/${bookId}/dependencies`),
+
+    // Chapter Associations
+    linkChapter: async (
+      bookId: string,
+      eventId: string,
+      data: {
+        chapter_id: string;
+        order_index?: number;
+      }
+    ) => api.post(`/books/${bookId}/flow-events/${eventId}/chapters`, data),
+    unlinkChapter: async (bookId: string, eventId: string, chapterId: string) =>
+      api.delete(`/books/${bookId}/flow-events/${eventId}/chapters/${chapterId}`),
+  },
 };
