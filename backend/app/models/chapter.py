@@ -18,6 +18,10 @@ from app.core.database import Base
 if TYPE_CHECKING:
     from app.models.book import Book, BookChapter
     from app.models.chapter_version import ChapterVersion
+    from app.models.collaboration import Activity
+    from app.models.event import Event
+    from app.models.flow_engine import FlowChapterEvent, FlowEvent
+    from app.models.user import User
     from app.models.event import Event
     from app.models.user import User
 
@@ -124,6 +128,12 @@ class Chapter(Base):
         cascade="all, delete-orphan",
         order_by="ChapterEvent.order_index",
     )
+    flow_chapter_event_associations: Mapped[List["FlowChapterEvent"]] = relationship(
+        "FlowChapterEvent",
+        back_populates="chapter",
+        cascade="all, delete-orphan",
+        order_by="FlowChapterEvent.order_index",
+    )
     book_associations: Mapped[List["BookChapter"]] = relationship(
         "BookChapter",
         back_populates="chapter",
@@ -134,6 +144,12 @@ class Chapter(Base):
         back_populates="chapter",
         cascade="all, delete-orphan",
         order_by="ChapterVersion.created_at.desc()",
+    )
+    flow_events: Mapped[List["FlowEvent"]] = relationship(
+        "FlowEvent",
+        secondary="flow_chapter_events",
+        back_populates="chapters",
+        viewonly=True,
     )
 
     def __repr__(self) -> str:
