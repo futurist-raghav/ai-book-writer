@@ -513,15 +513,24 @@
 - [ ] Accessibility enhancements (ARIA, keyboard nav)
 - [ ] Create design tokens documentation
 
-### P2.6 Custom Fields & Metadata
+### P2.6 Custom Fields & Metadata (IN PROGRESS)
 
-- [ ] Project settings: Add custom metadata fields
-- [ ] Field types: text, number, date, select, multiselect
-- [ ] Custom fields appear on chapters, characters, entities
-- [ ] Viewable in list/table view
-- [ ] Filterable by custom field values
+#### P2.6.1 Backend & API (COMPLETE) ✅
+- [X] CustomField model with 7 field types (text, number, date, select, multiselect, checkbox, rich_text)
+- [X] CustomFieldValue model for entity values
+- [X] Migration 012 (custom_fields, custom_field_values tables)
+- [X] 8 REST API endpoints (list, get, create, update, delete, setValue, deleteValue, getEntityValues)
+- [X] Full Pydantic schemas with validation
+- [X] Frontend API client customFields module
+  **Status:** 100% COMPLETE | Ready for UI implementation
 
-**Estimated Effort:** 2,500-3,000 lines of code
+#### P2.6.2 Frontend UI Components (NEXT)
+- [ ] CustomFieldManager component (CRUD fields)
+- [ ] CustomFieldBuilder component (field creator wizard)
+- [ ] CustomFieldValueInput component (type-specific inputs)
+- [ ] Integration with project-settings page
+- [ ] Integration with chapter/character/entity pages
+- [ ] Filtering/sorting by custom fields in lists
 
 ### P2.7 Workspace Rename & Customization
 
