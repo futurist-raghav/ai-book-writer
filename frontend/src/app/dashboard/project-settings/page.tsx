@@ -15,6 +15,7 @@ import { useBookStore } from '@/stores/book-store';
 import { WorkspaceCustomizationPanel } from '@/components/workspace-customization/WorkspaceCustomizationPanel';
 import { CustomFieldManager } from '@/components/custom-fields';
 import { ImportManager } from '@/components/import/ImportManager';
+import { ExportManager } from '@/components/export/ExportManager';
 
 interface ProjectFormState {
   title: string;
@@ -599,6 +600,11 @@ export default function ProjectSettingsPage() {
             refetchBooks();
           }} />
         </div>
+      </div>
+
+      {/* Export/Download Section */}
+      <div className="mt-8">
+        <ExportManager />
       </div>
     </div>
   );

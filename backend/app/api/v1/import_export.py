@@ -28,6 +28,12 @@ from app.services.import_parsers import (
     DOCXParser,
     PlainTextParser,
 )
+from app.services.export_generators import (
+    MarkdownExporter,
+    TextExporter,
+    DOCXExporter,
+)
+from fastapi.responses import FileResponse, StreamingResponse
 
 router = APIRouter(prefix="/books/{book_id}/import", tags=["import_export"])
 
@@ -428,3 +434,186 @@ async def delete_import_source(
             pass
     
     return {"status": "deleted"}
+
+
+# ============================================================================
+# EXPORT ENDPOINTS (P2.7 Phase 2)
+# ============================================================================
+
+@router.post("/books/{book_id}/export/markdown")
+async def export_to_markdown(
+    book_id: int,
+    include_metadata: bool = True,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Export book to Markdown format"""
+    
+    # Verify book access
+    book = db.query(Book).filter(
+        Book.id == book_id,
+        Book.author_id == current_user.id,
+    ).first()
+    if not book:
+        raise HTTPException(status_code=404, detail="Book not found")
+    
+    # Get all chapters
+    chapters = db.query(Chapter).filter(
+        Chapter.book_id == book_id,
+    ).order_by(Chapter.chapter_number).all()
+    
+    if not chapters:
+        raise HTTPException(status_code=400, detail="No chapters to export")
+    
+    # Prepare book data
+    book_data = {
+        'id': str(book.id),
+        'title': book.title,
+        'description': book.description,
+        'authors': [book.author.full_name] if book.author else [],
+        'status': book.status,
+    }
+    
+    # Prepare chapters data
+    chapters_data = [
+        {
+            'title': ch.title,
+            'content': ch.content or '',
+            'chapter_number': ch.chapter_number,
+            'part_name': ch.part.title if ch.part else None,
+        }
+        for ch in chapters
+    ]
+    
+    # Generate markdown
+    md_content = MarkdownExporter.export(book_data, chapters_data, include_metadata)
+    
+    # Return as file
+    filename = f"{book.title.replace(' ', '_')}.md"
+    return StreamingResponse(
+        iter([md_content.encode('utf-8')]),
+        media_type="text/markdown",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
+
+
+@router.post("/books/{book_id}/export/text")
+async def export_to_text(
+    book_id: int,
+    include_metadata: bool = True,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Export book to plain text format"""
+    
+    # Verify book access
+    book = db.query(Book).filter(
+        Book.id == book_id,
+        Book.author_id == current_user.id,
+    ).first()
+    if not book:
+        raise HTTPException(status_code=404, detail="Book not found")
+    
+    # Get all chapters
+    chapters = db.query(Chapter).filter(
+        Chapter.book_id == book_id,
+    ).order_by(Chapter.chapter_number).all()
+    
+    if not chapters:
+        raise HTTPException(status_code=400, detail="No chapters to export")
+    
+    # Prepare book data
+    book_data = {
+        'id': str(book.id),
+        'title': book.title,
+        'description': book.description,
+        'authors': [book.author.full_name] if book.author else [],
+        'status': book.status,
+    }
+    
+    # Prepare chapters data
+    chapters_data = [
+        {
+            'title': ch.title,
+            'content': ch.content or '',
+            'chapter_number': ch.chapter_number,
+            'part_name': ch.part.title if ch.part else None,
+        }
+        for ch in chapters
+    ]
+    
+    # Generate text
+    text_content = TextExporter.export(book_data, chapters_data, include_metadata)
+    
+    # Return as file
+    filename = f"{book.title.replace(' ', '_')}.txt"
+    return StreamingResponse(
+        iter([text_content.encode('utf-8')]),
+        media_type="text/plain",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
+
+
+@router.post("/books/{book_id}/export/docx")
+async def export_to_docx(
+    book_id: int,
+    include_metadata: bool = True,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Export book to DOCX format"""
+    
+    try:
+        from docx import Document  # Check if available
+    except ImportError:
+        raise HTTPException(
+            status_code=501,
+            detail="DOCX export requires python-docx. Contact administrator.",
+        )
+    
+    # Verify book access
+    book = db.query(Book).filter(
+        Book.id == book_id,
+        Book.author_id == current_user.id,
+    ).first()
+    if not book:
+        raise HTTPException(status_code=404, detail="Book not found")
+    
+    # Get all chapters
+    chapters = db.query(Chapter).filter(
+        Chapter.book_id == book_id,
+    ).order_by(Chapter.chapter_number).all()
+    
+    if not chapters:
+        raise HTTPException(status_code=400, detail="No chapters to export")
+    
+    # Prepare book data
+    book_data = {
+        'id': str(book.id),
+        'title': book.title,
+        'description': book.description,
+        'authors': [book.author.full_name] if book.author else [],
+        'status': book.status,
+    }
+    
+    # Prepare chapters data
+    chapters_data = [
+        {
+            'title': ch.title,
+            'content': ch.content or '',
+            'chapter_number': ch.chapter_number,
+            'part_name': ch.part.title if ch.part else None,
+        }
+        for ch in chapters
+    ]
+    
+    # Generate DOCX
+    docx_bytes = DOCXExporter.export(book_data, chapters_data, include_metadata)
+    
+    # Return as file
+    filename = f"{book.title.replace(' ', '_')}.docx"
+    return StreamingResponse(
+        iter([docx_bytes]),
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
