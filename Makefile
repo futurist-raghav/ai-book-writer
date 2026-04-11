@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 DC := docker compose
 
-.PHONY: help setup start stop restart logs clean test lint format migrate shell-be shell-fe backup restore build pull status stats verify-services ensure-running reclaim-space start-prod stop-prod restart-prod logs-prod scale-backend-prod test-notifications
+.PHONY: help setup start stop restart logs clean test lint format migrate shell-be shell-fe backup restore build pull status stats verify-services ensure-running reclaim-space start-prod stop-prod restart-prod logs-prod scale-backend-prod test-notifications test-monetization
 
 # Default target
 help:
@@ -20,6 +20,7 @@ help:
 	@echo "clean        - Clean up containers and volumes"
 	@echo "test         - Run tests"
 	@echo "test-notifications - Run E2E notification tests"
+	@echo "test-monetization  - Run E2E monetization tests (payout, tiers, OAuth)"
 	@echo "lint         - Run linters"
 	@echo "format       - Format code"
 	@echo "migrate      - Run database migrations"
@@ -151,6 +152,28 @@ test-notifications:
 		--token $(TOKEN) \
 		--verbose
 	@echo "Notification tests complete!"
+
+# Run E2E monetization tests
+test-monetization:
+	@$(MAKE) --no-print-directory ensure-running
+	@echo "Running monetization E2E tests..."
+	@echo "Note: This requires a bearer token and book ID. Get them from:"
+	@echo "  1. Token: Login to frontend, get from localStorage (auth_token)"
+	@echo "  2. Book ID: GET http://localhost:8000/api/v1/books | jq '.items[0].id'"
+	@echo "  3. Run: make test-monetization TOKEN=token BOOK_ID=book_id"
+	@if [ -z "$(TOKEN)" ]; then \
+		echo "ERROR: TOKEN is required"; \
+		exit 1; \
+	fi
+	@if [ -z "$(BOOK_ID)" ]; then \
+		echo "ERROR: BOOK_ID is required"; \
+		exit 1; \
+	fi
+	@python scripts/test_monetization_e2e.py \
+		--api-url http://localhost:8000 \
+		--token $(TOKEN) \
+		--book-id $(BOOK_ID)
+	@echo "Monetization tests complete!"
 
 # Run linters
 lint:
