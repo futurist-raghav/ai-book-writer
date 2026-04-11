@@ -46,6 +46,7 @@ class MarketplaceTemplateCreate(BaseModel):
     matter_config: Optional[dict] = None
     sample_content: Optional[str] = None
     tags: List[str] = []
+    is_public: bool = True
 
 
 class MarketplaceTemplateUpdate(BaseModel):
