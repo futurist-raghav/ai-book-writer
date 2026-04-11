@@ -1,9 +1,9 @@
 # AI Book Writer - Implementation Todo List
 
-**Last Updated:** April 12, 2026 - PHASE 7 FINAL STRETCH + P6.6 CLASSROOM COMPLETION
-**Status:** Phase 0-5 ✅ 100% | Phase 6 ✅ 87.5% (7/8 complete, P6.6 at 85%) | Phase 7 🚀 80% (P7.1-4✅ SHIPPED | P7.5 95% | P7.6 100% mobile | P7.7 planned)
-**Current Focus:** P7.6 Mobile Apps (Auth + Reader complete, WatermelonDB next) → P7.7 Enterprise
-**Ship Readiness:** P0-P6 ✅ PROD-READY | P7.1-5 ✅ SHIPPED | P7.6 IN PROGRESS (40% MVP)
+**Last Updated:** April 12, 2026 - PHASE 7 FINAL STRETCH + P7.6 MOBILE NOTIFICATIONS COMPLETE
+**Status:** Phase 0-5 ✅ 100% | Phase 6 ✅ 87.5% | Phase 7 🚀 82% (P7.1-4✅ SHIPPED | P7.5 95% | P7.6 Mobile 80% | P7.7 planned)
+**Current Focus:** P7.6 Mobile Notifications (Service + API complete, Firebase + E2E testing remaining) → P7.7 Enterprise
+**Ship Readiness:** P0-6 ✅ PROD-READY | P7.1-5 ✅ SHIPPED | P7.6 Mobile 80% (Auth/Reader/DB/Notifications complete)
 
 ---
 
@@ -1364,14 +1364,25 @@
 - [X] Error handling and retry logic with exponential backoff
 - [X] Final model/hook integration in screens (books list + chapters list screens updated)
 
-**Phase 4: Notifications & Polish - POST-MVP**
-- [ ] Push notification setup (Firebase)
-- [ ] Notification handlers
+**Phase 4: Notifications & Polish - POST-MVP (80% COMPLETE)**
+- [X] Push notification setup (Firebase + Expo integration complete)
+  - Device token registration/unregistration
+  - Notification service layer (mobile + backend)
+  - Notification center UI with tab badge
+  - REST API endpoints for device & notification management
+  - Celery async tasks for background sending
+- [X] Notification handlers (mobile + backend complete)
+  - Chapter update notifications
+  - Collaboration notifications
+  - Assignment notifications
+  - Milestone notifications
 - [X] Theme system (light/dark tokens complete)
 - [X] Error handling & retry logic
 - [ ] Performance optimization benchmark
+- [ ] E2E testing of notification flow (device register → send → receive → mark read)
+- [ ] Expo credentials configuration in EAS
 
-**Full Documentation:** See `/docs/P7.6_MOBILE_APPS_PLAN.md` for detailed architecture and implementation guide.
+**Full Documentation:** See `/docs/P7.6_MOBILE_APPS_PLAN.md` for detailed architecture, `/docs/P7.6_NOTIFICATIONS_SETUP.md` for notification setup guide
 
 - [ ] iOS/Android native apps (React Native)
 - [ ] Offline writing with sync
