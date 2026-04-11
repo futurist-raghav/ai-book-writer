@@ -93,6 +93,12 @@ const GLOBAL_ITEMS: NavItem[] = [
     moduleId: 'marketplace',
   },
   {
+    href: '/dashboard/template-analytics',
+    label: 'Template Analytics',
+    icon: 'trending_up',
+    moduleId: 'template_analytics',
+  },
+  {
     href: '/dashboard/agents',
     label: 'AI Agents',
     icon: 'bolt',
