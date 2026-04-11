@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from app.models.book import Book
     from app.models.chapter import Chapter
     from app.models.event import Event
+    from app.models.classroom import Classroom
 
 
 class User(Base):
@@ -114,6 +115,18 @@ class User(Base):
         "Book",
         back_populates="user",
         cascade="all, delete-orphan",
+    )
+    classrooms_owned: Mapped[List["Classroom"]] = relationship(
+        "Classroom",
+        foreign_keys="Classroom.owner_id",
+        back_populates="owner",
+        cascade="all, delete-orphan",
+    )
+    classrooms_enrolled: Mapped[List["Classroom"]] = relationship(
+        "Classroom",
+        secondary="classroom_students",
+        foreign_keys="classroom_students.c.user_id",
+        back_populates="students",
     )
 
     def __repr__(self) -> str:
