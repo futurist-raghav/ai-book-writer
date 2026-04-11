@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useClassrooms, useCreateClassroom, useAssignments, useCreateAssignment } from '@/hooks/useClassroom';
-import { Button } from '@/components/ui/button';
+import { useClassrooms, useCreateClassroom, useAssignments, useCreateAssignment } from '@/hooks/useClassroom';import { AssignmentWizard } from '@/components/classroom/assignment-wizard';import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { Users, BookOpen, Plus, Copy, Check, AlertCircle } from 'lucide-react';
@@ -14,6 +13,7 @@ export default function ClassroomsPage() {
   const { data: assignments = [], isLoading: assignmentsLoading } = useAssignments(null);
 
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showAssignmentWizard, setShowAssignmentWizard] = useState(false);
   const [title, setTitle] = useState('');
   const [schoolName, setSchoolName] = useState('');
   const [selectedClassroom, setSelectedClassroom] = useState<string | null>(null);
@@ -230,7 +230,7 @@ export default function ClassroomsPage() {
                         Assignments
                       </h3>
                     </div>
-                    <Button size="sm" variant="outline">
+                    <Button size="sm" variant="outline" onClick={() => setShowAssignmentWizard(true)}>
                       <Plus className="mr-2 h-4 w-4" />
                       Create Assignment
                     </Button>
@@ -305,6 +305,15 @@ export default function ClassroomsPage() {
             )}
           </div>
         </div>
+
+        {/* Assignment Wizard Dialog */}
+        {selectedClassroom && (
+          <AssignmentWizard
+            classroomId={selectedClassroom}
+            open={showAssignmentWizard}
+            onOpenChange={setShowAssignmentWizard}
+          />
+        )}
       </div>
     </div>
   );

@@ -1,9 +1,9 @@
 # AI Book Writer - Implementation Todo List
 
-**Last Updated:** April 12, 2026 - 1:30 AM
-**Status:** Phase 0-5 ✅ 100% COMPLETE | Phase 6 🚀 P6.2 95% | P6.3 70% | P6.4 60% | P6.5 80% | P6.6 ACTIVE 40% | Production Shipping
-**Current Push:** P6.6 classroom foundations complete - building teacher dashboard
-**Ship Readiness:** P0-P5 ✅ LIVE | P6.2-P6.5 MVP Ready | P6.6 Foundation Complete
+**Last Updated:** April 12, 2026 - 1:45 AM
+**Status:** Phase 0-5 ✅ 100% COMPLETE | Phase 6 🚀 P6.2 95% | P6.3 70% | P6.4 60% | P6.5 80% | P6.6 ACTIVE 55% | Production Shipping
+**Current Push:** P6.6 features building - assignment wizard complete, student interface next
+**Ship Readiness:** P0-P5 ✅ LIVE | P6.2-P6.5 MVP Ready | P6.6 Teacher Dashboard + Assignment Creation
 
 ---
 
@@ -1081,7 +1081,7 @@
 
 ### P6.6 Classroom & Institution Learning Plans
 
-**Status: 40% COMPLETE - Backend & Teacher Dashboard UI**
+**Status: 55% COMPLETE - Core Teacher Interface + Assignment Creation**
 
 - [x] Classroom model with owner, code-based joining, public/private access
 - [x] ClassAssignment model with due dates, word count requirements, rubrics
@@ -1094,8 +1094,8 @@
 - [x] Frontend hooks: useClassroom.ts with React Query integration
 - [x] Frontend: Teacher dashboard at /dashboard/classrooms with classroom management
 - [x] Frontend: Classroom creation form and student join code display
+- [x] Frontend: Assignment creation wizard (3-step form: basic info, instructions, requirements)
 - [x] Frontend: Sidebar link to Classrooms added to GLOBAL_ITEMS
-- [ ] Frontend: Assignment creation wizard with requirements
 - [ ] Frontend: Student submission interface (connect to book project or upload text)
 - [ ] Frontend: Grading interface with rubric scoring
 - [ ] Frontend: Class analytics (submission rates, grade distribution)
