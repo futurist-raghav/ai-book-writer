@@ -33,6 +33,7 @@ from app.models.writing_performance import WritingSession, WriterMilestone, Writ
 from app.models.publishing_pipeline import PublishingProfile, PublishingQueue, PublishingMetrics, IsbnRequest  # noqa: F401
 from app.models.author_community import AuthorProfile, BetaReaderProfile, BetaReaderMatch, WritingGroup, WritingGroupMember, AuthorMessage, PublicAuthorPage, AuthorCollaboration  # noqa: F401
 from app.models.monetization import AuthorSubscription, MarketplaceRoyalty, AffiliateLink, PricingRecommendation, CourseModule, PatronAccount  # noqa: F401
+from app.models.api_integrations import APIKey, Webhook, WebhookDelivery, IntegrationAuth, NotionSync, GoogleDocsSync, ZapierAction, ExportTemplate  # noqa: F401
 
 __all__ = [
     "AudioFile",
@@ -123,5 +124,13 @@ __all__ = [
     "PricingRecommendation",
     "CourseModule",
     "PatronAccount",
+    "APIKey",
+    "Webhook",
+    "WebhookDelivery",
+    "IntegrationAuth",
+    "NotionSync",
+    "GoogleDocsSync",
+    "ZapierAction",
+    "ExportTemplate",
 ]
 
