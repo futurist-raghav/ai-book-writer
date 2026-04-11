@@ -117,6 +117,18 @@ const GLOBAL_ITEMS: NavItem[] = [
     moduleId: 'publishing_pipeline',
   },
   {
+    href: '/dashboard/author-directory',
+    label: 'Author Directory',
+    icon: 'people',
+    moduleId: 'author_directory',
+  },
+  {
+    href: '/dashboard/author-messages',
+    label: 'Messages',
+    icon: 'mail',
+    moduleId: 'author_messages',
+  },
+  {
     href: '/dashboard/classrooms',
     label: 'Classrooms',
     icon: 'groups',
