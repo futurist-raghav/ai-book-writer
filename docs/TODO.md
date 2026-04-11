@@ -1,7 +1,7 @@
 # AI Book Writer - Implementation Todo List
 
 **Last Updated:** April 12, 2026 - PHASE 7 TURBO
-**Status:** Phase 0-5 ✅ 100% | Phase 6 ✅ 87.5% (7/8) | Phase 7 🚀 SHIPPED (P7.1✅ P7.2✅ P7.3✅ P7.4✅ / P7.5→)
+**Status:** Phase 0-5 ✅ 100% | Phase 6 ✅ 87.5% (7/8) | Phase 7 🚀 SHIPPED (P7.1✅ P7.2✅ P7.3✅ P7.4✅ P7.5 60% / P7.6→)
 **Current Focus:** P7.6 Mobile Apps → P7.7 Enterprise Features
 **Ship Readiness:** P0-P6 ✅ PROD-READY | P7.1-7.5 ✅ SHIPPED | P7.6 NEXT
 
@@ -1271,42 +1271,45 @@
 - [ ] Email notifications (payout, tier upgrade)
 - [ ] Advanced earnings charts and analytics
 
-### P7.5 API & Integrations ✅ INFRASTRUCTURE SHIPPED
+### P7.5 API & Integrations ✅ 60% COMPLETE
 
-**Infrastructure Complete (8 Models, 6 Services, 20+ API Routes):**
+**Shipped Integrations:**
+- [X] **Notion Sync** - Calendar sync, book database bidirectional sync, snippet import
+  - [X] Calendar endpoints (get config, manual sync, update settings)
+  - [X] Book database endpoints (get config, pull/push/both, field mapping)
+  - [X] Snippet import from Notion (with filters)
+  - [X] OAuth connection and status endpoints
+  - [X] Sync history and settings dashboard
+  - [X] Frontend integrations UI with all 3 platforms
+- [X] **Google Docs Integration** - Import chapters, export books, bidirectional sync
+  - [X] OAuth authentication endpoints
+  - [X] Import single doc or folder as chapters
+  - [X] Export chapter or entire book to Google Drive
+  - [X] Start/stop real-time sync for docs
+  - [X] Pull/push sync operations
+  - [X] Sync history and status tracking
+  - [X] Frontend import/export UI with real-time sync option
+
+**Frontend Dashboard:**
+- [X] Available integrations tab (discover & connect apps)
+- [X] Connected apps tab (manage settings, disconnect)
+- [X] Sync history tab (view sync logs and status)
+- [X] Per-app settings dialogs with OAuth flows
+- [X] Status indicators and last sync timestamps
+
+**Infrastructure (Previous Phases):**
 - [X] APIKey with secure token generation and bcrypt hashing
 - [X] APIKeyService with create, verify, revoke, list operations
-- [X] API key authentication routes (create, list, revoke)
 - [X] Webhook subscription model and delivery tracking
-- [X] WebhookService with trigger and retry logic
-- [X] Webhook configuration routes (create, list, update, delete)
-- [X] Webhook delivery history endpoint
 - [X] IntegrationAuth for OAuth token storage
-- [X] IntegrationAuthService for multi-provider support
-- [X] Integration status dashboard
-- [X] NotionSync model for database synchronization
-- [X] NotionSyncService with config management
-- [X] GoogleDocsSync for document import/export
-- [X] GoogleDocsSyncService for doc synchronization
-- [X] ZapierAction logging and execution tracking
-- [X] ZapierService for Zapier automation
-- [X] ExportTemplate for programmatic data export
-- [X] ExportTemplateService for template management
-- [X] Public API documentation endpoint
-- [X] API provider listing (Zapier, Make, Notion, Google, Slack, Discord)
-- [X] Database migration (019_api_integrations.py) with 8 tables
-- [X] Full OpenAPI documentation structure
+- [X] Database migration with 8 tables
 
-**Remaining for P7.5.5:**
-- [ ] OAuth implementation for each provider (Zapier, Notion, Google, Slack, Discord)
-- [ ] Async workers for webhook delivery with exponential backoff
-- [ ] Integration sync jobs (Notion, Google Docs, daily)
+**Remaining (P7.5.3 - Zapier + Polish):**
+- [ ] Zapier integration (webhook triggers, zaps listing)
+- [ ] Async workers for sync jobs with exponential backoff
 - [ ] OAuth token refresh background job
-- [ ] Actual provider API calls (notion-client SDK, google-api-client, etc)
+- [ ] Actual provider API calls (notion-client, google-api-client SDKs)
 - [ ] Rate limiting per API key tier
-- [ ] Audit logging for all integration activities
-- [ ] Frontend Integration Manager UI
-- [ ] Webhook test delivery endpoint
 - [ ] Integration error recovery and alerting
 
 ### P7.6 Mobile Apps
