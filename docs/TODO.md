@@ -1,8 +1,9 @@
 # AI Book Writer - Implementation Todo List
 
-**Last Updated:** April 12, 2026 - 12:05 AM
-**Status:** Phase 0-5 ✅ 100% COMPLETE | Phase 6 🚀 P6.2 MARKETPLACE 95% | P6.3 AI AGENTS 90% | P6.4 ANALYTICS 60% | Production Ready
-**Current Phase:** P6.2 Template Marketplace (95% complete) | P6.3 AI Agents (90% complete - dashboard + editor integration) | P6.4 Analytics Starting
+**Last Updated:** April 12, 2026 - 12:15 AM
+**Status:** Phase 0-5 ✅ 100% COMPLETE | Phase 6 🚀 P6.2 MARKETPLACE 95% | P6.3 AI AGENTS 70% | P6.4 ANALYTICS 60% | P6.5 PUBLIC SHARE 30% | Production Ready
+**Current Phase:** P6.2 Marketplace (95%) | P6.3 Agents (70% - dashboard integrated) | P6.4 Analytics (60% - charts complete) | P6.5 Public Share (30% - backend built)
+**Ship Status:** P0-P5 LIVE | P6.2 MVP Complete | P6.3 Integrated | P6.4 Charts Done | P6.5 Started
 **Ship Status:** P0-P5 LIVE | P6.2 Core MVP Complete | P6.3 Agents Integrated into Editor | P6.4 Charts Complete
 
 ---
@@ -1061,10 +1062,20 @@
 
 ### P6.5 Public Share & Feedback Pages
 
-- [ ] Public sharing: Book preview with feedback form
-- [ ] Reader ratings
-- [ ] Embedded book previews on websites
-- [ ] Share reading progress
+**Status: 30% COMPLETE - Backend & API Foundation**
+
+- [x] Backend: PublicShare model with secure tokens, expiration, password protection
+- [x] Backend: BookFeedback model for reader feedback (anonymous or named)
+- [x] Backend: BookRating model with 5-star breakdown and average aggregation
+- [x] API: Create/update public share links with settings
+- [x] API: Submit feedback (public endpoint, respects privacy)
+- [x] API: Get feedback and ratings (public endpoints)
+- [x] Frontend: usePublicShare, useFeedback, usePublicRatings hooks
+- [x] Frontend: Types for all public share data structures
+- [ ] Frontend: Public share preview page (book preview + embedded feedback form)
+- [ ] Frontend: Feedback form UI with validation
+- [ ] Frontend: Share link management page (create/disable/update settings)
+- [ ] Frontend: Public book preview (read-only chapter viewer)
 
 ### P6.6 Classroom/Institution Plans
 
