@@ -1,0 +1,61 @@
+{
+  "expo": {
+    "name": "AI Book Writer",
+    "slug": "ai-book-writer",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTabletMode": true,
+      "bundleIdentifier": "com.aiwriter.mobile",
+      "infoPlist": {
+        "NSLocalNetworkUsageDescription": "Local network access for development",
+        "NSBonjourServiceTypes": ["_http._tcp"]
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.aiwriter.mobile",
+      "permissions": [
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.RECORD_AUDIO"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-secure-store",
+        {
+          "faceIDPermission": "Allow $(PRODUCT_NAME) to access your face data."
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Allow $(PRODUCT_NAME) to access your face data."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "ai-book-writer-mobile"
+      },
+      "apiUrl": "http://localhost:5000/api/v1"
+    }
+  }
+}

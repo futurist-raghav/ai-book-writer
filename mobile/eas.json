@@ -1,0 +1,32 @@
+{
+  "cli": {
+    "version": ">= 5.0.0"
+  },
+  "build": {
+    "production": {
+      "node": "18.13.0",
+      "yarn": "3.6.0",
+      "env": {
+        "EXPO_USE_FAST_RESOLVER": "true",
+        "EXPO_USE_EXOTIC": "true"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "node": "18.13.0",
+      "yarn": "3.6.0"
+    },
+    "development": {
+      "distribution": "internal",
+      "node": "18.13.0",
+      "yarn": "3.6.0"
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "ascAppId": "6739271841"
+      }
+    }
+  }
+}
