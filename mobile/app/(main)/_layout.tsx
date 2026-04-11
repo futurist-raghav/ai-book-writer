@@ -1,14 +1,50 @@
 import React from 'react';
+import { View, Text, useColorScheme } from 'react-native';
 import { BottomTabNavigationOptions } from '@react-navigation/bottom-tabs';
 import { Tabs } from 'expo-router';
-import { useColorScheme } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+
+import { useNotifications } from '../../lib/notifications-service';
 
 /**
  * Main authenticated app navigation using bottom tabs
  */
 export default function MainLayout() {
   const colorScheme = useColorScheme();
+  const { unreadCount } = useNotifications();
+
+  // Notification badge component
+  const NotificationBadge = () => {
+    if (!unreadCount || unreadCount === 0) return null;
+    
+    return (
+      <View
+        style={{
+          position: 'absolute',
+          top: -8,
+          right: -8,
+          backgroundColor: '#ef4444',
+          borderRadius: 10,
+          minWidth: 20,
+          height: 20,
+          justifyContent: 'center',
+          alignItems: 'center',
+          borderWidth: 2,
+          borderColor: colorScheme === 'dark' ? '#1f2937' : '#fff',
+        }}
+      >
+        <Text
+          style={{
+            color: '#fff',
+            fontSize: 12,
+            fontWeight: '700',
+          }}
+        >
+          {unreadCount > 99 ? '99+' : unreadCount}
+        </Text>
+      </View>
+    );
+  };
 
   const tabBarOptions: BottomTabNavigationOptions = {
     headerShown: true,
@@ -51,6 +87,21 @@ export default function MainLayout() {
             <Ionicons name="compass" size={size} color={color} />
           ),
           headerTitle: 'Explore',
+        }}
+      />
+
+      {/* Notifications Tab */}
+      <Tabs.Screen
+        name="notifications"
+        options={{
+          title: 'Notifications',
+          tabBarIcon: ({ color, size }) => (
+            <View>
+              <Ionicons name="notifications" size={size} color={color} />
+              <NotificationBadge />
+            </View>
+          ),
+          headerTitle: 'Notifications',
         }}
       />
 

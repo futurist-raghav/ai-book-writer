@@ -8,17 +8,18 @@ import { queryClient } from '../lib/react-query';
 import { useAuthStore, useDBStore } from '../lib/store';
 import { storage } from '../lib/storage';
 import { initializeDatabase } from '../lib/database';
+import { initializeNotifications, cleanupNotifications } from '../lib/notifications-init';
 
 /**
  * Root layout component
- * Handles auth state hydration and root navigation structure
+ * Handles auth state hydration, database initialization, and notifications setup
  */
 export default function RootLayout() {
   const { user, setUser, hydrate } = useAuthStore();
   const { setDatabase, setInitialized } = useDBStore();
   const [isHydrating, setIsHydrating] = React.useState(true);
 
-  // Hydrate auth state and initialize database on app launch
+  // Hydrate auth state, initialize database, and set up notifications on app launch
   useEffect(() => {
     const hydrateApp = async () => {
       try {
@@ -27,6 +28,9 @@ export default function RootLayout() {
         const database = await initializeDatabase();
         setDatabase(database);
         setInitialized(true);
+        
+        // Initialize notifications (requires auth)
+        await initializeNotifications();
       } catch (error) {
         console.error('Failed to hydrate app:', error);
       } finally {
@@ -35,7 +39,14 @@ export default function RootLayout() {
     };
 
     hydrateApp();
-  }, [hydrate, setDatabase, setInitialized]);
+
+    // Cleanup on unmount (logout)
+    return () => {
+      if (!user) {
+        cleanupNotifications().catch(console.error);
+      }
+    };
+  }, [hydrate, setDatabase, setInitialized, user]);
 
   if (isHydrating) {
     return (
