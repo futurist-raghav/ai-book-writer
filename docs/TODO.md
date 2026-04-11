@@ -478,9 +478,9 @@
 **Status:** ✅ 100% COMPLETE - Ready for integration with WriterCanvas and E2E testing
 
 **Next Steps (P2.4.2 onwards):**
-- [ ] Wire CitationTool to WriterCanvas editor
+- [X] Wire CitationTool to WriterCanvas editor (✅ Done - citation panel integrated)
 - [ ] Add Bibliography tab to project dashboard
-- [ ] AI Citation suggestions (auto-detect citation spots)
+- [ ] AI Citation suggestions (auto-detect citation spots) (✅ Backend ready, modal wired)
 - [ ] Bibliography export to PDF/Word
 - [ ] Citation style auto-generator (APA/MLA/Chicago/IEEE selector)
 
@@ -629,9 +629,9 @@
 - [X] Tone shift: override tone per request with confidence metrics
 - [X] Word count delta display for each option
 - [X] Floating AI Tools Panel for easy access (text selection auto-enabled) (✅ Component created)
-- [ ] Integration: Wire into editor toolbar/context menu (IN PROGRESS - component ready, wiring next)
+- [X] Integration: Wired into editor toolbar/context menu (✅ Toolbar buttons + keyboard shortcuts active)
 - [X] Testing: Unit + integration tests for rewrite endpoint (backend verified)
-  **Status:** ✅ Components BUILT & TYPE-CHECKED (errors fixed) | Integration into WriterCanvas in progress
+  **Status:** ✅ 100% COMPLETE | Backend + Frontend fully integrated. Toolbar button (auto_awesome icon) + keyboard shortcut (Ctrl+Shift+R) active and functional.
 
 ### P3.6 Citation & Source Assistance ✅ 100% COMPLETE
 
@@ -657,9 +657,9 @@
 - [X] Transcription display from Whisper
 - [X] AI-enhanced draft preview with word count
 - [X] One-click insertion of draft into chapter
-- [ ] Integration: Wire into workspace + toolbar (IN PROGRESS - component ready)
-- [ ] Keyboard shortcut handler (Cmd/Ctrl+Shift+V)
-  **Status:** ✅ Backend + Component COMPLETE | Integration in progress
+- [X] Integration: Wired into workspace + toolbar (✅ Toolbar button + keyboard shortcut active)
+- [X] Keyboard shortcut handler (Cmd/Ctrl+Shift+V)
+  **Status:** ✅ 100% COMPLETE | Backend + Component + Integration all functional. Toolbar button (mic icon) + keyboard shortcut (Ctrl+Shift+V) active.
 
 ### P3.8 Glossary Extraction UI & Export ✅ 100% COMPLETE
 
