@@ -134,7 +134,7 @@ export default function TemplatePage({ params }: PageProps) {
               <div className="mb-6">
                 <h3 className="mb-3 font-semibold text-gray-900">Tags</h3>
                 <div className="flex flex-wrap gap-2">
-                  {template.tags.map((tag) => (
+                  {template.tags.map((tag: string) => (
                     <span
                       key={tag}
                       className="inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-blue-700"
@@ -224,7 +224,7 @@ export default function TemplatePage({ params }: PageProps) {
                 <div className="text-center py-6 text-gray-500">Loading reviews...</div>
               ) : reviews.length > 0 ? (
                 <div className="space-y-4">
-                  {reviews.map((review) => (
+                  {reviews.map((review: typeof reviews[0]) => (
                     <div key={review.id} className="rounded-lg border border-gray-200 bg-white p-4">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">

@@ -78,7 +78,7 @@ export default function MarketplacePage() {
           <div className="mb-12">
             <h2 className="mb-4 text-xl font-semibold text-gray-900">Featured Templates</h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {featured.map((template) => (
+              {featured.map((template: typeof featured[0]) => (
                 <TemplateCard
                   key={template.id}
                   template={template}
@@ -116,7 +116,7 @@ export default function MarketplacePage() {
                 className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
               >
                 <option value="">All Categories</option>
-                {categoriesData?.categories.map((cat) => (
+                {categoriesData?.categories.map((cat: typeof categoriesData.categories[0]) => (
                   <option key={cat.id} value={cat.name}>
                     {cat.name}
                   </option>
@@ -147,7 +147,7 @@ export default function MarketplacePage() {
         ) : templates.length > 0 ? (
           <>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {templates.map((template) => (
+              {templates.map((template: typeof templates[0]) => (
                 <TemplateCard
                   key={template.id}
                   template={template}

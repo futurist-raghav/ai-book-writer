@@ -78,6 +78,16 @@ const MODULE_NAV_MAP: Record<string, NavItem> = {
   },
 };
 
+// Global items shown outside of project context
+const GLOBAL_ITEMS: NavItem[] = [
+  {
+    href: '/dashboard/marketplace',
+    label: 'Marketplace',
+    icon: 'storefront',
+    moduleId: 'marketplace',
+  },
+];
+
 // Settings and support are always shown
 const FIXED_ITEMS: NavItem[] = [
   {
@@ -109,6 +119,7 @@ function getAdaptiveSidebarItems(projectType?: ProjectType | null): NavItem[] {
       MODULE_NAV_MAP.glossary,
       MODULE_NAV_MAP.collaboration,
       MODULE_NAV_MAP.publishing,
+      ...GLOBAL_ITEMS,
       ...FIXED_ITEMS,
     ];
   }
@@ -129,7 +140,7 @@ function getAdaptiveSidebarItems(projectType?: ProjectType | null): NavItem[] {
     }
   }
 
-  return [...items, ...FIXED_ITEMS];
+  return [...items, ...GLOBAL_ITEMS, ...FIXED_ITEMS];
 }
 
 /**
