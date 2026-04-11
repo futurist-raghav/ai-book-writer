@@ -82,5 +82,8 @@ __all__ = [
     "WorkspaceRole",
     "WorkspaceStatus",
     "WorkspaceCustomization",
+    "PublicShare",
+    "BookFeedback",
+    "BookRating",
 ]
 
