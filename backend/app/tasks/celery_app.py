@@ -7,6 +7,7 @@ Sets up Celery for background task processing.
 from celery import Celery
 
 from app.core.config import settings
+from app.tasks.beat_schedule import beat_schedule
 
 # Create Celery app
 celery_app = Celery(
@@ -28,6 +29,7 @@ celery_app.conf.update(
     worker_prefetch_multiplier=1,  # One task at a time for long-running tasks
     task_acks_late=True,  # Acknowledge after completion
     task_reject_on_worker_lost=True,  # Retry if worker dies
+    beat_schedule=beat_schedule,  # Add beat schedule
 )
 
 # Auto-discover tasks from task modules
@@ -36,5 +38,10 @@ celery_app.autodiscover_tasks(
         "app.tasks.transcription_tasks",
         "app.tasks.extraction_tasks",
         "app.tasks.export_tasks",
+        "app.workers.notification_tasks",
+        "app.workers.push_notification_sender",
+        "app.workers.monetization_email_tasks",
+        "app.workers.oauth_refresh_tasks",
+        "app.workers.payout_workflow_tasks",
     ]
 )
