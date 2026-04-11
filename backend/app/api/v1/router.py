@@ -7,7 +7,7 @@ Combines all API routes into a single router.
 from fastapi import APIRouter
 
 from app.api.v1 import ai, audio, auth, books, chapters, chapter_versions, chapter_edits, section_approvals, formatting_themes, matter_config, device_preview, export_bundle, book_metadata, accessibility, collaboration, collaborator_roles, comments, custom_fields, entities, events, export, flow_engine, references, suggestions, transcriptions, bibliography, workspace_customization, import_export, glossary, realtime, workspace, marketplace_template, agents, analytics, public_share, public_comments, classroom, writing_performance, publishing_pipeline, monetization, api_integrations
-from app.routes import marketplace_analytics, publishing_pipeline, author_community, subscriptions, writing_groups, integrations_notion, integrations_google_docs
+from app.routes import marketplace_analytics, publishing_pipeline, author_community, subscriptions, writing_groups, integrations_notion, integrations_google_docs, integrations_zapier
 
 api_router = APIRouter()
 
@@ -61,3 +61,4 @@ api_router.include_router(monetization.router, tags=["Monetization"])
 api_router.include_router(api_integrations.router, tags=["Integrations"])
 api_router.include_router(integrations_notion.router, tags=["Notion Integration"])
 api_router.include_router(integrations_google_docs.router, tags=["Google Docs Integration"])
+api_router.include_router(integrations_zapier.router, tags=["Zapier Integration"])
