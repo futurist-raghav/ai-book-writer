@@ -135,6 +135,11 @@ export default function PublishTemplatePage() {
   };
 
   const handlePublish = async () => {
+    if (!selectedBookId) {
+      alert('Please select a book to convert to a template');
+      return;
+    }
+
     if (!formData.name.trim() || !formData.description.trim()) {
       alert('Please fill in name and description');
       return;

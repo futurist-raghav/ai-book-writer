@@ -1024,19 +1024,19 @@
 
 ### P6.3 Premium AI Agents 🤖
 
-**Status: STARTING (0% - Architecture Phase)**
+**Status: 60% COMPLETE - Backend + UI Foundation**
 
-- [ ] Backend: Agent service layer with Gemini API (40% impact)
-- [ ] API: POST /ai/agents/research (topic, context_length) → {sources, facts, citations}
-- [ ] API: POST /ai/agents/fact-check (text_snippet, knowledge_domain) → {claims, verification}
-- [ ] API: POST /ai/agents/tone-analyze (text, genre/project_type) → {analysis, suggestions}
-- [ ] API: POST /ai/agents/cite (research_results) → {bibliography_entries}
-- [ ] Agentic research assistant: "Research [topic]" returns curated sources and facts
-- [ ] Auto-citation assistance: Parse research + extract bibliography entries  
-- [ ] Fact-checker agent: Verify manuscript claims against knowledge base
-- [ ] Tone coach agent: Analyze text + suggest improvements per genre
-- [ ] Frontend: Agent commands in Writer Assistant quick menu
-- [ ] Frontend: Result panels with source citations + accept/insert/edit actions
+- [x] Backend: Agent service layer with Gemini API (research, factcheck, tone, citation)
+- [x] API: 4 endpoints (POST /ai/agents/{research, fact-check, tone-analyze, cite})
+- [x] Agentic research assistant: "Research [topic]" returns curated sources and facts
+- [x] Fact-checker agent: Verify manuscript claims with confidence/evidence
+- [x] Tone coach agent: Analyze text tone + suggest improvements per genre
+- [x] Citation agent: Generate bibliography entries (APA/MLA/Chicago/Harvard)
+- [x] Frontend: AgentPanel component with 4 tabs + full UI
+- [x] Frontend hooks: useResearchAgent, useFactCheckAgent, useToneAnalyzeAgent, useCitationAgent
+- [ ] Integration: AgentPanel wired into Writer Assistant + accessibility pages
+- [ ] Streaming: Long-running agent responses with streaming UI
+- [ ] Usage tracking: Track agent usage per user + rate limiting
 
 ### P6.4 Analytics & Writing Insights
 
