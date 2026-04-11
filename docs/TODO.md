@@ -1,9 +1,9 @@
 # AI Book Writer - Implementation Todo List
 
-**Last Updated:** April 11, 2026 - 9:30 PM
-**Status:** Phase 0-4 ✅ 100% COMPLETE | Phase 5 🚀 95% SHIP-READY | Phase 6 🚀 STARTING
-**Current Phase:** Phase 5 Final Polish + Phase 6 Template Marketplace Kickoff
-**Ship Status:** P0-P4 LIVE | P5.1-P5.7 FEATURE COMPLETE | Ready for E2E Testing + Production Deploy
+**Last Updated:** April 12, 2026 - 10:15 PM
+**Status:** Phase 0-5 ✅ 100% COMPLETE | Phase 6 🚀 P6.2 MARKETPLACE IN PROGRESS (50%) | Ready for E2E Testing + Production Deploy
+**Current Phase:** Phase 5 Complete | Phase 6.2 Template Marketplace Browse/Review Core Features
+**Ship Status:** P0-P5 LIVE | P6.2 Core Browse/Review FEATURE COMPLETE | Template Publishing Wizard Coming Soon
 
 ---
 
@@ -1005,12 +1005,22 @@
 - ✅ Role-based access control (3 roles: admin/editor/viewer)
 - ✅ Router registered, models exported
 
-### P6.2 Template Marketplace
+### P6.2 Template Marketplace 🚧
 
-- [ ] Browse templates: story structures, chapter templates, character sheets
-- [ ] Share community templates
-- [ ] Rate/review templates
-- [ ] Paid premium templates
+**Status: IN PROGRESS (50% - Core Browse/Review System)**
+
+- [x] Backend: Marketplace models (MarketplaceTemplate, TemplateReview, TemplateCategory)
+- [x] Backend: 15+ API endpoints (browse, search, create, update, delete, reviews, favorites)
+- [x] Frontend: Browse/search with filtering, sorting, pagination
+- [x] Frontend: Template detail page with reviews
+- [x] Frontend: User template management ("My Templates")
+- [x] Frontend: Rate/review templates (1-5 stars, title, content)
+- [x] Frontend: Favorite templates with user favorites list
+- [ ] Frontend: Publish template wizard (select content, metadata, preview)
+- [ ] Frontend: Template analytics (views, ratings, usage tracking)
+- [ ] UI: Marketplace integration into main navigation
+- [ ] Paid premium templates (Phase 6.2 v2)
+- [ ] Admin: Template verification/moderation tools (Phase 6.2 v2)
 
 ### P6.3 Premium AI Agents
 
