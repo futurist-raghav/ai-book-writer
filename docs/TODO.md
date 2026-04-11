@@ -1,8 +1,8 @@
 # AI Book Writer - Implementation Todo List
 
-**Last Updated:** April 12, 2026 - 11:30 PM
-**Status:** Phase 0-5 ✅ 100% COMPLETE | Phase 6 🚀 P6.2 MARKETPLACE 95% | P6.3 AI AGENTS 30% | Production Ready
-**Current Phase:** P6.2 Template Marketplace (95% - publish wizard complete) | P6.3 AI Agents Architecture (30% - backend API + frontend hooks done)
+**Last Updated:** April 12, 2026 - 11:45 PM
+**Status:** Phase 0-5 ✅ 100% COMPLETE | Phase 6 🚀 P6.2 MARKETPLACE 95% | P6.3 AI AGENTS 70% | Production Ready
+**Current Phase:** P6.2 Template Marketplace (95% - publish wizard complete) | P6.3 AI Agents Dashboard (70% - core dashboard page + sidebar integration done)
 **Ship Status:** P0-P5 LIVE | P6.2 Core MVP Complete | P6.3 Foundation Laid
 
 ---
@@ -1026,7 +1026,7 @@
 
 ### P6.3 Premium AI Agents 🤖
 
-**Status: 60% COMPLETE - Backend + UI Foundation**
+**Status: 70% COMPLETE - Dashboard Page + Sidebar Navigation**
 
 - [x] Backend: Agent service layer with Gemini API (research, factcheck, tone, citation)
 - [x] API: 4 endpoints (POST /ai/agents/{research, fact-check, tone-analyze, cite})
@@ -1036,7 +1036,9 @@
 - [x] Citation agent: Generate bibliography entries (APA/MLA/Chicago/Harvard)
 - [x] Frontend: AgentPanel component with 4 tabs + full UI
 - [x] Frontend hooks: useResearchAgent, useFactCheckAgent, useToneAnalyzeAgent, useCitationAgent
-- [ ] Integration: AgentPanel wired into Writer Assistant + accessibility pages
+- [x] Dashboard: Dedicated /dashboard/agents page with AgentPanel
+- [x] Navigation: AI Agents link added to main sidebar (GLOBAL_ITEMS)
+- [ ] Integration: AgentPanel integrated into chapter editor sidebar
 - [ ] Streaming: Long-running agent responses with streaming UI
 - [ ] Usage tracking: Track agent usage per user + rate limiting
 
