@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 DC := docker compose
 
-.PHONY: help setup start stop restart logs clean test lint format migrate shell-be shell-fe backup restore build pull status stats verify-services ensure-running reclaim-space start-prod stop-prod restart-prod logs-prod scale-backend-prod
+.PHONY: help setup start stop restart logs clean test lint format migrate shell-be shell-fe backup restore build pull status stats verify-services ensure-running reclaim-space start-prod stop-prod restart-prod logs-prod scale-backend-prod test-notifications
 
 # Default target
 help:
@@ -19,6 +19,7 @@ help:
 	@echo "scale-backend-prod - Scale backend replicas (usage: make scale-backend-prod REPLICAS=4)"
 	@echo "clean        - Clean up containers and volumes"
 	@echo "test         - Run tests"
+	@echo "test-notifications - Run E2E notification tests"
 	@echo "lint         - Run linters"
 	@echo "format       - Format code"
 	@echo "migrate      - Run database migrations"
@@ -132,6 +133,24 @@ test:
 	$(DC) exec -T backend pytest
 	@echo "Running frontend tests..."
 	$(DC) exec -T frontend npm test
+
+# Run E2E notification tests
+test-notifications:
+	@$(MAKE) --no-print-directory ensure-running
+	@echo "Running notification E2E tests..."
+	@echo "Note: This requires a bearer token. Get it from:"
+	@echo "  1. Login to frontend at http://localhost:3000"
+	@echo "  2. Open DevTools and get token from localStorage (auth_token)"
+	@echo "  3. Run: make test-notifications TOKEN=your_bearer_token"
+	@if [ -z "$(TOKEN)" ]; then \
+		echo "ERROR: TOKEN is required"; \
+		exit 1; \
+	fi
+	@python scripts/test_notifications_e2e.py \
+		--api-url http://localhost:8000 \
+		--token $(TOKEN) \
+		--verbose
+	@echo "Notification tests complete!"
 
 # Run linters
 lint:
