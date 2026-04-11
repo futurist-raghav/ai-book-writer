@@ -1,8 +1,8 @@
 # AI Book Writer - Implementation Todo List
 
-**Last Updated:** April 12, 2026 - 11:00 PM
-**Status:** Phase 0-5 ✅ 100% COMPLETE | Phase 6 🚀 P6.2 MARKETPLACE 80% | P6.3 AI AGENTS 30% | Production Ready
-**Current Phase:** P6.2 Template Marketplace (80% - browse/search/review/publish/use complete) | P6.3 AI Agents Architecture (30% - backend API + frontend hooks done)
+**Last Updated:** April 12, 2026 - 11:30 PM
+**Status:** Phase 0-5 ✅ 100% COMPLETE | Phase 6 🚀 P6.2 MARKETPLACE 95% | P6.3 AI AGENTS 30% | Production Ready
+**Current Phase:** P6.2 Template Marketplace (95% - publish wizard complete) | P6.3 AI Agents Architecture (30% - backend API + frontend hooks done)
 **Ship Status:** P0-P5 LIVE | P6.2 Core MVP Complete | P6.3 Foundation Laid
 
 ---
@@ -1007,7 +1007,7 @@
 
 ### P6.2 Template Marketplace �
 
-**Status: 80% COMPLETE - Core Marketplace Fully Functional**
+**Status: 95% COMPLETE - Publish Wizard Finalized**
 
 - [x] Backend: Marketplace models (MarketplaceTemplate, TemplateReview, TemplateCategory)  
 - [x] Backend: 15+ API endpoints (browse, search, create, update, delete, reviews, favorites)
@@ -1017,9 +1017,11 @@
 - [x] Frontend: Rate/review templates (1-5 stars, title, content)
 - [x] Frontend: Favorite templates with toggle + favorites list
 - [x] Frontend: Navigation integration (Marketplace link on sidebar)
-- [x] Frontend: Publish template wizard (3-step: details → content → review)
+- [x] Frontend: Publish template wizard (4-step: select book → details → content → review & publish)
+- [x] Frontend: Book content extraction in publish wizard (auto-extract chapters + metadata)
 - [x] Frontend: "Use This Template" button (create book from template)
-- [ ] Template analytics page - Optional v2
+- [x] Backend: is_public field in MarketplaceTemplateCreate schema
+- [ ] Template analytics page - Optional v2 (views/ratings/download tracking)
 - [ ] Admin: Template verification/moderation - Optional v2
 
 ### P6.3 Premium AI Agents 🤖
