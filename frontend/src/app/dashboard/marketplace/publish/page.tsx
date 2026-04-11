@@ -50,8 +50,8 @@ export default function PublishTemplatePage() {
   });
 
   React.useEffect(() => {
-    if (booksData) {
-      setBooks(booksData);
+    if (booksData?.data?.items) {
+      setBooks(booksData.data.items);
     }
   }, [booksData]);
 
