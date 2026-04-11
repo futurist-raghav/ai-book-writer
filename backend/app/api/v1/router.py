@@ -6,7 +6,7 @@ Combines all API routes into a single router.
 
 from fastapi import APIRouter
 
-from app.api.v1 import ai, audio, auth, books, chapters, chapter_versions, chapter_edits, section_approvals, formatting_themes, matter_config, device_preview, export_bundle, book_metadata, accessibility, collaboration, collaborator_roles, comments, custom_fields, entities, events, export, flow_engine, references, suggestions, transcriptions, bibliography, workspace_customization, import_export, glossary, realtime, workspace, marketplace_template, agents, analytics, public_share, classroom
+from app.api.v1 import ai, audio, auth, books, chapters, chapter_versions, chapter_edits, section_approvals, formatting_themes, matter_config, device_preview, export_bundle, book_metadata, accessibility, collaboration, collaborator_roles, comments, custom_fields, entities, events, export, flow_engine, references, suggestions, transcriptions, bibliography, workspace_customization, import_export, glossary, realtime, workspace, marketplace_template, agents, analytics, public_share, public_comments, classroom
 
 api_router = APIRouter()
 
@@ -48,4 +48,5 @@ api_router.include_router(marketplace_template.router, tags=["Template Marketpla
 api_router.include_router(agents.router, tags=["AI Agents"])
 api_router.include_router(analytics.router, tags=["Analytics"])
 api_router.include_router(public_share.router, tags=["Public Sharing & Feedback"])
+api_router.include_router(public_comments.router, tags=["Public Comments & Ratings"])
 api_router.include_router(classroom.router, tags=["Classrooms & Learning"])

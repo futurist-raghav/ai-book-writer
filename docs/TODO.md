@@ -1,9 +1,9 @@
 # AI Book Writer - Implementation Todo List
 
-**Last Updated:** April 12, 2026 - 2:00 AM
-**Status:** Phase 0-5 ✅ 100% COMPLETE | Phase 6 🚀 P6.2 95% | P6.3 70% | P6.4 60% | P6.5 80% | P6.6 55% | P6.7 NEXT | Production Ready
-**Current Push:** Feature velocity - P6.2-P6.6 foundation complete, starting P6.7 Reader Engagement
-**Ship Readiness:** P0-P5 ✅ LIVE | P6.2-P6.6 MVP Ready (can ship as is) | Next: P6.7 Comments/Ratings (optional engagement feature)ming
+**Last Updated:** April 12, 2026 - 2:10 AM
+**Status:** Phase 0-5 ✅ 100% COMPLETE | Phase 6 🚀 P6.2 95% | P6.3 70% | P6.4 60% | P6.5 80% | P6.6 55% | P6.7 ACTIVE 25% | Production Shipping
+**Current Push:** High velocity - P6.7 backend API done, shipping comments UI next
+**Ship Readiness:** P0-P5 ✅ LIVE | P6.2-P6.6 MVP Ready | P6.7 (Comments) Foundation Completeming
 
 ---
 
@@ -1106,17 +1106,21 @@
 
 ### P6.7 Reader Comments & Ratings System
 
-**Status: ⏳ PLANNED - Reader Engagement Optional Feature**
+**Status: 25% COMPLETE - Backend API Foundation**
 
-- [ ] Backend: Comment creation and retrieval endpoints
-- [ ] Backend: Like/unlike comment functionality
-- [ ] Backend: Comment deletion (owner/admin only)
-- [ ] Backend: Rating submission and statistics aggregation
-- [ ] Backend: Sentiment analysis for comments
-- [ ] Frontend: CommentSection component with threading
-- [ ] Frontend: RatingsSection component with star ratings
-- [ ] Frontend: Reader identity handling (name/email)
-- [ ] Frontend: Moderation tools
+- [x] PublicComment model for reader comments with moderation
+- [x] PublicRating model for 5-star ratings with optional reviews
+- [x] Backend API: POST /public/shares/{token}/comments (create comment)
+- [x] Backend API: GET /public/shares/{token}/comments (list comments)
+- [x] Backend API: POST /public/shares/{token}/ratings (submit rating)
+- [x] Backend API: GET /public/shares/{token}/ratings (list ratings)
+- [x] Backend API: GET /public/shares/{token}/ratings/stats (rating statistics)
+- [x] Frontend types: public-comments.ts with all interfaces
+- [x] Frontend hooks: usePublicComments.ts with React Query integration
+- [ ] Frontend: Comments section component for share preview page
+- [ ] Frontend: Ratings section component with star display
+- [ ] Frontend: Review form UI for feedback modal
+- [ ] Frontend: Comment moderation interface for authors
 
 ### P6.8 Analytics Dashboard with Global Performance Tracking
 
