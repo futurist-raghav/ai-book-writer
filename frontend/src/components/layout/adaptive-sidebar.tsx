@@ -86,6 +86,12 @@ const GLOBAL_ITEMS: NavItem[] = [
     icon: 'storefront',
     moduleId: 'marketplace',
   },
+  {
+    href: '/dashboard/agents',
+    label: 'AI Agents',
+    icon: 'bolt',
+    moduleId: 'agents',
+  },
 ];
 
 // Settings and support are always shown
