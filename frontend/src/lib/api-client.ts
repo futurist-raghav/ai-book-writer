@@ -667,6 +667,51 @@ export const apiClient = {
     delete: async (bookId: string, entryId: string) =>
       api.delete(`/books/${bookId}/glossary/${entryId}`),
   },
+
+  // Classrooms & Assignments
+  classroom: {
+    // Classroom management
+    listClassrooms: async () =>
+      api.get('/classrooms'),
+    getClassroom: async (classroomId: string) =>
+      api.get(`/classrooms/${classroomId}`),
+    createClassroom: async (data: { title: string; description?: string; school_name?: string; is_public?: boolean }) =>
+      api.post('/classrooms', data),
+    updateClassroom: async (classroomId: string, data: Partial<{ title: string; description: string; is_public: boolean }>) =>
+      api.patch(`/classrooms/${classroomId}`, data),
+    deleteClassroom: async (classroomId: string) =>
+      api.delete(`/classrooms/${classroomId}`),
+
+    // Assignment management
+    listAssignments: async (classroomId?: string) =>
+      api.get('/assignments', { params: classroomId ? { classroom_id: classroomId } : {} }),
+    getAssignment: async (assignmentId: string) =>
+      api.get(`/assignments/${assignmentId}`),
+    createAssignment: async (classroomId: string, data: { title: string; description?: string; instructions?: string; due_date?: string; word_count_requirement?: number; rubric?: Record<string, any> }) =>
+      api.post(`/classrooms/${classroomId}/assignments`, data),
+    updateAssignment: async (assignmentId: string, data: Partial<{ title: string; description: string; instructions: string; due_date: string; word_count_requirement: number; rubric: Record<string, any> }>) =>
+      api.patch(`/assignments/${assignmentId}`, data),
+    deleteAssignment: async (assignmentId: string) =>
+      api.delete(`/assignments/${assignmentId}`),
+
+    // Submissions
+    submitAssignment: async (classroomId: string, data: { assignment_id: string; book_id?: string; submitted_text?: string }) =>
+      api.post(`/classrooms/${classroomId}/submissions`, data),
+    submitAssignmentFile: async (classroomId: string, formData: FormData) =>
+      api.post(`/classrooms/${classroomId}/submissions/file`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      }),
+    listSubmissions: async (assignmentId: string) =>
+      api.get(`/assignments/${assignmentId}/submissions`),
+    getSubmission: async (submissionId: string) =>
+      api.get(`/submissions/${submissionId}`),
+
+    // Grading
+    submitGrade: async (submissionId: string, data: { score: number; feedback?: string; rubric_scores?: Record<string, number> }) =>
+      api.post(`/submissions/${submissionId}/grade`, data),
+    updateGrade: async (gradeId: string, data: Partial<{ score: number; feedback: string; rubric_scores: Record<string, number> }>) =>
+      api.patch(`/grades/${gradeId}`, data),
+  },
 };
 
 // ============================================================================

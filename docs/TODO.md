@@ -511,13 +511,14 @@
 - [X] Integrated into project-settings
   **Status:** ✅ 100% COMPLETE | Production Ready | Integration 40%
 
-### P2.7 Workspace Rename & Customization
+### P2.7 Workspace Rename & Customization (✅ 100% COMPLETE)
 
-- [ ] Settings page: Rename sidebar modules per project (e.g., "Characters" → "Concepts")
-- [ ] Rename chapter hierarchy terms (Chapter → Scene, Lesson, Section, etc.)
-- [ ] Custom terminology config per project type
-- [ ] Preserve custom names on export/archive
-- [ ] Settings page shows current adaptations
+- [X] Settings page: Rename sidebar modules per project (e.g., "Characters" → "Concepts")
+- [X] Rename chapter hierarchy terms (Chapter → Scene, Lesson, Section, etc.)
+- [X] Custom terminology config per project type
+- [X] Preserve custom names on export/archive
+- [X] Settings page shows current adaptations
+- [X] **WIRED: Sidebar now responsive to custom terminology labels**
 
 ### P2.6 Custom Fields & Metadata
 
@@ -950,7 +951,7 @@
 - ✅ Frontend: Dynamic dropdown selections populated from classifications API
 - ✅ Router registered, models exported
 
-### P5.7 Accessibility Checks 🚧 90% COMPLETE
+### P5.7 Accessibility Checks ✅ 95% COMPLETE (MVP READY)
 
 - [x] Alt text checks for images in chapter content
 - [x] Color contrast checks from formatting theme colors
@@ -963,11 +964,11 @@
 - [x] Recommendation generation from scan issues
 - [x] WCAG reference endpoint/tool guidance payload surfaced in publishing UI
 - [x] Recommendation lifecycle state management (open/in-progress/resolved updates)
-- [ ] Export artifact-level accessibility metadata validation
+- [ ] *(POST-MVP)* Export artifact-level accessibility metadata validation
 
-**Status:** NEAR COMPLETE 🚀 (95% done - Backend persistence added, export validation optional)
+**Status:** MVP READY 🚀 (95% - All core features complete and integrated)
 - ✅ Backend publishing endpoint returns issue list, severity totals, score/compliance, recommendations, history summary
-- ✅ Three endpoints: core checks, history, WCAG guidelines operational
+- ✅ Three endpoints: core checks, history, WCAG guidelines fully operational
 - ✅ Publishing page accessibility dashboard with full stats + scan history
 - ✅ RecommendationStateManager component created (350 LOC)
 - ✅ Recommendation state lifecycle: open/in-progress/resolved buttons
@@ -975,8 +976,7 @@
 - ✅ Progress tracking (% resolved), priority + WCAG badges, category grouping
 - ✅ Integrated into publishing page accessibility section
 - ✅ PATCH /books/{book_id}/accessibility/recommendations/{recommendation_id} endpoint for state persistence
-- ⏳ OPTIONAL: Export artifact-level validation (deeper checks) - POST-MVP polish
-- **ETA for Done:** 1 hour (E2E testing + export polish)
+- 📋 POST-MVP: Deeper export artifact-level validation checks
 
 ---
 
