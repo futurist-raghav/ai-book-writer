@@ -1,7 +1,7 @@
 # AI Book Writer - Implementation Todo List
 
 **Last Updated:** April 12, 2026 - PHASE 7 FINAL STRETCH
-**Status:** Phase 0-5 ✅ 100% | Phase 6 ✅ 87.5% (7/8) | Phase 7 🚀 84% (P7.1-5✅ infrastructure / P7.6✅ infrastructure → P7.7)
+**Status:** Phase 0-5 ✅ 100% | Phase 6 ✅ 87.5% (7/8) | Phase 7 🚀 77% (P7.1-4✅ SHIPPED | P7.5 95% | P7.6 25% | P7.7 planned)
 **Current Focus:** P7.6 Mobile Apps (React Native Expo) → P7.7 Enterprise
 **Ship Readiness:** P0-P6 ✅ PROD-READY | P7.1-7.5 ✅ LIVE | P7.6 IN PROGRESS
 
@@ -1328,7 +1328,7 @@
 
 ### P7.6 Mobile Apps
 
-**Status: 🚀 KICKOFF - MVP STARTING THIS SESSION (Target: 30-50% complete)**
+**Status: 🚀 PHASE 1 IN PROGRESS - 25% COMPLETE**
 
 **React Native + Expo Architecture:**
 - Native iOS/Android apps with React Native
@@ -1336,34 +1336,39 @@
 - WatermelonDB for offline-first local storage
 - OAuth 2.0 with existing backend
 
-**Phase 1: Foundation (Auth + Navigation) - This session**
-- [ ] Initialize Expo project with TypeScript
-- [ ] Set up Expo Router (native navigation)
-- [ ] Configure App.json and eas.json for iOS/Android building
-- [ ] Implement secure OAuth login (reuse backend endpoints)
-- [ ] Set up SecureStore for token persistence
-- [ ] Create bottom navigation (Books, Chapters, Profile, Settings)
-- [ ] Initialize WatermelonDB offline storage
+**Phase 1: Foundation (Auth + Navigation) - 40% COMPLETE**
+- [X] Initialize Expo project with TypeScript
+- [X] Set up Expo Router (native navigation) with auth guard
+- [X] Configure App.json and eas.json for iOS/Android building
+- [X] Implement secure OAuth login (reuse backend endpoints)
+- [X] Set up SecureStore for token persistence
+- [X] Create bottom navigation (Books, Chapters, Explore, Profile)
+- [ ] Initialize WatermelonDB offline storage (next)
+- [X] Create all core navigation stacks and layouts
+- [X] Login/Register/Forgot Password screens
+- [X] Books list screen with pull-to-refresh
+- [X] Profile settings screen with theme toggle
+- [X] Chapter list and reader screens
 
-**Phase 2: Core Screens**
-- [ ] Books list screen (offline + live data)
-- [ ] Chapter list screen with filtering
-- [ ] Chapter reader screen (read-only)
-- [ ] Quick draft creation form
-- [ ] Profile & Settings screen
+**Phase 2: Core Screens - IN PROGRESS (80% COMPLETE)**
+- [X] Books list screen (TanStack Query + scroll)
+- [X] Chapter list screen with metadata
+- [X] Chapter reader screen (read-only + font size controls)
+- [ ] Quick draft creation form (next)
+- [X] Profile & Settings screen
 
-**Phase 3: Offline & Sync**
+**Phase 3: Offline & Sync - READY FOR IMPLEMENTATION**
 - [ ] WatermelonDB schema mirroring backend models
 - [ ] Action queue for offline writes
 - [ ] Sync engine (automatic on reconnect)
 - [ ] Conflict resolution (last-write-wins)
 - [ ] Offline indicator UI
 
-**Phase 4: Notifications & Polish**
+**Phase 4: Notifications & Polish - POST-MVP**
 - [ ] Push notification setup (Firebase Cloud Messaging)
 - [ ] Notification handlers (feedback, collaboration, streaks)
-- [ ] App theme switching (light/dark)
-- [ ] Error handling & retry logic
+- [ ] App theme switching (light/dark) - theme tokens ready
+- [ ] Error handling & retry logic - API interceptors ready
 - [ ] Performance optimization
 
 **Full Documentation:** See `/docs/P7.6_MOBILE_APPS_PLAN.md` for detailed architecture and implementation guide.
