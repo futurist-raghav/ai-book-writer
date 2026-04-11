@@ -105,6 +105,12 @@ const GLOBAL_ITEMS: NavItem[] = [
     moduleId: 'agents',
   },
   {
+    href: '/dashboard/writing-performance',
+    label: 'Writing Performance',
+    icon: 'analytics',
+    moduleId: 'writing_performance',
+  },
+  {
     href: '/dashboard/classrooms',
     label: 'Classrooms',
     icon: 'groups',
