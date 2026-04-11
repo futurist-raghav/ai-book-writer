@@ -16,6 +16,7 @@ import { WorkspaceCustomizationPanel } from '@/components/workspace-customizatio
 import { CustomFieldManager } from '@/components/custom-fields';
 import { ImportManager } from '@/components/import/ImportManager';
 import { ExportManager } from '@/components/export/ExportManager';
+import { CollaboratorManager } from '@/components/collaborator-manager';
 
 interface ProjectFormState {
   title: string;
@@ -582,6 +583,11 @@ export default function ProjectSettingsPage() {
       {/* Workspace Customization Section */}
       <div className="mt-8">
         <WorkspaceCustomizationPanel bookId={project.id} />
+      </div>
+
+      {/* Collaborators Section */}
+      <div className="mt-8">
+        <CollaboratorManager bookId={project.id} />
       </div>
 
       {/* Custom Fields Section */}

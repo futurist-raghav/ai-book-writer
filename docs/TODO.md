@@ -793,7 +793,7 @@
 - ✅ Frontend: CollaboratorManager component with invite form, role selector, removal (400+ lines)
 - ✅ Role permissions matrix: Owner | Editor | Contributor | Reviewer| Viewer
 - ✅ Invitation workflow with accept/reject flow
-- ⏳ Integration: Wire collaborator manager into book settings page
+- ✅ Integration: Wired collaborator manager into project-settings page (book settings)
 
 ### P4.5 Version History by Person ✅ 100% COMPLETE
 
