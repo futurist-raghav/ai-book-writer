@@ -111,6 +111,12 @@ const GLOBAL_ITEMS: NavItem[] = [
     moduleId: 'writing_performance',
   },
   {
+    href: '/dashboard/writing-motivation',
+    label: 'Motivation Hub',
+    icon: 'emoji_events',
+    moduleId: 'writing_motivation',
+  },
+  {
     href: '/dashboard/publishing-pipeline',
     label: 'Publishing Guide',
     icon: 'publish',
