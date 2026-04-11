@@ -27,6 +27,7 @@ from app.models.user import User  # noqa: F401
 from app.models.workspace_customization import WorkspaceCustomization  # noqa: F401
 from app.models.workspace import Workspace, WorkspaceMember, StyleGuide, WorkspaceTemplate, WorkspaceRole, WorkspaceStatus  # noqa: F401
 from app.models.marketplace_template import MarketplaceTemplate, TemplateReview, TemplateCategory  # noqa: F401
+from app.models.classroom import Classroom, ClassAssignment, ClassroomSubmission, ClassroomGrade, SubmissionFeedback, ClassroomRole, AssignmentStatus, SubmissionStatus  # noqa: F401
 
 __all__ = [
     "AudioFile",
@@ -85,5 +86,13 @@ __all__ = [
     "PublicShare",
     "BookFeedback",
     "BookRating",
+    "Classroom",
+    "ClassAssignment",
+    "ClassroomSubmission",
+    "ClassroomGrade",
+    "SubmissionFeedback",
+    "ClassroomRole",
+    "AssignmentStatus",
+    "SubmissionStatus",
 ]
 
