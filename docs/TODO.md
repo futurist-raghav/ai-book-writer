@@ -1,9 +1,9 @@
 # AI Book Writer - Implementation Todo List
 
-**Last Updated:** April 12, 2026 - 11:50 PM
-**Status:** Phase 0-5 ✅ 100% COMPLETE | Phase 6 🚀 P6.2 MARKETPLACE 95% | P6.3 AI AGENTS 70% | P6.4 ANALYTICS 50% | Production Ready
-**Current Phase:** P6.2 Template Marketplace (95% - publish wizard complete) | P6.3 AI Agents Dashboard (70% - core dashboard page + sidebar integration done) | P6.4 Analytics (50% - dashboard + backend metrics)
-**Ship Status:** P0-P5 LIVE | P6.2 Core MVP Complete | P6.3 Integrated | P6.4 Started
+**Last Updated:** April 12, 2026 - 12:00 AM
+**Status:** Phase 0-5 ✅ 100% COMPLETE | Phase 6 🚀 P6.2 MARKETPLACE 95% | P6.3 AI AGENTS 70% | P6.4 ANALYTICS 60% | Production Ready
+**Current Phase:** P6.3 AI Agents (70% dashboard integrated) | P6.4 Analytics (60% dashboard + advanced charts) | P6.5 Starting Next
+**Ship Status:** P0-P5 LIVE | P6.2 Core MVP Complete | P6.3 Integrated | P6.4 Charts Complete
 
 ---
 
@@ -1044,7 +1044,7 @@
 
 ### P6.4 Analytics & Writing Insights
 
-**Status: 50% COMPLETE - Dashboard Foundation**
+**Status: 60% COMPLETE - Dashboard + Charts**
 
 - [x] Backend: Analytics service (writing velocity, productivity, pacing)
 - [x] API: 5 endpoints (velocity, productivity, pacing, chapter-breakdown, full analytics)
@@ -1053,10 +1053,11 @@
 - [x] Frontend: Pacing analyzer with progress bars and estimated completion
 - [x] Frontend: Chapter breakdown with word counts
 - [x] Frontend: Period selector (7/14/30/90 days)
+- [x] Frontend: Advanced charts - velocity trend line, chapter pie chart, chapter bar chart
 - [x] Sidebar: Analytics link added to global navigation
-- [ ] Advanced charts: Line chart for velocity trend, pie charts for breakdown
-- [ ] Comparative analytics: Compare similar projects/genres
+- [ ] Comparative analytics: Compare with similar projects/genres
 - [ ] Export analytics reports (PDF/CSV)
+- [ ] Writing goal reminders and streak badges
 
 ### P6.5 Public Share & Feedback Pages
 
