@@ -7,9 +7,11 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from 
 import { Button } from '@/components/ui/button';
 import { TrendingUp, Zap, Calendar, Target, BarChart3 } from 'lucide-react';
 import { QueryErrorState } from '@/components/dashboard/QueryErrorState';
+import { VelocityLineChart, ChapterDistributionPie, ChapterComparisonBar } from '@/components/analytics-charts';
 
 export default function AnalyticsPage() {
-  const selectedBookId = useBookStore((state) => state.selectedBookId);
+  const selectedBook = useBookStore((state) => state.selectedBook);
+  const selectedBookId = selectedBook?.id || null;
   const [days, setDays] = useState(30);
 
   const { data: fullAnalytics, isLoading, isError, error, refetch } = useFullAnalytics(selectedBookId, days);
@@ -197,6 +199,16 @@ export default function AnalyticsPage() {
                       </p>
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* Advanced Charts */}
+              {velocity && <VelocityLineChart data={velocity} />}
+
+              {fullAnalytics?.chapter_breakdown && fullAnalytics.chapter_breakdown.length > 0 && (
+                <div className="grid gap-6 md:grid-cols-2">
+                  <ChapterDistributionPie data={fullAnalytics.chapter_breakdown} />
+                  <ChapterComparisonBar data={fullAnalytics.chapter_breakdown} />
                 </div>
               )}
 

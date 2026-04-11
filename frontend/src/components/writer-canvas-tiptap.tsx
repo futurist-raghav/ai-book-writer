@@ -22,6 +22,7 @@ import { ToneMeterModal } from '@/components/tone-meter-modal';
 import { ExerciseGeneratorModal } from '@/components/exercise-generator-modal';
 import { CommentPanel } from '@/components/comment-panel';
 import { SuggestionPanel } from '@/components/suggestion-panel';
+import { AgentPanel } from '@/components/agent-panel';
 import { CollaborationPresenceBar } from '@/components/collaboration-presence-bar';
 import { useRealtimeCollaboration } from '@/hooks/use-realtime-collaboration';
 import type { ProjectType } from '@/lib/project-types';
@@ -94,6 +95,7 @@ export function WriterCanvas({
   const [showExerciseGeneratorModal, setShowExerciseGeneratorModal] = useState(false);
   const [showCommentPanel, setShowCommentPanel] = useState(false);
   const [showSuggestionPanel, setShowSuggestionPanel] = useState(false);
+  const [showAgentPanel, setShowAgentPanel] = useState(false);
   const [presenceUsers, setPresenceUsers] = useState<any[]>([]);
   const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
   const containerRef = useRef<HTMLDivElement>(null);
@@ -827,6 +829,9 @@ export function WriterCanvas({
               <button onClick={() => setShowLatexInput(!showLatexInput)} className={`toolbar-btn ${showLatexInput ? 'toolbar-btn-active' : ''}`} title="Insert LaTeX">
                 <span className="material-symbols-outlined text-sm">functions</span>
               </button>
+              <button onClick={() => setShowAgentPanel(!showAgentPanel)} className={`toolbar-btn ${showAgentPanel ? 'toolbar-btn-active' : ''}`} title="AI Agents (Research, Verify, Tone, Cite)">
+                <span className="material-symbols-outlined text-sm">auto_awesome</span>
+              </button>
               <button onClick={() => editor.chain().focus().toggleCodeBlock().run()} className={`toolbar-btn ${editor.isActive('codeBlock') ? 'toolbar-btn-active' : ''}`} title="Code Block">
                 <span className="material-symbols-outlined text-sm">code</span>
               </button>
@@ -1054,6 +1059,39 @@ export function WriterCanvas({
         isOpen={showSuggestionPanel}
         onClose={() => setShowSuggestionPanel(false)}
       />
+
+      {/* AI Agents Panel */}
+      {showAgentPanel && (
+        <div className="fixed bottom-0 right-0 top-0 z-40 w-96 max-w-full overflow-y-auto border-l border-outline-variant/10 bg-white shadow-lg">
+          <div className="sticky top-0 z-10 flex items-center justify-between border-b border-outline-variant/10 bg-surface-container-lowest px-4 py-3">
+            <h3 className="font-semibold text-primary">AI Agents</h3>
+            <button
+              onClick={() => setShowAgentPanel(false)}
+              className="rounded-md p-1 hover:bg-surface-container-low"
+              title="Close"
+            >
+              <span className="material-symbols-outlined text-sm">close</span>
+            </button>
+          </div>
+          <div className="p-4">
+            <AgentPanel
+              selectedText={editor?.state.doc.textBetween(editor.state.selection.from, editor.state.selection.to) || ''}
+              genre={projectType?.toString() || 'novel'}
+              projectType={projectType?.toString() || 'novel'}
+              onInsertContent={(content) => {
+                if (editor) {
+                  editor
+                    .chain()
+                    .focus()
+                    .insertContent(content)
+                    .run();
+                  toast.success('Content inserted');
+                }
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       <style jsx>{`
         .toolbar-group {
