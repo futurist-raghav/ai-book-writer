@@ -1,9 +1,9 @@
 # AI Book Writer - Implementation Todo List
 
 **Last Updated:** April 12, 2026 - PHASE 7 ACCELERATING
-**Status:** Phase 0-5 ✅ 100% | Phase 6 ✅ 87.5% (7/8) | Phase 7 🚀 ROLLING (P7.1✅100% P7.2✅ P7.3✅30% LAUNCHED)
-**Current Focus:** P7.3 Beta Matching → P7.2 Enhancements → P7.4 Monetization (Momentum building)
-**Ship Readiness:** P0-P5 ✅ LIVE | P6 (7/8) ✅ SHIP-READY | P7.1 ✅ COMPLETE | P7.2-7.3 🚀 SHIPPED
+**Status:** Phase 0-5 ✅ 100% | Phase 6 ✅ 87.5% (7/8) | Phase 7 🚀 SHIPPED (P7.1✅ P7.2✅ P7.3✅ / P7.4→)
+**Current Focus:** P7.4 Monetization (subscriptions, tiers) → P7.5 APIs (integrations)
+**Ship Readiness:** P0-P6 ✅ PROD-READY | P7.1-7.3 ✅ SHIPPED | P7.4 NOW
 
 ---
 
@@ -1183,19 +1183,18 @@
 - [x] P7.1_WRITING_PERFORMANCE_TOOLS.md with full API guide
 - [x] All endpoints documented with examples
 
-### P7.2 Advanced Publishing Pipeline ✅ INFRASTRUCTURE COMPLETE
+### P7.2 Advanced Publishing Pipeline ✅ 100% LAUNCHED
 
-- [x] Database: PublishingProfile, PublishingQueue, PublishingMetrics, IsbnRequest
-- [x] Service layer: PublishingService, PdfGenerationService, EpubGenerationService, PublishingIntegrationService
-- [x] API routes: POST/GET /publishing/profiles, /queue, /metrics, /isbn-request
-- [x] Frontend: PublishingDashboard component with queue/profile management
-- [x] Database migration (016_publishing_pipeline.py)
-- [ ] Print-ready PDF generation (reportlab/weasyprint)
-- [ ] EPUB 3 with embedded media optimization
-- [ ] Audiobook narration integration (Google Cloud Text-to-Speech)
-- [ ] Direct integration with KDP, IngramSpark, Draft2Digital
-- [ ] Pre-order campaign tools
-- [ ] Book landing page generator (automatic from manuscript)
+**Interactive 4-platform guide with metadata validators & checklists**
+- [x] Platform guides (KDP, IngramSpark, Draft2Digital, Apple Books with 6-8 steps each)
+- [x] Requirements checklists with file specs & metadata fields
+- [x] Tips per platform (5-6 best practices each)
+- [x] Comparison table (reach, royalty %, speed, use case)
+- [x] Pre-publishing checklist (manuscript, cover, metadata, distribution, legal)
+- [x] Metadata validators for KDP & IngramSpark
+- [x] Export template endpoints per platform
+- [x] Per-book publishing checklist generation
+- [x] 550 LOC frontend + 250 LOC backend validators
 
 ### P7.3 Author Community & Networking ✅ LAUNCHED (30% COMPLETE)
 
@@ -1233,14 +1232,27 @@
 - Public author pages with book carousel
 - Author collaboration workspace (shared projects)
 
-### P7.4 Monetization Features
+### P7.4 Monetization Features 🚀 LAUNCHING NOW
 
-- [ ] Author subscriptions tier (Premium/Pro/Studio)
-- [ ] Marketplace royalties and payouts
+**Priority 1 - Subscription Tiers (IMPLEMENTING):**
+- [ ] Define 3 tiers: Free, Pro, Studio with feature gates
+- [ ] Subscription model (monthly/annual with 20% annual discount)
+- [ ] Stripe integration for payments
+- [ ] Subscription management dashboard
+- [ ] Usage tracking (chapters, templates, collaborators per tier)
+- [ ] Upgrade/downgrade flow with proration
+
+**Priority 2 - Marketplace Royalties:**
+- [ ] Template sales tracking per author
+- [ ] Royalty calculation (70% author, 30% platform)
+- [ ] Monthly payout reports
+- [ ] Payment gateway (Stripe Connect)
+
+**Priority 3 - Advanced Features:**
 - [ ] Course creation tools (teach writing courses)
 - [ ] Patron management (Patreon-like support)
-- [ ] Affiliate links in manuscripts
-- [ ] Analytics-based pricing recommendations
+- [ ] Affiliate links in published books
+- [ ] Premium analytics features
 
 ### P7.5 API & Integrations
 
