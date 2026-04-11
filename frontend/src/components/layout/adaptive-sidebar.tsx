@@ -135,6 +135,12 @@ const GLOBAL_ITEMS: NavItem[] = [
     moduleId: 'author_messages',
   },
   {
+    href: '/dashboard/subscription',
+    label: 'Subscription',
+    icon: 'star',
+    moduleId: 'subscription',
+  },
+  {
     href: '/dashboard/classrooms',
     label: 'Classrooms',
     icon: 'groups',
