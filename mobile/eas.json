@@ -1,6 +1,7 @@
 {
   "cli": {
-    "version": ">= 5.0.0"
+    "version": ">= 5.0.0",
+    "promptToConfigurePushNotifications": true
   },
   "build": {
     "production": {
@@ -9,23 +10,41 @@
       "env": {
         "EXPO_USE_FAST_RESOLVER": "true",
         "EXPO_USE_EXOTIC": "true"
+      },
+      "android": {
+        "buildType": "release"
+      },
+      "ios": {
+        "enterpriseRegistrationEnabled": false
       }
     },
     "preview": {
       "distribution": "internal",
       "node": "18.13.0",
-      "yarn": "3.6.0"
+      "yarn": "3.6.0",
+      "android": {
+        "buildType": "release"
+      }
     },
     "development": {
       "distribution": "internal",
       "node": "18.13.0",
-      "yarn": "3.6.0"
+      "yarn": "3.6.0",
+      "android": {
+        "buildType": "debug"
+      },
+      "ios": {
+        "simulator": true
+      }
     }
   },
   "submit": {
     "production": {
       "ios": {
         "ascAppId": "6739271841"
+      },
+      "android": {
+        "serviceAccountKeyPath": "./secrets/google-services.json"
       }
     }
   }
