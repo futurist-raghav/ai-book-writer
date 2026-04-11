@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { ArrowLeft, Plus } from 'lucide-react';
 import Link from 'next/link';
-import { apiClient } from '@/lib/api-client';
+import { apiClient, api } from '@/lib/api-client';
 
 interface PublishTemplateFormData {
   name: string;
@@ -44,8 +44,8 @@ export default function PublishTemplatePage() {
   const { data: booksData } = useQuery({
     queryKey: ['books'],
     queryFn: async () => {
-      const response = await apiClient.get('/books?limit=100');
-      return response.data.books || [];
+      const response = await apiClient.books.list({ limit: 100 });
+      return response.data;
     },
   });
 
@@ -62,11 +62,11 @@ export default function PublishTemplatePage() {
     setIsLoadingBookContent(true);
     try {
       // Fetch book details including chapters and metadata
-      const bookResponse = await apiClient.get(`/books/${bookId}`);
-      const book = bookResponse.data;
+      const book = await apiClient.books.get(bookId);
+      const bookData = book.data;
       
-      // Fetch chapters for structure
-      const chaptersResponse = await apiClient.get(`/books/${bookId}/chapters?limit=100`);
+      // Fetch chapters for structure using api directly since not in apiClient
+      const chaptersResponse = await api.get(`/books/${bookId}/chapters?limit=100`);
       const chapters = chaptersResponse.data.chapters || [];
       
       // Build chapter structure
@@ -79,11 +79,11 @@ export default function PublishTemplatePage() {
       
       // Extract initial metadata from book
       const initialMetadata = {
-        title: book.title,
-        project_type: book.project_type,
-        status: book.status,
-        created_at: book.created_at,
-        word_count: book.word_count,
+        title: bookData.title,
+        project_type: bookData.project_type,
+        status: bookData.status,
+        created_at: bookData.created_at,
+        word_count: bookData.word_count,
       };
       
       // Update form data with extracted content
@@ -92,7 +92,7 @@ export default function PublishTemplatePage() {
         chapter_structure: chapterStructure,
         initial_metadata: initialMetadata,
         // Auto-set category from project type if available
-        category: book.project_type || prev.category,
+        category: bookData.project_type || prev.category,
       }));
       
     } catch (error) {
@@ -105,7 +105,7 @@ export default function PublishTemplatePage() {
 
   const publishMutation = useMutation({
     mutationFn: async (data: PublishTemplateFormData) => {
-      const response = await axios.post('/api/v1/templates/marketplace', data);
+      const response = await api.post('/templates/marketplace', data);
       return response.data;
     },
     onSuccess: (data) => {
@@ -243,6 +243,7 @@ export default function PublishTemplatePage() {
 
               <div className="border-t pt-4">
                 {/* Subsection: Template Details */}
+                <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Template Name *
@@ -355,7 +356,9 @@ export default function PublishTemplatePage() {
                   Make template public (visible to all users)
                 </label>
               </div>
-            </div>
+                </div>  {/* Close space-y-4 inner div */}
+              </div>    {/* Close border-t outer div */}
+            </div>       {/* Close original space-y-4 div */}
 
             <div className="mt-8 flex justify-between">
               <Button variant="outline" disabled>

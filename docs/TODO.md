@@ -1,9 +1,9 @@
 # AI Book Writer - Implementation Todo List
 
-**Last Updated:** April 12, 2026 - 10:15 PM
-**Status:** Phase 0-5 ✅ 100% COMPLETE | Phase 6 🚀 P6.2 MARKETPLACE IN PROGRESS (50%) | Ready for E2E Testing + Production Deploy
-**Current Phase:** Phase 5 Complete | Phase 6.2 Template Marketplace Browse/Review Core Features
-**Ship Status:** P0-P5 LIVE | P6.2 Core Browse/Review FEATURE COMPLETE | Template Publishing Wizard Coming Soon
+**Last Updated:** April 12, 2026 - 10:45 PM
+**Status:** Phase 0-5 ✅ 100% COMPLETE | Phase 6 🚀 P6.2 MARKETPLACE 80% | P6.3 AI AGENTS STARTING | Ready for E2E Testing
+**Current Phase:** P6.2 Template Marketplace (80% - core + publish + use template) | Starting P6.3 Premium AI Agents
+**Ship Status:** P0-P5 LIVE | P6.2 Template Browse/Review/Publish/Use COMPLETE | P6.3 Research Agent Coming
 
 ---
 
@@ -1007,29 +1007,36 @@
 
 ### P6.2 Template Marketplace �
 
-**Status: 70% COMPLETE - Core Browse/Review System Live + Publishing Wizard Started**
+**Status: 80% COMPLETE - Core Marketplace Fully Functional**
 
-- [x] Backend: Marketplace models (MarketplaceTemplate, TemplateReview, TemplateCategory)
-- [x] Backend: 15+ API endpoints (browse, search, create, update, delete, reviews, favorites, categories)
+- [x] Backend: Marketplace models (MarketplaceTemplate, TemplateReview, TemplateCategory)  
+- [x] Backend: 15+ API endpoints (browse, search, create, update, delete, reviews, favorites)
 - [x] Frontend: Browse/search with filtering, sorting (popularity/rating/recent/trending), pagination
 - [x] Frontend: Template detail page with reviews, ratings, creator info, usage stats
 - [x] Frontend: User template management ("My Templates" page)
 - [x] Frontend: Rate/review templates (1-5 stars, title, content)
 - [x] Frontend: Favorite templates with toggle + favorites list
-- [x] Frontend: Navigation integration (Marketplace link added to sidebar under global items)
-- [x] Frontend: Publish template wizard (3-step: details → content → review) - STARTED
-- [ ] Button: "Use This Template" integration (create book from template)
-- [ ] Template analytics page (views, ratings over time, usage trends)
-- [ ] Admin: Template verification/moderation tools
-- [ ] UI: Premium template badges + pricing tier selection
-- [ ] Optional: Payment integration for premium templates (Phase 6.2 v2)
+- [x] Frontend: Navigation integration (Marketplace link on sidebar)
+- [x] Frontend: Publish template wizard (3-step: details → content → review)
+- [x] Frontend: "Use This Template" button (create book from template)
+- [ ] Template analytics page - Optional v2
+- [ ] Admin: Template verification/moderation - Optional v2
 
-### P6.3 Premium AI Agents
+### P6.3 Premium AI Agents 🤖
 
+**Status: STARTING (0% - Architecture Phase)**
+
+- [ ] Backend: Agent service layer with Gemini API (40% impact)
+- [ ] API: POST /ai/agents/research (topic, context_length) → {sources, facts, citations}
+- [ ] API: POST /ai/agents/fact-check (text_snippet, knowledge_domain) → {claims, verification}
+- [ ] API: POST /ai/agents/tone-analyze (text, genre/project_type) → {analysis, suggestions}
+- [ ] API: POST /ai/agents/cite (research_results) → {bibliography_entries}
 - [ ] Agentic research assistant: "Research [topic]" returns curated sources and facts
-- [ ] Auto-citation assistance
-- [ ] Fact-checker agent
-- [ ] Tone coach agent
+- [ ] Auto-citation assistance: Parse research + extract bibliography entries  
+- [ ] Fact-checker agent: Verify manuscript claims against knowledge base
+- [ ] Tone coach agent: Analyze text + suggest improvements per genre
+- [ ] Frontend: Agent commands in Writer Assistant quick menu
+- [ ] Frontend: Result panels with source citations + accept/insert/edit actions
 
 ### P6.4 Analytics & Writing Insights
 
