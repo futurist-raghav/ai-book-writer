@@ -1,9 +1,9 @@
 # AI Book Writer - Implementation Todo List
 
 **Last Updated:** April 12, 2026 - PHASE 7 ACCELERATING
-**Status:** Phase 0-5 ✅ 100% | Phase 6 ✅ 87.5% (7/8) | Phase 7 🚀 ACCELERATING (P7.1✅ P7.2✅ P7.3✅ infrastructure)
-**Current Focus:** P7.1 Complete → P7.2 Publishing Pipeline → P7.3 Community (Rapid iteration)
-**Ship Readiness:** P0-P5 ✅ LIVE | P6 (7/8) ✅ SHIP-READY | P7 🚀 FEATURES ROLLING OUT
+**Status:** Phase 0-5 ✅ 100% | Phase 6 ✅ 87.5% (7/8) | Phase 7 🚀 ROLLING (P7.1✅ P7.2✅ P7.3✅ LAUNCHED)
+**Current Focus:** P7.2 Enhancements → P7.3 Beta Matching → P7.4 Monetization (Momentum building)
+**Ship Readiness:** P0-P5 ✅ LIVE | P6 (7/8) ✅ SHIP-READY | P7.1-7.3 🚀 LAUNCHED | P7.4+ QUEUED
 
 ---
 
@@ -1177,16 +1177,41 @@
 - [ ] Pre-order campaign tools
 - [ ] Book landing page generator (automatic from manuscript)
 
-### P7.3 Author Community & Networking ✅ INFRASTRUCTURE COMPLETE
+### P7.3 Author Community & Networking ✅ LAUNCHED (30% COMPLETE)
 
-- [x] Database: AuthorProfile, BetaReaderProfile, BetaReaderMatch, WritingGroup, WritingGroupMember, AuthorMessage, PublicAuthorPage, AuthorCollaboration
-- [x] Service layer: AuthorCommunityService, BetaReaderService, WritingGroupService, AuthorMessagingService, AuthorCollaborationService
-- [x] API routes: /community/* endpoints for profiles, messages, groups, beta matching, collaboration
-- [x] Database migration (017_author_community.py)
-- [ ] Author directory and discovery (search/filter)
-- [ ] Beta reader matching algorithm (ML-based)
-- [ ] Writing group moderation features
-- [ ] Public author pages (book listings, reader reviews)
+**Status: LAUNCHED** 🚀 Author directory, profiles, and messaging implemented. Beta reader matching in progress.
+
+**Frontend:**
+- [x] Author directory/discovery page with search, genre filters, sorting
+- [x] Individual author profile pages with bio, genres, books, ratings
+- [x] Author-to-author messaging system (inbox, compose, read status)
+- [x] Beta reader matching request system
+- [ ] Writing groups creation and management
+- [ ] Public author portfolio pages
+- [ ] Author collaboration workspace
+
+**Backend:**
+- [x] `/authors` - Author discovery endpoint with filtering/sorting
+- [x] `/authors/{id}` - Get author profile with stats
+- [x] `/messages/*` - Message send, inbox, read status endpoints
+- [x] `/beta-reader-matches/*` - Beta reader match request/listing
+- [ ] Writing group endpoints (create, join, moderation)
+- [ ] Public author page API
+- [ ] Collaboration API (projects sharing between authors)
+
+**Database Models:**
+- [x] AuthorProfile (bio, genres, writing style, social links, beta reader status)
+- [x] AuthorMessage (sender, recipient, subject, body, read status)
+- [x] BetaReaderMatch (author, reader, match score)
+- [ ] WritingGroup (name, creator, members, settings)
+- [ ] WritingGroupMember (user, group, role, joined_at)
+- [ ] PublicAuthorPage (book listings, verified status, social verify)
+
+**Next Steps (P7.3.1):**
+- Writing groups with invite system 
+- ML-based beta reader matching (genre/style compatibility)
+- Public author pages with book carousel
+- Author collaboration workspace (shared projects)
 
 ### P7.4 Monetization Features
 
