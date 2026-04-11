@@ -164,6 +164,12 @@ const GLOBAL_ITEMS: NavItem[] = [
     icon: 'bar_chart',
     moduleId: 'analytics',
   },
+  {
+    href: '/dashboard/integrations',
+    label: 'Integrations',
+    icon: 'api',
+    moduleId: 'integrations',
+  },
 ];
 
 // Settings and support are always shown
