@@ -1,9 +1,9 @@
 # AI Book Writer - Implementation Todo List
 
-**Last Updated:** April 12, 2026 - 12:00 AM
-**Status:** Phase 0-5 ✅ 100% COMPLETE | Phase 6 🚀 P6.2 MARKETPLACE 95% | P6.3 AI AGENTS 70% | P6.4 ANALYTICS 60% | Production Ready
-**Current Phase:** P6.3 AI Agents (70% dashboard integrated) | P6.4 Analytics (60% dashboard + advanced charts) | P6.5 Starting Next
-**Ship Status:** P0-P5 LIVE | P6.2 Core MVP Complete | P6.3 Integrated | P6.4 Charts Complete
+**Last Updated:** April 12, 2026 - 12:05 AM
+**Status:** Phase 0-5 ✅ 100% COMPLETE | Phase 6 🚀 P6.2 MARKETPLACE 95% | P6.3 AI AGENTS 90% | P6.4 ANALYTICS 60% | Production Ready
+**Current Phase:** P6.2 Template Marketplace (95% complete) | P6.3 AI Agents (90% complete - dashboard + editor integration) | P6.4 Analytics Starting
+**Ship Status:** P0-P5 LIVE | P6.2 Core MVP Complete | P6.3 Agents Integrated into Editor | P6.4 Charts Complete
 
 ---
 
@@ -1038,7 +1038,7 @@
 - [x] Frontend hooks: useResearchAgent, useFactCheckAgent, useToneAnalyzeAgent, useCitationAgent
 - [x] Dashboard: Dedicated /dashboard/agents page with AgentPanel
 - [x] Navigation: AI Agents link added to main sidebar (GLOBAL_ITEMS)
-- [ ] Integration: AgentPanel integrated into chapter editor sidebar
+- [x] Integration: AgentPanel integrated into chapter editor sidebar (right-side drawer)
 - [ ] Streaming: Long-running agent responses with streaming UI
 - [ ] Usage tracking: Track agent usage per user + rate limiting
 
