@@ -13,7 +13,17 @@ import { useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import { Spinner } from '@/components/ui/spinner';
 import { toast } from 'sonner';
 import { useProjectContext } from '@/stores/project-context';
+import { useAuthStore } from '@/stores/auth-store';
 import { useTerminology } from '@/lib/terminology';
+import { RewriteWithDiff } from '@/components/rewrite-with-diff';
+import { CitationSuggestionsModal } from '@/components/citation-suggestions-modal';
+import { VoiceNoteModal } from '@/components/voice-note-modal';
+import { ToneMeterModal } from '@/components/tone-meter-modal';
+import { ExerciseGeneratorModal } from '@/components/exercise-generator-modal';
+import { CommentPanel } from '@/components/comment-panel';
+import { SuggestionPanel } from '@/components/suggestion-panel';
+import { CollaborationPresenceBar } from '@/components/collaboration-presence-bar';
+import { useRealtimeCollaboration } from '@/hooks/use-realtime-collaboration';
 import type { ProjectType } from '@/lib/project-types';
 
 interface WriterCanvasProps {
@@ -42,6 +52,7 @@ export function WriterCanvas({
   projectType,
 }: WriterCanvasProps) {
   const { updateChapterContent, updateChapterEditorState } = useProjectContext();
+  const accessToken = useAuthStore((state) => state.accessToken);
   const terminology = useTerminology(projectType);
   const [isSaving, setIsSaving] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
@@ -75,6 +86,16 @@ export function WriterCanvas({
     suggestion: string;
     position: number;
   }>>([]);
+  const [showRewriteModal, setShowRewriteModal] = useState(false);
+  const [selectedTextForRewrite, setSelectedTextForRewrite] = useState('');
+  const [showCitationSuggestionsModal, setShowCitationSuggestionsModal] = useState(false);
+  const [showVoiceNoteModal, setShowVoiceNoteModal] = useState(false);
+  const [showToneMeterModal, setShowToneMeterModal] = useState(false);
+  const [showExerciseGeneratorModal, setShowExerciseGeneratorModal] = useState(false);
+  const [showCommentPanel, setShowCommentPanel] = useState(false);
+  const [showSuggestionPanel, setShowSuggestionPanel] = useState(false);
+  const [presenceUsers, setPresenceUsers] = useState<any[]>([]);
+  const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
   const containerRef = useRef<HTMLDivElement>(null);
   const editorContainerRef = useRef<HTMLDivElement>(null);
   const previousContentRef = useRef<string>(initialContent);
@@ -120,6 +141,17 @@ export function WriterCanvas({
     },
   });
 
+  const getSelectedEditorText = useCallback(() => {
+    if (!editor) {
+      return '';
+    }
+    const { from, to } = editor.state.selection;
+    if (from === to) {
+      return '';
+    }
+    return editor.state.doc.textBetween(from, to, ' ').trim();
+  }, [editor]);
+
   // Handle keyboard shortcuts for zen mode and other modes
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -150,11 +182,84 @@ export function WriterCanvas({
         setIsTrackingChanges(!isTrackingChanges);
         toast.success(isTrackingChanges ? 'Change tracking disabled' : 'Change tracking enabled. All edits will be marked.');
       }
+
+      // Ctrl+Shift+R or Cmd+Shift+R for rewrite
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'R') {
+        e.preventDefault();
+        if (!editor) return;
+        const selectedText = getSelectedEditorText();
+        if (!selectedText.trim()) {
+          toast.error('Please select some text to rewrite');
+          return;
+        }
+        setSelectedTextForRewrite(selectedText);
+        setShowRewriteModal(true);
+      }
+
+      // Ctrl+Shift+K or Cmd+Shift+K for citation suggestions
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'K') {
+        e.preventDefault();
+        setShowCitationSuggestionsModal(true);
+        toast.info('Analyzing chapter for citation opportunities...');
+      }
+
+      // Ctrl+Shift+V or Cmd+Shift+V for voice notes
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'V') {
+        e.preventDefault();
+        setShowVoiceNoteModal(true);
+        toast.info('Voice note converter ready');
+      }
+
+      // Ctrl+Shift+M or Cmd+Shift+M for tone meter
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'M') {
+        e.preventDefault();
+        setShowToneMeterModal(true);
+        toast.info('Tone analysis ready. Cmd/Ctrl+Shift+M');
+      }
+
+      // Ctrl+Shift+E or Cmd+Shift+E for exercises
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'E') {
+        e.preventDefault();
+        setShowExerciseGeneratorModal(true);
+        toast.info('Exercise generator ready. Cmd/Ctrl+Shift+E');
+      }
+
+      // Ctrl+Shift+S or Cmd+Shift+S for suggestions / track changes
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'S') {
+        e.preventDefault();
+        setShowSuggestionPanel(!showSuggestionPanel);
+        toast.info(showSuggestionPanel ? 'Suggestion mode closed' : 'Suggestion mode activated (Cmd/Ctrl+Shift+S)');
+      }
+
+      // Ctrl+/ or Cmd+/ for comments (comment toggle)
+      if ((e.ctrlKey || e.metaKey) && e.key === '/') {
+        e.preventDefault();
+        setShowCommentPanel(!showCommentPanel);
+        toast.info(showCommentPanel ? 'Comments panel closed' : 'Comments panel opened');
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isZenMode, isTypewriterMode, isTrackingChanges]);
+  }, [isZenMode, isTypewriterMode, isTrackingChanges, editor, getSelectedEditorText]);
+
+  // Initialize real-time collaboration
+  const { isConnected } = useRealtimeCollaboration({
+    chapterId,
+    token: accessToken || '',
+    onPresenceUpdate: (users) => setPresenceUsers(users),
+    onUserTyping: (userId, isTyping) => {
+      setTypingUsers((prev) => {
+        const updated = new Set(prev);
+        if (isTyping) {
+          updated.add(userId);
+        } else {
+          updated.delete(userId);
+        }
+        return updated;
+      });
+    },
+  });
 
   // Handle typewriter mode scrolling - keeps cursor centered
   useEffect(() => {
@@ -256,6 +361,56 @@ export function WriterCanvas({
       setIsSaving(false);
     }
   }, [editor, onSave]);
+
+  const handleRewriteApply = useCallback((rewrittenText: string) => {
+    if (!editor) return;
+    
+    // Replace the selected text or insert at cursor if nothing selected
+    editor
+      .chain()
+      .focus()
+      .deleteSelection()
+      .insertContent(rewrittenText)
+      .run();
+    
+    setShowRewriteModal(false);
+    setSelectedTextForRewrite('');
+    toast.success('Text rewritten and applied');
+  }, [editor]);
+
+  const handleRewriteCancel = useCallback(() => {
+    setShowRewriteModal(false);
+    setSelectedTextForRewrite('');
+  }, []);
+
+  const handleVoiceNoteDraftApply = useCallback((draftContent: string) => {
+    if (!editor) return;
+    
+    editor
+      .chain()
+      .focus()
+      .insertContent(draftContent)
+      .run();
+    
+    setShowVoiceNoteModal(false);
+    toast.success('Voice draft inserted into chapter');
+  }, [editor]);
+
+  const handleRewriteClick = useCallback(() => {
+    if (!editor) {
+      toast.error('Editor not loaded');
+      return;
+    }
+
+    const selectedText = getSelectedEditorText();
+    if (!selectedText.trim()) {
+      toast.error('Please select some text to rewrite');
+      return;
+    }
+    
+    setSelectedTextForRewrite(selectedText);
+    setShowRewriteModal(true);
+  }, [editor, getSelectedEditorText]);
 
   const handleFind = useCallback(() => {
     if (!editor || !findText) return;
@@ -460,6 +615,16 @@ export function WriterCanvas({
           : `rounded-xl border border-outline-variant/10 ${compactMode ? 'max-h-[760px]' : 'min-h-[78vh]'}`
       } ${isZenMode ? 'zen-mode' : ''}`}
     >
+      {/* Real-time Collaboration Presence Bar */}
+      {!isZenMode && (
+        <CollaborationPresenceBar
+          users={presenceUsers}
+          currentUserId={undefined}
+          isConnected={isConnected}
+          typingUsers={typingUsers}
+        />
+      )}
+
       {!isZenMode && (
         <div className="flex flex-col gap-2 border-b border-outline-variant/10 bg-surface-container-lowest px-6 py-4 md:flex-row md:items-end md:justify-between">
           <div>
@@ -632,6 +797,27 @@ export function WriterCanvas({
 
             {/* Advanced Features */}
             <div className="toolbar-group">
+              <button onClick={handleRewriteClick} className="toolbar-btn" title="Rewrite Selected Text (Ctrl+Shift+R)">
+                <span className="material-symbols-outlined text-sm">auto_awesome</span>
+              </button>
+              <button onClick={() => setShowCitationSuggestionsModal(true)} className="toolbar-btn" title="Suggest Citations (Ctrl+Shift+K)">
+                <span className="material-symbols-outlined text-sm">auto_cite</span>
+              </button>
+              <button onClick={() => setShowVoiceNoteModal(true)} className="toolbar-btn" title="Voice Note to Draft (Ctrl+Shift+V)">
+                <span className="material-symbols-outlined text-sm">mic</span>
+              </button>
+              <button onClick={() => setShowToneMeterModal(true)} className="toolbar-btn" title="Tone Analysis (Ctrl+Shift+M)">
+                <span className="material-symbols-outlined text-sm">tune</span>
+              </button>
+              <button onClick={() => setShowExerciseGeneratorModal(true)} className="toolbar-btn" title="Generate Exercises (Ctrl+Shift+E)">
+                <span className="material-symbols-outlined text-sm">quiz</span>
+              </button>
+              <button onClick={() => setShowCommentPanel(!showCommentPanel)} className={`toolbar-btn ${showCommentPanel ? 'toolbar-btn-active' : ''}`} title="Comments Panel (Cmd/Ctrl+/)">
+                <span className="material-symbols-outlined text-sm">comment</span>
+              </button>
+              <button onClick={() => setShowSuggestionPanel(!showSuggestionPanel)} className={`toolbar-btn ${showSuggestionPanel ? 'toolbar-btn-active' : ''}`} title="Suggestions / Track Changes (Cmd/Ctrl+Shift+S)">
+                <span className="material-symbols-outlined text-sm">edit_note</span>
+              </button>
               <button onClick={performGrammarCheck} className="toolbar-btn" title="Grammar Check">
                 <span className="material-symbols-outlined text-sm">spellcheck</span>
               </button>
@@ -808,6 +994,66 @@ export function WriterCanvas({
           </button>
         </div>
       )}
+
+      {/* Rewrite Modal */}
+      {showRewriteModal && (
+        <RewriteWithDiff
+          chapterId={chapterId}
+          selectedText={selectedTextForRewrite}
+          onApply={handleRewriteApply}
+          onCancel={handleRewriteCancel}
+        />
+      )}
+
+      {/* Citation Suggestions Modal */}
+      {showCitationSuggestionsModal && (
+        <CitationSuggestionsModal
+          chapterId={chapterId}
+          onCancel={() => setShowCitationSuggestionsModal(false)}
+        />
+      )}
+
+      {/* Voice Note Modal */}
+      {showVoiceNoteModal && (
+        <VoiceNoteModal
+          chapterId={chapterId}
+          onApply={handleVoiceNoteDraftApply}
+          onCancel={() => setShowVoiceNoteModal(false)}
+        />
+      )}
+
+      {/* Tone Meter Modal */}
+      {showToneMeterModal && (
+        <ToneMeterModal
+          chapterId={chapterId}
+          isOpen={showToneMeterModal}
+          onClose={() => setShowToneMeterModal(false)}
+        />
+      )}
+
+      {/* Exercise Generator Modal */}
+      {showExerciseGeneratorModal && (
+        <ExerciseGeneratorModal
+          chapterId={chapterId}
+          isOpen={showExerciseGeneratorModal}
+          onClose={() => setShowExerciseGeneratorModal(false)}
+        />
+      )}
+
+      {/* Comment Panel */}
+      <CommentPanel
+        bookId={chapterId.split('-')[0]} // Extract book ID from chapter ID (simplified)
+        chapterId={chapterId}
+        isOpen={showCommentPanel}
+        onClose={() => setShowCommentPanel(false)}
+      />
+
+      {/* Suggestion Panel / Track Changes */}
+      <SuggestionPanel
+        chapterId={chapterId}
+        isOpen={showSuggestionPanel}
+        onClose={() => setShowSuggestionPanel(false)}
+      />
 
       <style jsx>{`
         .toolbar-group {

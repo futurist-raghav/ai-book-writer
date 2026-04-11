@@ -1,3 +1,13 @@
+# Session Index Addendum - April 11, 2026
+
+## Latest Publishing Sessions
+
+- `SESSION_P5_3_TITLE_TOC_BUILDER_SLICE.md` - P5.3 title page + TOC builder slice
+- `SESSION_P5_7_ACCESSIBILITY_CHECKS_SLICE.md` - P5.7 accessibility checks + history/recommendation/guidance hardening slice
+- `TODO.md` and `NEXT.md` are the current execution-truth trackers for active Phase 5 work
+
+---
+
 # Session: P2.3 & P2.4 Complete - April 10, 2026
 
 **Status:** ✅ **COMPLETE** | Two phases shipped | 6,305 lines | 108+ tests

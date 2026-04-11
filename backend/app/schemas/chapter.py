@@ -359,3 +359,54 @@ class ChapterChatResponse(BaseModel):
     assistant_message: str
     rewritten_excerpt: Optional[str] = None
     metadata: Dict[str, int]
+
+
+# ============== Suggestion / Track Changes Schemas ==============
+
+
+class SuggestionCreate(BaseModel):
+    """Schema for creating a suggestion."""
+
+    suggestion_type: Literal[
+        "rewrite", "expand", "shorten", "rephrase", "tone", "grammar", "style"
+    ] = Field(..., description="Type of suggestion")
+    text_before: str = Field(..., description="Original text")
+    text_after: str = Field(..., description="Suggested replacement")
+    position: int = Field(..., ge=0, description="Start position in chapter content")
+    length: int = Field(..., ge=0, description="Length of text being replaced")
+    reason: Optional[str] = Field(None, description="Why this suggestion is made")
+
+
+class SuggestionResponse(BaseSchema, IDMixin, TimestampMixin):
+    """Response schema for a suggestion."""
+
+    chapter_id: UUID
+    author_id: UUID
+    author: Optional[Dict] = Field(None, description="Author info (name, avatar, etc)")
+    suggestion_type: str
+    text_before: str
+    text_after: str
+    position: int
+    length: int
+    reason: Optional[str] = None
+    status: Literal["pending", "accepted", "rejected"] = "pending"
+    acceptance_reason: Optional[str] = None
+    rejection_reason: Optional[str] = None
+    accepted_at: Optional[datetime] = None
+
+
+class SuggestionUpdate(BaseModel):
+    """Schema for updating a suggestion."""
+
+    status: Optional[Literal["pending", "accepted", "rejected"]] = None
+    acceptance_reason: Optional[str] = None
+    rejection_reason: Optional[str] = None
+
+
+class SuggestionListResponse(BaseSchema):
+    """Response schema for suggestion list."""
+
+    items: List[SuggestionResponse]
+    total: int
+    skip: int
+    limit: int

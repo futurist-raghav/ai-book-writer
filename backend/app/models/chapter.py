@@ -18,12 +18,11 @@ from app.core.database import Base
 if TYPE_CHECKING:
     from app.models.book import Book, BookChapter
     from app.models.chapter_version import ChapterVersion
-    from app.models.collaboration import Activity
+    from app.models.collaboration import Activity, ChapterComment
     from app.models.event import Event
     from app.models.flow_engine import FlowChapterEvent, FlowEvent
     from app.models.bibliography import ChapterCitation
-    from app.models.user import User
-    from app.models.event import Event
+    from app.models.suggestion import ChapterSuggestion
     from app.models.user import User
 
 
@@ -156,6 +155,18 @@ class Chapter(Base):
         "ChapterCitation",
         back_populates="chapter",
         cascade="all, delete-orphan",
+    )
+    comments: Mapped[List["ChapterComment"]] = relationship(
+        "ChapterComment",
+        back_populates="chapter",
+        cascade="all, delete-orphan",
+        foreign_keys="ChapterComment.chapter_id",
+    )
+    suggestions: Mapped[List["ChapterSuggestion"]] = relationship(
+        "ChapterSuggestion",
+        back_populates="chapter",
+        cascade="all, delete-orphan",
+        order_by="ChapterSuggestion.created_at.desc()",
     )
 
     def __repr__(self) -> str:

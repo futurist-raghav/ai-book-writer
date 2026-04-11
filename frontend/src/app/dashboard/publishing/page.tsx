@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api, apiClient } from '@/lib/api-client';
@@ -25,6 +25,20 @@ type ExportSettings = {
   fontFamily: string;
 };
 
+type TocMode = 'auto' | 'manual';
+
+type TitlePageDraft = {
+  title: string;
+  subtitle: string;
+  author: string;
+  tagline: string;
+};
+
+type TocBuilderDraft = {
+  mode: TocMode;
+  entriesText: string;
+};
+
 interface ExportProfile {
   id: string;
   label: string;
@@ -32,6 +46,155 @@ interface ExportProfile {
   defaultFormat: ExportFormat['format'];
   options: ExportSettings;
   isBuiltIn?: boolean;
+}
+
+interface CompilePreviewSection {
+  type: string;
+  title: string;
+  anchor: string;
+  word_count: number;
+  estimated_pages: number;
+  excerpt: string;
+  has_content: boolean;
+  paragraph_count: number;
+  longest_paragraph_words: number;
+  long_paragraph_count: number;
+  short_paragraph_count: number;
+}
+
+type PreviewMode = 'print' | 'ebook' | 'submission';
+
+interface CompilePreviewResponse {
+  book_id: string;
+  title: string;
+  author?: string;
+  page_size: string;
+  font_size: number;
+  line_spacing: number;
+  total_sections: number;
+  total_word_count: number;
+  estimated_pages: number;
+  sections: CompilePreviewSection[];
+  pagination: Array<{
+    type: string;
+    title: string;
+    anchor: string;
+    start_page: number;
+    end_page: number;
+  }>;
+  layout_warnings: Array<{
+    section: string;
+    warning: string;
+  }>;
+  layout_diagnostics: {
+    words_per_page: number;
+    sections_with_short_content: number;
+    sections_with_long_paragraphs: number;
+  };
+  preview_mode: PreviewMode;
+  preview_html: string;
+  generated_at: string;
+}
+
+interface AccessibilityIssue {
+  id: string;
+  severity: 'error' | 'warning' | 'info';
+  category: string;
+  section: string;
+  message: string;
+  recommendation: string;
+}
+
+interface AccessibilityHistoryScan {
+  checked_at: string;
+  accessibility_score: number;
+  total_issues: number;
+  wcag_level: string;
+  issues_by_severity: {
+    error: number;
+    warning: number;
+    info: number;
+  };
+}
+
+interface AccessibilityHistoryResponse {
+  total_scans: number;
+  latest_score: number;
+  previous_score: number | null;
+  score_trend: 'improving' | 'declining' | 'stable' | null;
+  scans: AccessibilityHistoryScan[];
+}
+
+interface AccessibilityRecommendation {
+  id: string;
+  title: string;
+  description: string;
+  issue_type: string;
+  severity: 'error' | 'warning' | 'info';
+  status: 'open' | 'in_progress' | 'resolved' | string;
+  priority: number;
+  implementation_difficulty: string;
+  estimated_time_minutes: number;
+  steps_to_fix: string;
+}
+
+interface WcagVersion {
+  version: string;
+  url: string;
+  levels: string[];
+}
+
+interface WcagCheckGuide {
+  id: string;
+  name: string;
+  criterion: string;
+  level: string;
+  description: string;
+  tips?: string[];
+  thresholds?: Record<string, string>;
+}
+
+interface AccessibilityTool {
+  name: string;
+  type: string;
+  url: string;
+}
+
+interface WcagGuidelinesResponse {
+  wcag_versions: WcagVersion[];
+  accessibility_checks: WcagCheckGuide[];
+  tools: AccessibilityTool[];
+}
+
+interface AccessibilityChecksResponse {
+  book_id: string;
+  checked_at: string;
+  total_issues: number;
+  issues_by_severity: {
+    error: number;
+    warning: number;
+    info: number;
+  };
+  accessibility_score: number;
+  wcag_level: string;
+  wcag_aa_compliant: boolean;
+  wcag_aaa_compliant: boolean;
+  history_summary: AccessibilityHistoryResponse;
+  recommendations: {
+    total_recommendations: number;
+    open_count: number;
+    recommendations: AccessibilityRecommendation[];
+  };
+  issues: AccessibilityIssue[];
+  checks: {
+    images_checked: number;
+    tables_checked: number;
+    headings_checked: number;
+    contrast_ratio: number | null;
+    text_color: string;
+    background_color: string;
+    metadata_complete: boolean;
+  };
 }
 
 const EXPORT_FORMATS: ExportFormat[] = [
@@ -93,6 +256,45 @@ const BUILTIN_EXPORT_PROFILES: ExportProfile[] = [
   },
 ];
 
+const parseTocEntriesText = (rawText: string): Array<{ title: string; page?: string }> =>
+  rawText
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [rawTitle, ...rawPageParts] = line.split('|');
+      const title = rawTitle.trim();
+      const page = rawPageParts.join('|').trim();
+      if (!title) {
+        return null;
+      }
+      return page ? { title, page } : { title };
+    })
+    .filter((entry): entry is { title: string; page?: string } => Boolean(entry));
+
+const serializeTocEntries = (entries: unknown): string => {
+  if (!Array.isArray(entries)) {
+    return '';
+  }
+
+  return entries
+    .map((entry) => {
+      if (!entry || typeof entry !== 'object') {
+        return '';
+      }
+
+      const candidate = entry as Record<string, unknown>;
+      const title = String(candidate.title || '').trim();
+      const page = String(candidate.page || '').trim();
+      if (!title) {
+        return '';
+      }
+      return page ? `${title} | ${page}` : title;
+    })
+    .filter(Boolean)
+    .join('\n');
+};
+
 export default function PublishingPage() {
   const queryClient = useQueryClient();
 
@@ -108,13 +310,27 @@ export default function PublishingPage() {
   const [customProfiles, setCustomProfiles] = useState<ExportProfile[]>([]);
   const [profileNameInput, setProfileNameInput] = useState('');
   const [profileDescriptionInput, setProfileDescriptionInput] = useState('');
+  const [compilePreview, setCompilePreview] = useState<CompilePreviewResponse | null>(null);
+  const [previewMode, setPreviewMode] = useState<PreviewMode>('print');
+  const previewContainerRef = useRef<HTMLDivElement | null>(null);
 
   const [publishingMode, setPublishingMode] = useState(false);
   const [matterMode, setMatterMode] = useState(false);
+  const [layoutBuilderMode, setLayoutBuilderMode] = useState(false);
   const [isbnInput, setIsbnInput] = useState('');
   const [publisherInput, setPublisherInput] = useState('');
   const [imprintInput, setImprintInput] = useState('');
   const [publicationDateInput, setPublicationDateInput] = useState('');
+  const [titlePageDraft, setTitlePageDraft] = useState<TitlePageDraft>({
+    title: '',
+    subtitle: '',
+    author: '',
+    tagline: '',
+  });
+  const [tocBuilderDraft, setTocBuilderDraft] = useState<TocBuilderDraft>({
+    mode: 'auto',
+    entriesText: '',
+  });
   const [frontMatterDraft, setFrontMatterDraft] = useState({
     dedication: '',
     acknowledgments: '',
@@ -126,6 +342,7 @@ export default function PublishingPage() {
     afterword: '',
     about_author: '',
   });
+  const [accessibilityChecks, setAccessibilityChecks] = useState<AccessibilityChecksResponse | null>(null);
 
   // Get the current active book from context
   const projectContext = useProjectContext();
@@ -141,6 +358,26 @@ export default function PublishingPage() {
     queryKey: ['project-publishing', activeBookId],
     queryFn: () => (activeBookId ? apiClient.books.get(activeBookId) : Promise.reject('No book selected')),
     enabled: !!activeBookId,
+  });
+
+  const { data: accessibilityHistoryData } = useQuery({
+    queryKey: ['project-publishing-accessibility-history', activeBookId],
+    queryFn: () =>
+      activeBookId
+        ? apiClient.books.accessibilityHistory(activeBookId)
+        : Promise.reject('No book selected'),
+    enabled: !!activeBookId,
+    staleTime: 30_000,
+  });
+
+  const { data: wcagGuidelinesData } = useQuery({
+    queryKey: ['project-publishing-accessibility-guidelines', activeBookId],
+    queryFn: () =>
+      activeBookId
+        ? apiClient.books.accessibilityWcagGuidelines(activeBookId)
+        : Promise.reject('No book selected'),
+    enabled: !!activeBookId,
+    staleTime: 5 * 60 * 1000,
   });
 
   const getProjectSettings = () =>
@@ -186,6 +423,49 @@ export default function PublishingPage() {
       setPublishingMode(false);
     },
     onError: () => toast.error('Failed to save publishing data'),
+  });
+
+  const layoutBuilderMutation = useMutation({
+    mutationFn: () => {
+      if (!activeBookId) {
+        throw new Error('No active project selected');
+      }
+
+      const projectSettings = getProjectSettings();
+      const publishingLayoutRaw = projectSettings.publishing_layout;
+      const existingPublishingLayout =
+        publishingLayoutRaw && typeof publishingLayoutRaw === 'object'
+          ? (publishingLayoutRaw as Record<string, unknown>)
+          : {};
+
+      const manualTocEntries =
+        tocBuilderDraft.mode === 'manual' ? parseTocEntriesText(tocBuilderDraft.entriesText) : [];
+
+      return apiClient.books.update(activeBookId, {
+        project_settings: {
+          ...projectSettings,
+          publishing_layout: {
+            ...existingPublishingLayout,
+            title_page: {
+              title: titlePageDraft.title.trim(),
+              subtitle: titlePageDraft.subtitle.trim(),
+              author: titlePageDraft.author.trim(),
+              tagline: titlePageDraft.tagline.trim(),
+            },
+            toc: {
+              mode: tocBuilderDraft.mode,
+              entries: manualTocEntries,
+            },
+          },
+        },
+      });
+    },
+    onSuccess: () => {
+      toast.success('Title page and TOC settings saved');
+      queryClient.invalidateQueries({ queryKey: ['project-publishing', activeBookId] });
+      setLayoutBuilderMode(false);
+    },
+    onError: () => toast.error('Failed to save title page and TOC settings'),
   });
 
   const saveProfilesMutation = useMutation({
@@ -248,6 +528,50 @@ export default function PublishingPage() {
     onError: () => toast.error('Failed to save front/back matter'),
   });
 
+  const compilePreviewMutation = useMutation({
+    mutationFn: (modeOverride?: PreviewMode) => {
+      if (!activeBookId) {
+        throw new Error('No active project selected');
+      }
+
+      return apiClient.books.compilePreview(activeBookId, {
+        include_front_matter: exportSettings.includeFrontMatter,
+        include_back_matter: exportSettings.includeBackMatter,
+        include_toc: exportSettings.includeToc,
+        page_size: exportSettings.pageSize,
+        font_size: exportSettings.fontSize,
+        line_spacing: 1.5,
+        preview_mode: modeOverride || previewMode,
+      });
+    },
+    onSuccess: (response) => {
+      setCompilePreview(response.data as CompilePreviewResponse);
+      toast.success('Compile preview generated');
+    },
+    onError: () => toast.error('Failed to generate compile preview'),
+  });
+
+  const accessibilityChecksMutation = useMutation({
+    mutationFn: () => {
+      if (!activeBookId) {
+        throw new Error('No active project selected');
+      }
+      return apiClient.books.accessibilityChecks(activeBookId);
+    },
+    onSuccess: (response) => {
+      setAccessibilityChecks(response.data as AccessibilityChecksResponse);
+      queryClient.invalidateQueries({
+        queryKey: ['project-publishing-accessibility-history', activeBookId],
+      });
+      toast.success('Accessibility checks complete');
+    },
+    onError: () => toast.error('Failed to run accessibility checks'),
+  });
+
+  useEffect(() => {
+    setAccessibilityChecks(null);
+  }, [activeBookId]);
+
   useEffect(() => {
     const project = projectData?.data;
     if (!project) {
@@ -308,6 +632,31 @@ export default function PublishingPage() {
     setImprintInput(String(publishingMetadata?.imprint || ''));
     setPublicationDateInput(String(publishingMetadata?.publication_date || ''));
 
+    const publishingLayoutRaw = projectSettings.publishing_layout;
+    const publishingLayout =
+      publishingLayoutRaw && typeof publishingLayoutRaw === 'object'
+        ? (publishingLayoutRaw as Record<string, unknown>)
+        : {};
+    const titlePageRaw = publishingLayout.title_page;
+    const titlePageSettings =
+      titlePageRaw && typeof titlePageRaw === 'object'
+        ? (titlePageRaw as Record<string, unknown>)
+        : {};
+    const tocRaw = publishingLayout.toc;
+    const tocSettings = tocRaw && typeof tocRaw === 'object' ? (tocRaw as Record<string, unknown>) : {};
+    const tocMode: TocMode = String(tocSettings.mode || 'auto').toLowerCase() === 'manual' ? 'manual' : 'auto';
+
+    setTitlePageDraft({
+      title: String(titlePageSettings.title || project.title || ''),
+      subtitle: String(titlePageSettings.subtitle || ''),
+      author: String(titlePageSettings.author || project.author_name || ''),
+      tagline: String(titlePageSettings.tagline || ''),
+    });
+    setTocBuilderDraft({
+      mode: tocMode,
+      entriesText: serializeTocEntries(tocSettings.entries),
+    });
+
     setFrontMatterDraft({
       dedication: String(project.dedication || ''),
       acknowledgments: String(project.acknowledgments || ''),
@@ -359,6 +708,31 @@ export default function PublishingPage() {
     });
   };
 
+  const handleGenerateCompilePreview = () => {
+    compilePreviewMutation.mutate(previewMode);
+  };
+
+  const handleRunAccessibilityChecks = () => {
+    accessibilityChecksMutation.mutate();
+  };
+
+  const handlePreviewModeChange = (mode: PreviewMode) => {
+    setPreviewMode(mode);
+    compilePreviewMutation.mutate(mode);
+  };
+
+  const handleJumpToSection = (anchor: string) => {
+    const container = previewContainerRef.current;
+    if (!container) {
+      return;
+    }
+
+    const target = container.querySelector(`#${anchor}`) as HTMLElement | null;
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
   const selectedFormatConfig =
     EXPORT_FORMATS.find((format) => format.format === selectedFormat) || EXPORT_FORMATS[0];
 
@@ -397,6 +771,11 @@ export default function PublishingPage() {
 
   const project = projectData?.data;
   const exportProfiles = [...BUILTIN_EXPORT_PROFILES, ...customProfiles];
+  const accessibilityHistory: AccessibilityHistoryResponse | null =
+    accessibilityChecks?.history_summary ||
+    ((accessibilityHistoryData?.data as AccessibilityHistoryResponse | undefined) ?? null);
+  const wcagGuidelines: WcagGuidelinesResponse | null =
+    (wcagGuidelinesData?.data as WcagGuidelinesResponse | undefined) ?? null;
 
   return (
     <div className="max-w-6xl mx-auto pt-8 pb-24">
@@ -511,6 +890,127 @@ export default function PublishingPage() {
                 <div>
                   <p className="text-xs text-on-surface-variant font-bold uppercase tracking-wider mb-1">Date</p>
                   <p className="text-primary font-semibold">{publicationDateInput || 'Not set'}</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Title Page + TOC Builder */}
+          <div className="bg-surface-container-lowest border border-outline-variant/10 rounded-xl p-8 mb-8">
+            <div className="flex items-center justify-between mb-6 gap-3">
+              <div>
+                <h3 className="font-label text-lg font-bold text-primary uppercase tracking-widest">Title Page & TOC Builder</h3>
+                <p className="text-xs text-on-surface-variant mt-1">Configure title-page presentation and choose automatic or manual table of contents flow.</p>
+              </div>
+              {!layoutBuilderMode ? (
+                <button
+                  onClick={() => setLayoutBuilderMode(true)}
+                  className="px-4 py-2 bg-secondary text-white rounded-lg font-label font-bold text-sm"
+                >
+                  Edit
+                </button>
+              ) : (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => layoutBuilderMutation.mutate()}
+                    disabled={layoutBuilderMutation.isPending}
+                    className="px-4 py-2 bg-primary text-white rounded-lg font-label font-bold text-sm disabled:opacity-50"
+                  >
+                    Save
+                  </button>
+                  <button onClick={() => setLayoutBuilderMode(false)} className="px-4 py-2 bg-surface-container-high text-primary rounded-lg">
+                    Cancel
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {layoutBuilderMode ? (
+              <div className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-label text-[10px] text-on-surface-variant font-bold uppercase tracking-wider mb-2">Title</label>
+                    <input
+                      type="text"
+                      value={titlePageDraft.title}
+                      onChange={(e) => setTitlePageDraft((prev) => ({ ...prev, title: e.target.value }))}
+                      className="w-full bg-surface-container-low border border-outline-variant/20 rounded-lg px-4 py-2 text-sm font-label"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-label text-[10px] text-on-surface-variant font-bold uppercase tracking-wider mb-2">Subtitle</label>
+                    <input
+                      type="text"
+                      value={titlePageDraft.subtitle}
+                      onChange={(e) => setTitlePageDraft((prev) => ({ ...prev, subtitle: e.target.value }))}
+                      className="w-full bg-surface-container-low border border-outline-variant/20 rounded-lg px-4 py-2 text-sm font-label"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-label text-[10px] text-on-surface-variant font-bold uppercase tracking-wider mb-2">Author Line</label>
+                    <input
+                      type="text"
+                      value={titlePageDraft.author}
+                      onChange={(e) => setTitlePageDraft((prev) => ({ ...prev, author: e.target.value }))}
+                      className="w-full bg-surface-container-low border border-outline-variant/20 rounded-lg px-4 py-2 text-sm font-label"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-label text-[10px] text-on-surface-variant font-bold uppercase tracking-wider mb-2">Tagline</label>
+                    <input
+                      type="text"
+                      value={titlePageDraft.tagline}
+                      onChange={(e) => setTitlePageDraft((prev) => ({ ...prev, tagline: e.target.value }))}
+                      className="w-full bg-surface-container-low border border-outline-variant/20 rounded-lg px-4 py-2 text-sm font-label"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-3 gap-4 items-start">
+                  <div>
+                    <label className="block font-label text-[10px] text-on-surface-variant font-bold uppercase tracking-wider mb-2">TOC Mode</label>
+                    <select
+                      value={tocBuilderDraft.mode}
+                      onChange={(e) => setTocBuilderDraft((prev) => ({ ...prev, mode: e.target.value as TocMode }))}
+                      className="w-full bg-surface-container-low border border-outline-variant/20 rounded-lg px-4 py-2 text-sm font-label"
+                    >
+                      <option value="auto">Auto (from chapters)</option>
+                      <option value="manual">Manual entries</option>
+                    </select>
+                  </div>
+                  <div className="md:col-span-2 text-xs text-on-surface-variant leading-relaxed">
+                    Manual mode format: one item per line using <span className="font-semibold">Section Title | Page</span>.
+                    <br />
+                    Example: <span className="font-semibold">Prologue | i</span>
+                  </div>
+                </div>
+
+                {tocBuilderDraft.mode === 'manual' ? (
+                  <div>
+                    <label className="block font-label text-[10px] text-on-surface-variant font-bold uppercase tracking-wider mb-2">Manual TOC Entries</label>
+                    <textarea
+                      rows={5}
+                      value={tocBuilderDraft.entriesText}
+                      onChange={(e) => setTocBuilderDraft((prev) => ({ ...prev, entriesText: e.target.value }))}
+                      placeholder="Chapter 1: Arrival | 1\nChapter 2: Fall | 17"
+                      className="w-full bg-surface-container-low border border-outline-variant/20 rounded-lg px-4 py-2 text-sm font-label"
+                    />
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-3 gap-4 text-sm">
+                <div>
+                  <p className="text-xs text-on-surface-variant font-bold uppercase tracking-wider mb-1">Title Page</p>
+                  <p className="text-primary font-semibold">{titlePageDraft.title ? 'Configured' : 'Not set'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-on-surface-variant font-bold uppercase tracking-wider mb-1">TOC Mode</p>
+                  <p className="text-primary font-semibold">{tocBuilderDraft.mode === 'manual' ? 'Manual' : 'Automatic'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-on-surface-variant font-bold uppercase tracking-wider mb-1">Manual Entries</p>
+                  <p className="text-primary font-semibold">{tocBuilderDraft.entriesText ? `${tocBuilderDraft.entriesText.split('\n').filter(Boolean).length} entries` : 'None'}</p>
                 </div>
               </div>
             )}
@@ -633,6 +1133,401 @@ export default function PublishingPage() {
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Compile Preview */}
+          <div className="bg-surface-container-lowest border border-outline-variant/10 rounded-xl p-8 mb-8">
+            <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
+              <div>
+                <h3 className="font-label text-lg font-bold text-primary uppercase tracking-widest">Compile Preview</h3>
+                <p className="text-xs text-on-surface-variant mt-1">
+                  Preview pagination and section flow before export. This uses your current export options.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {(['print', 'ebook', 'submission'] as PreviewMode[]).map((mode) => (
+                    <button
+                      key={mode}
+                      onClick={() => handlePreviewModeChange(mode)}
+                      disabled={compilePreviewMutation.isPending}
+                      className={`rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider transition-colors ${
+                        previewMode === mode
+                          ? 'bg-primary text-white'
+                          : 'bg-surface-container-low text-primary border border-outline-variant/20'
+                      }`}
+                    >
+                      {mode}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <button
+                onClick={handleGenerateCompilePreview}
+                disabled={compilePreviewMutation.isPending}
+                className="rounded-lg bg-primary px-4 py-2 text-xs font-bold uppercase tracking-wider text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+              >
+                {compilePreviewMutation.isPending ? 'Generating...' : compilePreview ? 'Regenerate Preview' : 'Generate Preview'}
+              </button>
+            </div>
+
+            {compilePreview ? (
+              <div className="space-y-5">
+                <div className="grid gap-3 md:grid-cols-5">
+                  <div className="rounded-lg border border-outline-variant/20 bg-surface-container-low p-3">
+                    <p className="text-[10px] uppercase tracking-wider text-on-surface-variant font-bold">Sections</p>
+                    <p className="text-lg font-bold text-primary">{compilePreview.total_sections}</p>
+                  </div>
+                  <div className="rounded-lg border border-outline-variant/20 bg-surface-container-low p-3">
+                    <p className="text-[10px] uppercase tracking-wider text-on-surface-variant font-bold">Words</p>
+                    <p className="text-lg font-bold text-primary">{compilePreview.total_word_count.toLocaleString()}</p>
+                  </div>
+                  <div className="rounded-lg border border-outline-variant/20 bg-surface-container-low p-3">
+                    <p className="text-[10px] uppercase tracking-wider text-on-surface-variant font-bold">Est. Pages</p>
+                    <p className="text-lg font-bold text-primary">{compilePreview.estimated_pages}</p>
+                  </div>
+                  <div className="rounded-lg border border-outline-variant/20 bg-surface-container-low p-3">
+                    <p className="text-[10px] uppercase tracking-wider text-on-surface-variant font-bold">Layout</p>
+                    <p className="text-lg font-bold text-primary">{compilePreview.page_size.toUpperCase()} / {compilePreview.font_size}pt</p>
+                  </div>
+                  <div className="rounded-lg border border-outline-variant/20 bg-surface-container-low p-3">
+                    <p className="text-[10px] uppercase tracking-wider text-on-surface-variant font-bold">Mode</p>
+                    <p className="text-lg font-bold text-primary">{compilePreview.preview_mode.toUpperCase()}</p>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-outline-variant/20 bg-surface-container-low p-4">
+                  <p className="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Layout Diagnostics</p>
+                  <div className="grid gap-3 md:grid-cols-3 text-xs text-primary">
+                    <p>Words/page baseline: <span className="font-bold">{compilePreview.layout_diagnostics.words_per_page}</span></p>
+                    <p>Short sections: <span className="font-bold">{compilePreview.layout_diagnostics.sections_with_short_content}</span></p>
+                    <p>Long-paragraph sections: <span className="font-bold">{compilePreview.layout_diagnostics.sections_with_long_paragraphs}</span></p>
+                  </div>
+                </div>
+
+                {compilePreview.layout_warnings.length > 0 ? (
+                  <div className="rounded-lg border border-amber-300/40 bg-amber-50 p-4">
+                    <p className="text-xs font-bold uppercase tracking-wider text-amber-800 mb-2">Layout Warnings</p>
+                    <div className="space-y-1">
+                      {compilePreview.layout_warnings.slice(0, 5).map((warning, index) => (
+                        <p key={`${warning.section}-${index}`} className="text-xs text-amber-900">
+                          {warning.section}: {warning.warning}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+
+                <div className="rounded-lg border border-outline-variant/20 bg-surface-container-low p-4">
+                  <p className="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Page Map</p>
+                  <div className="max-h-40 overflow-y-auto space-y-1">
+                    {compilePreview.pagination.map((entry) => (
+                      <button
+                        key={`${entry.type}-${entry.anchor}`}
+                        onClick={() => handleJumpToSection(entry.anchor)}
+                        className="block w-full text-left text-xs text-primary hover:underline"
+                      >
+                        {entry.title}: p.{entry.start_page}
+                        {entry.end_page > entry.start_page ? `-${entry.end_page}` : ''}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-outline-variant/20 bg-surface-container-low p-4">
+                  <p className="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Section Navigator</p>
+                  <div className="flex flex-wrap gap-2">
+                    {compilePreview.sections.map((section) => (
+                      <button
+                        key={section.anchor}
+                        onClick={() => handleJumpToSection(section.anchor)}
+                        className="rounded-full bg-white border border-outline-variant/20 px-3 py-1 text-[11px] font-semibold text-primary hover:border-primary/50"
+                      >
+                        {section.title}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-outline-variant/20 bg-white p-4">
+                  <p className="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-3">Preview Snippet</p>
+                  <div
+                    ref={previewContainerRef}
+                    className="prose prose-sm max-w-none text-slate-900 max-h-80 overflow-y-auto"
+                    dangerouslySetInnerHTML={{ __html: compilePreview.preview_html }}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-lg border border-dashed border-outline-variant/30 bg-surface-container-low p-5 text-sm text-on-surface-variant">
+                Generate a preview to inspect page flow, section order, and potential widow/orphan risks.
+              </div>
+            )}
+          </div>
+
+          {/* Accessibility Checks */}
+          <div className="bg-surface-container-lowest border border-outline-variant/10 rounded-xl p-8 mb-8">
+            <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
+              <div>
+                <h3 className="font-label text-lg font-bold text-primary uppercase tracking-widest">Accessibility Checks</h3>
+                <p className="text-xs text-on-surface-variant mt-1">
+                  Run automated publishing checks for image alt text, heading order, tables, contrast, and metadata completeness.
+                </p>
+              </div>
+              <button
+                onClick={handleRunAccessibilityChecks}
+                disabled={accessibilityChecksMutation.isPending}
+                className="rounded-lg bg-primary px-4 py-2 text-xs font-bold uppercase tracking-wider text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+              >
+                {accessibilityChecksMutation.isPending
+                  ? 'Scanning...'
+                  : accessibilityChecks
+                    ? 'Re-run Checks'
+                    : 'Run Checks'}
+              </button>
+            </div>
+
+            {accessibilityChecks ? (
+              <div className="space-y-5">
+                <div className="grid gap-3 md:grid-cols-6">
+                  <div className="rounded-lg border border-emerald-300/40 bg-emerald-50 p-3">
+                    <p className="text-[10px] uppercase tracking-wider text-emerald-700 font-bold">Score</p>
+                    <p className="text-lg font-bold text-emerald-800">{accessibilityChecks.accessibility_score}/100</p>
+                  </div>
+                  <div className="rounded-lg border border-outline-variant/20 bg-surface-container-low p-3">
+                    <p className="text-[10px] uppercase tracking-wider text-on-surface-variant font-bold">Total Issues</p>
+                    <p className="text-lg font-bold text-primary">{accessibilityChecks.total_issues}</p>
+                  </div>
+                  <div className="rounded-lg border border-red-300/40 bg-red-50 p-3">
+                    <p className="text-[10px] uppercase tracking-wider text-red-700 font-bold">Errors</p>
+                    <p className="text-lg font-bold text-red-800">{accessibilityChecks.issues_by_severity.error}</p>
+                  </div>
+                  <div className="rounded-lg border border-amber-300/40 bg-amber-50 p-3">
+                    <p className="text-[10px] uppercase tracking-wider text-amber-700 font-bold">Warnings</p>
+                    <p className="text-lg font-bold text-amber-800">{accessibilityChecks.issues_by_severity.warning}</p>
+                  </div>
+                  <div className="rounded-lg border border-blue-300/40 bg-blue-50 p-3">
+                    <p className="text-[10px] uppercase tracking-wider text-blue-700 font-bold">Info</p>
+                    <p className="text-lg font-bold text-blue-800">{accessibilityChecks.issues_by_severity.info}</p>
+                  </div>
+                  <div className="rounded-lg border border-outline-variant/20 bg-surface-container-low p-3">
+                    <p className="text-[10px] uppercase tracking-wider text-on-surface-variant font-bold">Scans</p>
+                    <p className="text-lg font-bold text-primary">{accessibilityHistory?.total_scans || 1}</p>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-outline-variant/20 bg-surface-container-low p-4">
+                  <p className="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Compliance Snapshot</p>
+                  <div className="grid gap-3 md:grid-cols-3 text-xs text-primary">
+                    <p>
+                      WCAG level:{' '}
+                      <span className="font-bold">{accessibilityChecks.wcag_level}</span>
+                    </p>
+                    <p>
+                      AA compliant:{' '}
+                      <span className={`font-bold ${accessibilityChecks.wcag_aa_compliant ? 'text-green-700' : 'text-red-700'}`}>
+                        {accessibilityChecks.wcag_aa_compliant ? 'Yes' : 'No'}
+                      </span>
+                    </p>
+                    <p>
+                      AAA compliant:{' '}
+                      <span className={`font-bold ${accessibilityChecks.wcag_aaa_compliant ? 'text-green-700' : 'text-red-700'}`}>
+                        {accessibilityChecks.wcag_aaa_compliant ? 'Yes' : 'No'}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-outline-variant/20 bg-surface-container-low p-4">
+                  <p className="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Scan Coverage</p>
+                  <div className="grid gap-3 md:grid-cols-3 text-xs text-primary">
+                    <p>Images scanned: <span className="font-bold">{accessibilityChecks.checks.images_checked}</span></p>
+                    <p>Tables scanned: <span className="font-bold">{accessibilityChecks.checks.tables_checked}</span></p>
+                    <p>Headings scanned: <span className="font-bold">{accessibilityChecks.checks.headings_checked}</span></p>
+                  </div>
+                  <div className="grid gap-3 md:grid-cols-2 text-xs text-primary mt-3">
+                    <p>
+                      Contrast ratio ({accessibilityChecks.checks.text_color} on {accessibilityChecks.checks.background_color}):{' '}
+                      <span className="font-bold">
+                        {accessibilityChecks.checks.contrast_ratio !== null
+                          ? `${accessibilityChecks.checks.contrast_ratio}:1`
+                          : 'Unavailable'}
+                      </span>
+                    </p>
+                    <p>
+                      Metadata completeness:{' '}
+                      <span className={`font-bold ${accessibilityChecks.checks.metadata_complete ? 'text-green-700' : 'text-amber-700'}`}>
+                        {accessibilityChecks.checks.metadata_complete ? 'Complete' : 'Needs attention'}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+
+                {accessibilityHistory ? (
+                  <div className="rounded-lg border border-outline-variant/20 bg-surface-container-low p-4">
+                    <p className="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Scan History</p>
+                    <div className="grid gap-3 md:grid-cols-4 text-xs text-primary">
+                      <p>Total scans: <span className="font-bold">{accessibilityHistory.total_scans}</span></p>
+                      <p>Latest score: <span className="font-bold">{accessibilityHistory.latest_score}</span></p>
+                      <p>
+                        Previous score:{' '}
+                        <span className="font-bold">
+                          {accessibilityHistory.previous_score === null ? 'N/A' : accessibilityHistory.previous_score}
+                        </span>
+                      </p>
+                      <p>
+                        Trend:{' '}
+                        <span className={`font-bold ${
+                          accessibilityHistory.score_trend === 'improving'
+                            ? 'text-green-700'
+                            : accessibilityHistory.score_trend === 'declining'
+                              ? 'text-red-700'
+                              : 'text-primary'
+                        }`}>
+                          {accessibilityHistory.score_trend || 'N/A'}
+                        </span>
+                      </p>
+                    </div>
+
+                    {accessibilityHistory.scans.length > 0 ? (
+                      <div className="mt-3 max-h-44 overflow-y-auto space-y-2">
+                        {accessibilityHistory.scans.slice(0, 6).map((scan, index) => (
+                          <div
+                            key={`${scan.checked_at}-${index}`}
+                            className="rounded-lg border border-outline-variant/20 bg-white p-2 text-xs text-primary"
+                          >
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <p className="font-semibold">{new Date(scan.checked_at).toLocaleString()}</p>
+                              <p className="font-bold">Score {scan.accessibility_score}</p>
+                            </div>
+                            <p className="text-on-surface-variant">
+                              {scan.total_issues} issues · WCAG level {scan.wcag_level}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                <div className="rounded-lg border border-outline-variant/20 bg-surface-container-low p-4">
+                  <p className="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-3">Recommendations</p>
+                  {(accessibilityChecks.recommendations?.recommendations || []).length === 0 ? (
+                    <p className="text-xs text-on-surface-variant">No recommendations generated for this scan.</p>
+                  ) : (
+                    <div className="max-h-80 overflow-y-auto space-y-2">
+                      {(accessibilityChecks.recommendations?.recommendations || []).map((recommendation) => (
+                        <div key={recommendation.id} className="rounded-lg border border-outline-variant/20 bg-white p-3">
+                          <div className="flex items-center justify-between gap-2 mb-1">
+                            <p className="text-xs font-bold uppercase tracking-wider text-primary">{recommendation.title}</p>
+                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                              recommendation.severity === 'error'
+                                ? 'bg-red-100 text-red-800'
+                                : recommendation.severity === 'warning'
+                                  ? 'bg-amber-100 text-amber-800'
+                                  : 'bg-blue-100 text-blue-800'
+                            }`}>
+                              {recommendation.severity}
+                            </span>
+                          </div>
+                          <p className="text-xs text-primary mb-1">{recommendation.description}</p>
+                          <p className="text-[11px] text-on-surface-variant mb-1">
+                            Priority {recommendation.priority} · {recommendation.implementation_difficulty} · {recommendation.estimated_time_minutes} min
+                          </p>
+                          <p className="text-xs text-on-surface-variant">Suggested fix: {recommendation.steps_to_fix || 'Follow WCAG guidance for this category.'}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {accessibilityChecks.total_issues === 0 ? (
+                  <div className="rounded-lg border border-green-300/50 bg-green-50 p-4">
+                    <p className="text-sm font-semibold text-green-800">
+                      No accessibility issues detected in this scan.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-outline-variant/20 bg-surface-container-low p-4">
+                    <p className="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-3">Detected Issues</p>
+                    <div className="max-h-80 overflow-y-auto space-y-2">
+                      {accessibilityChecks.issues.map((issue) => (
+                        <div key={issue.id} className="rounded-lg border border-outline-variant/20 bg-white p-3">
+                          <div className="flex items-center justify-between gap-2 mb-1">
+                            <p className="text-xs font-bold uppercase tracking-wider text-primary">{issue.category.replace(/_/g, ' ')}</p>
+                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                              issue.severity === 'error'
+                                ? 'bg-red-100 text-red-800'
+                                : issue.severity === 'warning'
+                                  ? 'bg-amber-100 text-amber-800'
+                                  : 'bg-blue-100 text-blue-800'
+                            }`}>
+                              {issue.severity}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-on-surface-variant mb-1">{issue.section}</p>
+                          <p className="text-xs text-primary mb-1">{issue.message}</p>
+                          <p className="text-xs text-on-surface-variant">Recommendation: {issue.recommendation}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="rounded-lg border border-dashed border-outline-variant/30 bg-surface-container-low p-5 text-sm text-on-surface-variant">
+                Run checks to validate accessibility readiness before exporting your manuscript.
+              </div>
+            )}
+
+            {wcagGuidelines ? (
+              <div className="mt-5 rounded-lg border border-outline-variant/20 bg-surface-container-low p-4">
+                <p className="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-3">WCAG Guidance</p>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-primary">References</p>
+                    {wcagGuidelines.wcag_versions.map((version) => (
+                      <a
+                        key={version.version}
+                        href={version.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="block rounded-lg border border-outline-variant/20 bg-white px-3 py-2 text-xs text-primary hover:border-primary/40"
+                      >
+                        <p className="font-semibold">{version.version}</p>
+                        <p className="text-on-surface-variant">Levels: {version.levels.join(', ')}</p>
+                      </a>
+                    ))}
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-primary">Developer Tools</p>
+                    {wcagGuidelines.tools.map((tool) => (
+                      <a
+                        key={tool.name}
+                        href={tool.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="block rounded-lg border border-outline-variant/20 bg-white px-3 py-2 text-xs text-primary hover:border-primary/40"
+                      >
+                        <p className="font-semibold">{tool.name}</p>
+                        <p className="text-on-surface-variant">{tool.type}</p>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-4 rounded-lg border border-outline-variant/20 bg-white p-3">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-primary mb-2">Check Reference</p>
+                  <div className="max-h-56 overflow-y-auto space-y-2">
+                    {wcagGuidelines.accessibility_checks.map((check) => (
+                      <div key={check.id} className="rounded-lg border border-outline-variant/20 bg-surface-container-low p-2">
+                        <p className="text-xs font-semibold text-primary">{check.name} (WCAG {check.criterion}, Level {check.level})</p>
+                        <p className="text-xs text-on-surface-variant">{check.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : null}
           </div>
 
           {/* Export Formats */}

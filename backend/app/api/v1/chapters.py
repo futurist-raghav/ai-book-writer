@@ -6,6 +6,7 @@ Handles chapter management and compilation.
 
 import uuid
 import re
+import time
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from difflib import SequenceMatcher, unified_diff
@@ -13,6 +14,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from fastapi import APIRouter, File, Form, HTTPException, Query, UploadFile, status
+from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 
@@ -3055,6 +3057,826 @@ async def extract_chapter_entities(
     )
 
 
+
+
+
+
+
+class TextRewriteRequest(BaseModel):
+    """Request for AI text rewrite with diff options."""
+    text: str  # Text to rewrite
+    rewrite_type: str = "improve"  # "improve", "formal", "casual", "shorter", "expand", "show-dont-tell"
+    tone: Optional[str] = None  # optional tone override (neutral, dramatic, witty, etc.)
+    audience: Optional[str] = None  # target audience hint
+
+
+class TextRewriteOption(BaseModel):
+    """A single rewrite option with before/after."""
+    type: str  # rewrite_type
+    original: str
+    rewritten: str
+    confidence: float  # 0.0-1.0 confidence in the rewrite
+    unified_diff: str  # unified diff format for display
+    word_count_change: int  # positive = longer, negative = shorter
+    tone_shift: str  # description of tone change
+
+
+class TextRewriteResponse(BaseModel):
+    """Response with multiple rewrite options."""
+    options: List[TextRewriteOption]
+    original_word_count: int
+    message: str
+
+
+@router.post("/{chapter_id}/rewrite", response_model=TextRewriteResponse)
+async def suggest_text_rewrites(
+    chapter_id: uuid.UUID,
+    request: TextRewriteRequest,
+    user_id: CurrentUserIdDep,
+    db: AsyncSessionDep,
+):
+    """
+    Suggest AI-powered text rewrites with diff display.
+    
+    Returns multiple rewrite options with unified diffs for easy comparison.
+    User can accept rewrites inline or discard suggestions.
+    
+    Rewrite types:
+    - improve: Better writing, clarity, flow
+    - formal: Academic/professional tone
+    - casual: Conversational, friendly tone
+    - shorter: Concise version (30-50% reduction)
+    - expand: Detailed version (add 50-100% more content)
+    - show-dont-tell: Add sensory details, concrete examples (fiction)
+    """
+    chapter_result = await db.execute(
+        select(Chapter)
+        .where(Chapter.id == chapter_id, Chapter.user_id == user_id)
+        .options(selectinload(Chapter.book_associations).selectinload(BookChapter.book))
+    )
+    chapter = chapter_result.scalar_one_or_none()
+
+    if not chapter:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Chapter not found",
+        )
+
+    if not request.text or len(request.text.strip()) < 10:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Text must be at least 10 characters",
+        )
+
+    gemini_service = get_gemini_service()
+    project_type = chapter.get_project_type()
+    
+    # Determine rewrite strategies
+    strategies = []
+    if request.rewrite_type == "improve":
+        strategies = [
+            ("General improvement", "Improve clarity, flow, and engagement without changing meaning"),
+            ("Punch it up!", "Make it more vivid and compelling with stronger verbs"),
+        ]
+    elif request.rewrite_type == "formal":
+        strategies = [("Formal tone", "Rewrite in professional/academic tone")]
+    elif request.rewrite_type == "casual":
+        strategies = [("Casual tone", "Rewrite in conversational, friendly tone")]
+    elif request.rewrite_type == "shorter":
+        strategies = [("Concise version", "Remove unnecessary words, keep key meaning (target: 40-60% of original length)")]
+    elif request.rewrite_type == "expand":
+        strategies = [("Detailed version", "Expand with examples, details, and context (target: 150-200% of original length)")]
+    elif request.rewrite_type == "show-dont-tell":
+        if project_type == "novel" or project_type=="fiction":
+            strategies = [("Show, don't tell", "Convert abstract/telling text to showing with sensory details and action")]
+        else:
+            strategies = [("Add concrete examples", "Support abstract ideas with specific examples")]
+    else:
+        strategies = [("Improve", "General improvement")]
+
+    options = []
+    original_word_count = len(request.text.split())
+
+    for strategy_name, strategy_desc in strategies:
+        try:
+            tone_instruction = f"Tone: {request.tone}\n" if request.tone else ""
+            audience_instruction = f"Audience: {request.audience}\n" if request.audience else ""
+            
+            prompt = f"""You are a professional editor helping improve writing.
+
+Original text:
+{request.text}
+
+Task: {strategy_desc}
+{tone_instruction}{audience_instruction}
+IMPORTANT: Return ONLY the rewritten text, no explanations or meta-commentary."""
+
+            response = await gemini_service.send_message(
+                prompt,
+                system="You are an expert writing coach and editor. Help authors improve their craft by suggesting clear, specific rewrites.",
+                temperature=0.7,
+            )
+
+            rewritten = response.strip()
+            if not rewritten:
+                continue
+
+            # Generate unified diff
+            original_lines = request.text.splitlines(keepends=True)
+            rewritten_lines = rewritten.splitlines(keepends=True)
+            diff_lines = list(unified_diff(original_lines, rewritten_lines, lineterm=""))
+            unified_diff_str = "\n".join(diff_lines[:50])  # Limit diff size for API response
+
+            new_word_count = len(rewritten.split())
+            word_change = new_word_count - original_word_count
+
+            option = TextRewriteOption(
+                type=request.rewrite_type,
+                original=request.text,
+                rewritten=rewritten,
+                confidence=0.85,  # High confidence for LLM-generated suggestions
+                unified_diff=unified_diff_str,
+                word_count_change=word_change,
+                tone_shift=f"From original to {strategy_name.lower()}",
+            )
+            options.append(option)
+
+        except Exception as e:
+            continue
+
+    if not options:
+        # Fallback: return original with no rewrites
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Could not generate rewrites. Try again or rephrase the text.",
+        )
+
+    return TextRewriteResponse(
+        options=options,
+        original_word_count=original_word_count,
+        message=f"Generated {len(options)} rewrite option(s). Accept or edit before saving.",
+    )
+
+
+
+
+
+
+
+
+class CitationSuggestion(BaseModel):
+    """A suggestion for where a citation would be helpful."""
+    position: int  # Character offset in chapter text
+    context: str  # Surrounding text (30-50 words)
+    suggestion_text: str  # What the author wrote that needs citing
+    reason: str  # Why a citation would help (e.g., "claims need evidence")
+    suggested_field: str  # "history, science, literature, etc."
+    confidence: float  # 0.0-1.0 confidence
+
+
+class CitationSuggestionsResponse(BaseModel):
+    """Response with citation opportunity suggestions."""
+    suggestions: List[CitationSuggestion]
+    total_suggestions: int
+    message: str
+
+
+@router.post("/{chapter_id}/suggest-citations", response_model=CitationSuggestionsResponse)
+async def suggest_citations(
+    chapter_id: uuid.UUID,
+    user_id: CurrentUserIdDep,
+    db: AsyncSessionDep,
+):
+    """
+    Analyze chapter and suggest places where citations would strengthen the text.
+    
+    Looks for:
+    - Claims without evidence
+    - Historical/scientific facts
+    - Expert opinions or statistics
+    - Experimental findings
+    - Controversial statements
+    
+    Returns positions and context for each suggestion.
+    """
+    chapter_result = await db.execute(
+        select(Chapter)
+        .where(Chapter.id == chapter_id, Chapter.user_id == user_id)
+        .options(selectinload(Chapter.book_associations).selectinload(BookChapter.book))
+    )
+    chapter = chapter_result.scalar_one_or_none()
+
+    if not chapter:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Chapter not found",
+        )
+
+    content_text = strip_html_tags(chapter.content)
+    
+    if not content_text or len(content_text.strip()) < 100:
+        return CitationSuggestionsResponse(
+            suggestions=[],
+            total_suggestions=0,
+            message="Chapter too short for citation analysis",
+        )
+
+    gemini_service = get_gemini_service()
+    project_type = chapter.get_project_type()
+    
+    # Adjust analysis based on project type
+    project_context = ""
+    if project_type in ["academic_paper", "research_paper", "textbook", "educational"]:
+        project_context = "This is an academic/educational text. Look for scientific claims, statistics, expert opinions."
+    elif project_type in ["biography", "memoir", "history", "historical_fiction"]:
+        project_context = "This is a historical work. Look for historical facts, events, dates, figures."
+    elif project_type in ["article", "essay", "journalism"]:
+        project_context = "This is journalistic/essay work. Look for factual claims, expert opinions, statistics."
+    else:
+        project_context = "This is general writing. Look for any factual claims that would benefit from sources."
+
+    prompt = f"""Analyze this text and identify places where citations/references would strengthen it.
+
+{project_context}
+
+Text (with character positions marked):
+{content_text[:4000]}  # Limit analysis to first 4000 chars for performance
+
+For each suggestion, return JSON with:
+- position: Character offset where citation would help
+- context: 20-word snippet of surrounding text
+- suggestion_text: The exact phrase/claim needing citation
+- reason: Why cite (e.g., "factual claim", "statistic", "expert opinion")
+- field: Topic field (e.g., "history", "science", "literature")
+- confidence: 0.0-1.0 confidence
+
+Return ONLY valid JSON array, no other text:
+[{{"position": 0, "context": "...", "suggestion_text": "...", "reason": "...", "field": "...", "confidence": 0.8}}]"""
+
+    try:
+        response = await gemini_service.send_message(
+            prompt,
+            system="You are an expert editor identifying places where citations would strengthen writing. Return only valid JSON.",
+            temperature=0.6,
+        )
+
+        # Parse JSON response
+        import json
+        import re
+        
+        # Extract JSON from response
+        json_match = re.search(r'\[[\s\S]*\]', response)
+        if not json_match:
+            # Fallback: no suggestions found
+            return CitationSuggestionsResponse(
+                suggestions=[],
+                total_suggestions=0,
+                message="Analysis complete - no citation opportunities identified",
+            )
+
+        suggestions_data = json.loads(json_match.group())
+        suggestions = [
+            CitationSuggestion(
+                position=s.get("position", 0),
+                context=s.get("context", ""),
+                suggestion_text=s.get("suggestion_text", ""),
+                reason=s.get("reason", ""),
+                suggested_field=s.get("field", "general"),
+                confidence=min(1.0, max(0.0, float(s.get("confidence", 0.5)))),
+            )
+            for s in suggestions_data[:10]  # Limit to top 10 suggestions
+        ]
+
+        return CitationSuggestionsResponse(
+            suggestions=suggestions,
+            total_suggestions=len(suggestions),
+            message=f"Found {len(suggestions)} citation opportunity/ies in this chapter",
+        )
+
+    except Exception as e:
+        # Return empty suggestions on error
+        return CitationSuggestionsResponse(
+            suggestions=[],
+            total_suggestions=0,
+            message="Could not analyze for citation opportunities. Try again.",
+        )
+
+
+class VoiceNoteToDraftRequest(BaseModel):
+    """Request to convert voice note to chapter draft."""
+    audio_file_path: str  # Path to audio file uploaded
+    transcription_text: Optional[str] = None  # Optional pre-transcribed text  
+    voice_memo_title: Optional[str] = None
+    target_style: Optional[str] = None  # Try to match project voice
+    auto_enhance_prose: bool = True
+
+
+class VoiceNoteToDraftResponse(BaseModel):
+    """Response with draft content generated from voice."""
+    transcription: str  # Raw transcription
+    draft_content: str  # AI-enhanced prose draft
+    word_count: int  # Draft word count  
+    processing_time_ms: int
+    message: str
+
+
+@router.post("/{chapter_id}/voice-to-draft", response_model=VoiceNoteToDraftResponse)
+async def convert_voice_to_draft(
+    chapter_id: uuid.UUID,
+    request: VoiceNoteToDraftRequest,
+    user_id: CurrentUserIdDep,
+    db: AsyncSessionDep,
+):
+    """
+    Convert voice notes/memos to prose draft.
+    
+    Workflow:
+    1. Transcribe audio (Whisper)
+    2. Process transcript to prose (Claude)
+    3. Match project voice/style
+    4. Return draft for review
+    
+    The resulting draft can be:
+    - Inserted into current chapter
+    - Used to start a new chapter
+    - Exported as notes
+    """
+    chapter_result = await db.execute(
+        select(Chapter)
+        .where(Chapter.id == chapter_id, Chapter.user_id == user_id)
+        .options(selectinload(Chapter.book_associations).selectinload(BookChapter.book))
+    )
+    chapter = chapter_result.scalar_one_or_none()
+
+    if not chapter:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Chapter not found",
+        )
+
+    start_time = time.time()
+    
+    # Step 1: Transcribe if not provided
+    transcription_text = request.transcription_text
+    if not transcription_text:
+        try:
+            from app.services.stt.whisper_service import WhisperService
+            whisper = WhisperService()
+            result = await whisper.transcribe(request.audio_file_path)
+            transcription_text = result.text
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Transcription failed: {str(e)}",
+            )
+
+    if not transcription_text or len(transcription_text.strip()) < 10:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Transcription is too short or empty",
+        )
+
+    # Step 2: Convert transcript to prose
+    gemini_service = get_gemini_service()
+    book = chapter.get_book()
+    project_type = chapter.get_project_type()
+    
+    voice_style_hint = ""
+    if book and book.style_guide:
+        voice_style_hint = f"\nProject voice/style guide:\n{book.style_guide}\n"
+    
+    prose_prompt = f"""You are a professional editor converting transcribed voice notes into publishable prose.
+
+Transcribed text (raw voice memo):
+{transcription_text}
+
+Project type: {project_type or 'general narrative'}
+{voice_style_hint}
+Task: Convert the above voice memo/raw transcript into polished prose suitable for the manuscript. 
+
+Guidelines:
+1. Preserve the original meaning and intent
+2. Fix grammar, punctuation, and flow
+3. Match the project's established voice/tone
+4. Remove false starts, "umms", repetitions typical of speech
+5. Add paragraph breaks where natural
+6. Keep it conversational if fiction, formal if academic
+7. Aim for engaging, readable prose
+
+Return ONLY the converted prose, no meta-commentary or explanations."""
+
+    try:
+        draft_content = await gemini_service.send_message(
+            prose_prompt,
+            system="You are an expert editor converting raw transcriptions into polished prose.",
+            temperature=0.7,
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Prose conversion failed: {str(e)}",
+        )
+
+    processing_ms = int((time.time() - start_time) * 1000)
+    word_count = len(draft_content.split())
+
+    return VoiceNoteToDraftResponse(
+        transcription=transcription_text,
+        draft_content=draft_content,
+        word_count=word_count,
+        processing_time_ms=processing_ms,
+        message=f"Voice note converted to {word_count}-word draft. Review and edit before adding to chapter.",
+    )
+
+
+class ToneEmotionScore(BaseModel):
+    """Emotional tone score for a chapter."""
+    emotion: str  # One of: joyful, tense, somber, inspiring, neutral
+    confidence: float  # 0.0-1.0 confidence
+    intensity: float  # 0.0-1.0 intensity of the emotion
+
+
+class ToneAnalysisResponse(BaseModel):
+    """Response with tone analysis and recommendations."""
+    primary_emotions: List[ToneEmotionScore]  # Top 3 emotions detected
+    overall_tone: str  # Summary tone label
+    tone_summary: str  # Brief description of detected tone
+    tone_shift_suggestions: List[str]  # Suggestions for shifting tone if needed
+    chapter_context: str  # Context about chapter's role in book
+    processing_time_ms: int
+
+
+@router.post("/{chapter_id}/analyze-tone", response_model=ToneAnalysisResponse)
+async def analyze_chapter_tone(
+    chapter_id: uuid.UUID,
+    user_id: CurrentUserIdDep,
+    db: AsyncSessionDep,
+):
+    """
+    Analyze the emotional tone of a chapter.
+    
+    Detects primary emotions:
+    - Joyful: uplifting, positive, celebratory
+    - Tense: suspenseful, anxious, dramatic
+    - Somber: melancholic, serious, somber
+    - Inspiring: motivational, hopeful, empowering
+    - Neutral: informational, detached, factual
+    
+    Returns:
+    - Dominant emotional tone with confidence scores
+    - Suggestions for tone shifts if desired
+    - Context about chapter's role in growing/diminishing tension
+    """
+    chapter_result = await db.execute(
+        select(Chapter)
+        .where(Chapter.id == chapter_id, Chapter.user_id == user_id)
+        .options(selectinload(Chapter.book_associations).selectinload(BookChapter.book))
+    )
+    chapter = chapter_result.scalar_one_or_none()
+
+    if not chapter:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Chapter not found",
+        )
+
+    content_text = strip_html_tags(chapter.content)
+    
+    if not content_text or len(content_text.strip()) < 100:
+        return ToneAnalysisResponse(
+            primary_emotions=[
+                ToneEmotionScore(emotion="neutral", confidence=0.8, intensity=0.3)
+            ],
+            overall_tone="neutral",
+            tone_summary="Chapter is too short for reliable tone analysis.",
+            tone_shift_suggestions=[],
+            chapter_context="Add more content for better tone detection.",
+            processing_time_ms=0,
+        )
+
+    start_time = time.time()
+    gemini_service = get_gemini_service()
+    project_type = chapter.get_project_type()
+    book = chapter.get_book()
+    
+    # Additional context for tone analysis
+    book_context = ""
+    if book and book.summary:
+        book_context = f"\nBook summary: {book.summary[:500]}\n"
+    
+    chapter_index = getattr(chapter, 'order_index', 0)
+    chapter_context_note = ""
+    if chapter_index > 0:
+        chapter_context_note = f"This is chapter {chapter_index + 1} in the manuscript. "
+    
+    tone_prompt = f"""Analyze the emotional tone and mood of this chapter excerpt.
+
+{book_context}
+Chapter position: {chapter_context_note or 'Unknown position in manuscript'}
+Project type: {project_type or 'narrative'}
+
+Chapter text (first 3500 chars):
+{content_text[:3500]}
+
+Task: Identify the dominant emotional tone(s) and analyze how the chapter's mood contributes to the overall narrative.
+
+Required output format (valid JSON only):
+{{
+  "primary_emotions": [
+    {{"emotion": "joyful|tense|somber|inspiring|neutral", "confidence": 0.0-1.0, "intensity": 0.0-1.0}},
+    {{"emotion": "...", "confidence": ..., "intensity": ...}},
+    {{"emotion": "...", "confidence": ..., "intensity": ...}}
+  ],
+  "overall_tone": "primary emotion name",
+  "tone_summary": "2-3 sentence description of the chapter's emotional tone",
+  "tone_shift_suggestions": ["suggestion 1", "suggestion 2"]
+}}
+
+Return ONLY the JSON object, no other text."""
+
+    try:
+        response = await gemini_service.send_message(
+            tone_prompt,
+            system="You are an expert literary analyst specializing in emotional tone, mood, and narrative pacing. Analyze text for emotional resonance.",
+            temperature=0.6,
+        )
+
+        # Parse JSON response
+        import json
+        import re
+        
+        # Extract JSON from response
+        json_match = re.search(r'\{[\s\S]*\}', response)
+        if not json_match:
+            # Fallback response
+            return ToneAnalysisResponse(
+                primary_emotions=[ToneEmotionScore(emotion="neutral", confidence=0.6, intensity=0.5)],
+                overall_tone="neutral",
+                tone_summary="Could not determine specific tone. Content appears balanced.",
+                tone_shift_suggestions=[],
+                chapter_context="Rerun analysis with more developed content.",
+                processing_time_ms=int((time.time() - start_time) * 1000),
+            )
+
+        analysis_data = json.loads(json_match.group())
+        
+        # Validate and normalize emotions
+        valid_emotions = {"joyful", "tense", "somber", "inspiring", "neutral"}
+        primary_emotions = []
+        for emotion_data in analysis_data.get("primary_emotions", [])[:3]:
+            emotion = emotion_data.get("emotion", "neutral").lower()
+            if emotion not in valid_emotions:
+                emotion = "neutral"
+            primary_emotions.append(
+                ToneEmotionScore(
+                    emotion=emotion,
+                    confidence=min(1.0, max(0.0, float(emotion_data.get("confidence", 0.5)))),
+                    intensity=min(1.0, max(0.0, float(emotion_data.get("intensity", 0.5)))),
+                )
+            )
+        
+        # Ensure we have at least one emotion
+        if not primary_emotions:
+            primary_emotions = [ToneEmotionScore(emotion="neutral", confidence=0.7, intensity=0.5)]
+        
+        overall_tone = analysis_data.get("overall_tone", "neutral").lower()
+        if overall_tone not in valid_emotions:
+            overall_tone = primary_emotions[0].emotion if primary_emotions else "neutral"
+        
+        tone_summary = analysis_data.get("tone_summary", "Analysis complete.")
+        tone_shifts = analysis_data.get("tone_shift_suggestions", [])[:5]
+        
+        processing_ms = int((time.time() - start_time) * 1000)
+        
+        return ToneAnalysisResponse(
+            primary_emotions=primary_emotions,
+            overall_tone=overall_tone,
+            tone_summary=tone_summary,
+            tone_shift_suggestions=tone_shifts,
+            chapter_context=f"Chapter {chapter_index + 1} - {project_type or 'narrative'} project",
+            processing_time_ms=processing_ms,
+        )
+
+    except Exception as e:
+        # Return neutral tone on error
+        processing_ms = int((time.time() - start_time) * 1000)
+        return ToneAnalysisResponse(
+            primary_emotions=[ToneEmotionScore(emotion="neutral", confidence=0.6, intensity=0.5)],
+            overall_tone="neutral",
+            tone_summary="Tone analysis encountered an error. Try again or check chapter content.",
+            tone_shift_suggestions=[],
+            chapter_context="Error during analysis",
+            processing_time_ms=processing_ms,
+        )
+
+
+class Exercise(BaseModel):
+    """A single exercise question or prompt."""
+    question: str  # The exercise question/prompt text
+    exercise_type: str  # 'quiz', 'discussion', or 'homework'
+    difficulty: str  # 'easy', 'medium', 'hard'
+    suggested_answer: Optional[str] = None  # Optional for discussion prompts
+    answer_key_notes: Optional[str] = None  # Teacher notes/hints
+
+
+class ExerciseGenerationResponse(BaseModel):
+    """Response with generated exercises."""
+    exercises: List[Exercise]
+    total_exercises: int
+    exercise_distribution: Dict[str, int]  # Count per exercise type
+    chapter_summary: str  # Context about chapter covered
+    processing_time_ms: int
+
+
+@router.post("/{chapter_id}/generate-exercises", response_model=ExerciseGenerationResponse)
+async def generate_educational_exercises(
+    chapter_id: uuid.UUID,
+    user_id: CurrentUserIdDep,
+    db: AsyncSessionDep,
+    difficulty: str = Query("mixed", description="Exercise difficulty: easy, medium, hard, or mixed"),
+    exercise_types: str = Query("all", description="Comma-separated: quiz,discussion,homework or 'all'"),
+    count: int = Query(8, ge=1, le=25, description="Number of exercises to generate (1-25)"),
+):
+    """
+    Generate educational exercises from chapter content.
+    
+    Creates quiz questions, discussion prompts, and homework exercises
+    tailored to the chapter's learning objectives.
+    
+    Features:
+    - Multiple exercise types (quiz, discussion, homework)
+    - Configurable difficulty levels
+    - Suggested answers and teacher notes
+    - Context-aware question generation
+    
+    Query Parameters:
+    - difficulty: easy, medium, hard, or mixed (default: mixed)
+    - exercise_types: comma-separated list of quiz,discussion,homework (default: all)
+    - count: number of exercises to generate, 1-25 (default: 8)
+    """
+    chapter_result = await db.execute(
+        select(Chapter)
+        .where(Chapter.id == chapter_id, Chapter.user_id == user_id)
+        .options(selectinload(Chapter.book_associations).selectinload(BookChapter.book))
+    )
+    chapter = chapter_result.scalar_one_or_none()
+
+    if not chapter:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Chapter not found",
+        )
+
+    content_text = strip_html_tags(chapter.content)
+    
+    if not content_text or len(content_text.strip()) < 150:
+        return ExerciseGenerationResponse(
+            exercises=[],
+            total_exercises=0,
+            exercise_distribution={},
+            chapter_summary="Chapter too short for exercise generation.",
+            processing_time_ms=0,
+        )
+
+    start_time = time.time()
+    gemini_service = get_gemini_service()
+    project_type = chapter.get_project_type()
+    book = chapter.get_book()
+    
+    # Parse exercise types request
+    requested_types = set()
+    if exercise_types.lower() == "all":
+        requested_types = {"quiz", "discussion", "homework"}
+    else:
+        requested_types = set(t.strip().lower() for t in exercise_types.split(",") if t.strip())
+    
+    if not requested_types:
+        requested_types = {"quiz", "discussion", "homework"}
+    
+    # Validate difficulty
+    valid_difficulties = {"easy", "medium", "hard", "mixed"}
+    if difficulty.lower() not in valid_difficulties:
+        difficulty = "mixed"
+    
+    book_context = ""
+    if book and book.summary:
+        book_context = f"\nProject context: {book.summary[:400]}\n"
+    
+    difficulty_instruction = ""
+    if difficulty.lower() != "mixed":
+        difficulty_instruction = f"\nAll exercises should be at {difficulty.upper()} difficulty level."
+    
+    exercise_types_instruction = ", ".join(sorted(requested_types))
+    if not requested_types:
+        exercise_types_instruction = "quiz, discussion, homework"
+    
+    exercise_prompt = f"""Generate educational exercises for this chapter.
+
+{book_context}
+Project type: {project_type or 'educational content'}
+{difficulty_instruction}
+
+Chapter content (first 3000 chars):
+{content_text[:3000]}
+
+Task: Create {count} diverse exercises of these types: {exercise_types_instruction}
+
+Requirements:
+1. Quiz questions should have correct answers
+2. Discussion prompts should encourage critical thinking
+3. Homework exercises should be practical/applied tasks
+4. Vary difficulty appropriately
+5. Base all exercises on chapter content
+6. Include learning objectives alignment
+
+For each exercise, determine the best type and difficulty.
+
+Return ONLY valid JSON array (no other text):
+[
+  {{
+    "question": "Exercise question/prompt text",
+    "exercise_type": "quiz|discussion|homework",
+    "difficulty": "easy|medium|hard",
+    "suggested_answer": "For quiz/homework only; omit for discussion",
+    "answer_key_notes": "Teacher guidance/hints"
+  }}
+]"""
+
+    try:
+        response = await gemini_service.send_message(
+            exercise_prompt,
+            system="You are an expert educational content developer. Generate varied, engaging exercises based on chapter content. Return only valid JSON.",
+            temperature=0.7,
+        )
+
+        # Parse JSON response
+        import json
+        import re
+        
+        # Extract JSON from response
+        json_match = re.search(r'\[[\s\S]*\]', response)
+        if not json_match:
+            # Fallback: no exercises found
+            return ExerciseGenerationResponse(
+                exercises=[],
+                total_exercises=0,
+                exercise_distribution={},
+                chapter_summary="Could not generate exercises from chapter content.",
+                processing_time_ms=int((time.time() - start_time) * 1000),
+            )
+
+        exercises_data = json.loads(json_match.group())
+        exercises = []
+        distribution: Dict[str, int] = {}
+        
+        for ex_data in exercises_data[:count]:
+            ex_type = ex_data.get("exercise_type", "quiz").lower()
+            if ex_type not in {"quiz", "discussion", "homework"}:
+                ex_type = "quiz"
+            
+            difficulty_val = ex_data.get("difficulty", "medium").lower()
+            if difficulty_val not in {"easy", "medium", "hard"}:
+                difficulty_val = "medium"
+            
+            exercises.append(
+                Exercise(
+                    question=ex_data.get("question", ""),
+                    exercise_type=ex_type,
+                    difficulty=difficulty_val,
+                    suggested_answer=ex_data.get("suggested_answer"),
+                    answer_key_notes=ex_data.get("answer_key_notes"),
+                )
+            )
+            
+            distribution[ex_type] = distribution.get(ex_type, 0) + 1
+        
+        processing_ms = int((time.time() - start_time) * 1000)
+        
+        # Create chapter summary
+        chapter_summary = f"Generated {len(exercises)} exercises from chapter content. "
+        if book:
+            chapter_summary += f"Project: {book.title}"
+        
+        return ExerciseGenerationResponse(
+            exercises=exercises,
+            total_exercises=len(exercises),
+            exercise_distribution=distribution,
+            chapter_summary=chapter_summary,
+            processing_time_ms=processing_ms,
+        )
+
+    except Exception as e:
+        # Return empty exercises on error
+        processing_ms = int((time.time() - start_time) * 1000)
+        return ExerciseGenerationResponse(
+            exercises=[],
+            total_exercises=0,
+            exercise_distribution={},
+            chapter_summary="Error generating exercises. Try again with different parameters.",
+            processing_time_ms=processing_ms,
+        )
+
+
 @router.post(
     "/{chapter_id}/assets/upload",
     summary="Upload chapter workspace asset",
@@ -3160,3 +3982,237 @@ async def upload_chapter_asset(
             "extracted_text_preview": extracted_text[:240] if extracted_text else None,
         },
     }
+
+
+# ========================
+# P3.10 EDUCATIONAL EXERCISE GENERATION
+# ========================
+
+
+class QuizQuestion(BaseModel):
+    """A single quiz question with answer options."""
+    question: str
+    options: List[str]  # Multiple choice options (usually 4)
+    correct_answer: int  # Index of correct option
+    explanation: str  # Why this answer is correct
+    difficulty: str  # easy, medium, hard
+    type: str = "multiple_choice"  # Quiz question type
+
+
+class DiscussionPrompt(BaseModel):
+    """A discussion prompt for group or individual reflection."""
+    prompt: str
+    guide_questions: List[str]  # 2-3 follow-up questions
+    suggested_format: str  # solo, pairs, group, class
+    learning_goals: List[str]  # What students should learn from discussion
+
+
+class HomeworkExercise(BaseModel):
+    """A homework or practice exercise for students."""
+    exercise_title: str
+    instructions: str
+    materials_needed: List[str]  # If any
+    expected_output: str  # What the student should produce
+    time_estimate_minutes: int
+    difficulty: str  # easy, medium, hard
+    rubric_points: Optional[int] = None  # Points if part of grading
+
+
+class EducationalExercisesResponse(BaseModel):
+    """Response with generated educational exercises."""
+    quiz_questions: List[QuizQuestion]
+    discussion_prompts: List[DiscussionPrompt]
+    homework_exercises: List[HomeworkExercise]
+    total_exercises: int
+    chapter_summary: str  # Brief summary of key learning points
+    message: str
+
+
+@router.post("/{chapter_id}/generate-exercises", response_model=EducationalExercisesResponse)
+async def generate_educational_exercises(
+    chapter_id: uuid.UUID,
+    user_id: CurrentUserIdDep,
+    db: AsyncSessionDep,
+    num_questions: int = Query(3, ge=1, le=10),
+    num_prompts: int = Query(2, ge=1, le=8),
+    num_exercises: int = Query(2, ge=1, le=8),
+):
+    """
+    Generate educational exercises from chapter content.
+    
+    Creates:
+    - Quiz questions (multiple choice with explanations)
+    - Discussion prompts for group or individual reflection
+    - Homework exercises for student practice
+    
+    Ideal for textbooks, academic writing, and educational content.
+    """
+    chapter_result = await db.execute(
+        select(Chapter)
+        .where(Chapter.id == chapter_id, Chapter.user_id == user_id)
+        .options(selectinload(Chapter.book_associations).selectinload(BookChapter.book))
+    )
+    chapter = chapter_result.scalar_one_or_none()
+
+    if not chapter:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Chapter not found",
+        )
+
+    if not chapter.content or len(chapter.content.strip()) < 100:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Chapter content must be at least 100 characters for exercise generation",
+        )
+
+    gemini_service = get_gemini_service()
+    project_type = chapter.get_project_type()
+    chapter_title = chapter.title or "Untitled Chapter"
+    
+    # Extract key concepts and summary first
+    summary_prompt = f"""Analyze this chapter and identify 3-5 key learning points/concepts:
+
+Chapter Title: {chapter_title}
+Content:
+{chapter.content[:5000]}
+
+Return a brief summary of the key learning points in 2-3 sentences."""
+
+    try:
+        chapter_summary = await gemini_service.send_message(
+            summary_prompt,
+            system="You are an expert educator analyzing chapter content.",
+            temperature=0.5,
+        )
+    except Exception:
+        chapter_summary = f"Key concepts from {chapter_title}"
+
+    # Generate quiz questions
+    quiz_prompt = f"""As an expert educator, generate {num_questions} multiple-choice quiz questions about this chapter.
+
+Chapter: {chapter_title}
+Content (first 4000 chars):
+{chapter.content[:4000]}
+
+For EACH question, provide:
+1. question: The quiz question (clear, specific, tests understanding)
+2. options: 4 plausible options (1 correct, 3 distractors)
+3. correct_answer: Index of correct option (0-3)
+4. explanation: 1-2 sentence explanation of the correct answer
+5. difficulty: "easy", "medium", or "hard"
+
+Format as JSON array of objects with these exact fields.
+Return ONLY valid JSON, no other text."""
+
+    quiz_questions = []
+    try:
+        quiz_response = await gemini_service.send_message(
+            quiz_prompt,
+            system="You are an expert educator creating assessment questions. Return valid JSON only.",
+            temperature=0.7,
+        )
+        
+        import json
+        quiz_data = json.loads(quiz_response)
+        if isinstance(quiz_data, list):
+            for q in quiz_data[:num_questions]:
+                if all(k in q for k in ['question', 'options', 'correct_answer', 'explanation', 'difficulty']):
+                    quiz_questions.append(QuizQuestion(
+                        question=q['question'],
+                        options=q['options'][:4],  # Ensure max 4 options
+                        correct_answer=min(q['correct_answer'], 3),  # Ensure valid index
+                        explanation=q['explanation'],
+                        difficulty=q['difficulty']
+                    ))
+    except Exception:
+        pass  # Fall back to empty if parsing fails
+
+    # Generate discussion prompts
+    discussion_prompt = f"""Create {num_prompts} thoughtful discussion prompts for students learning from this chapter.
+
+Chapter: {chapter_title}
+Key points: {chapter_summary}
+
+For EACH prompt, provide:
+1. prompt: Main discussion question (open-ended, encourages thinking)
+2. guide_questions: 2-3 follow-up questions
+3. suggested_format: "solo", "pairs", "group", or "class"
+4. learning_goals: 1-2 learning objectives
+
+Format as JSON array. Return ONLY valid JSON."""
+
+    discussion_prompts = []
+    try:
+        discussion_response = await gemini_service.send_message(
+            discussion_prompt,
+            system="You are an expert educator creating discussion formats. Return valid JSON only.",
+            temperature=0.7,
+        )
+        
+        import json
+        discussion_data = json.loads(discussion_response)
+        if isinstance(discussion_data, list):
+            for d in discussion_data[:num_prompts]:
+                if all(k in d for k in ['prompt', 'guide_questions', 'suggested_format', 'learning_goals']):
+                    discussion_prompts.append(DiscussionPrompt(
+                        prompt=d['prompt'],
+                        guide_questions=d['guide_questions'][:3],
+                        suggested_format=d['suggested_format'],
+                        learning_goals=d['learning_goals'][:2]
+                    ))
+    except Exception:
+        pass
+
+    # Generate homework exercises
+    homework_prompt = f"""Create {num_exercises} practical homework exercises for students to apply knowledge from this chapter.
+
+Chapter: {chapter_title}
+Content summary: {chapter_summary}
+
+For EACH exercise, provide:
+1. exercise_title: Clear, descriptive title
+2. instructions: Step-by-step instructions (150-300 words)
+3. materials_needed: List of required materials/resources (if any)
+4. expected_output: What the student should produce
+5. time_estimate_minutes: Realistic time estimate (30-180 minutes)
+6. difficulty: "easy", "medium", or "hard"
+7. rubric_points: Points if graded (optional, 5-20)
+
+Format as JSON array. Return ONLY valid JSON."""
+
+    homework_exercises = []
+    try:
+        homework_response = await gemini_service.send_message(
+            homework_prompt,
+            system="You are an expert educator creating practice assignments. Return valid JSON only.",
+            temperature=0.7,
+        )
+        
+        import json
+        homework_data = json.loads(homework_response)
+        if isinstance(homework_data, list):
+            for h in homework_data[:num_exercises]:
+                if all(k in h for k in ['exercise_title', 'instructions', 'expected_output', 'time_estimate_minutes', 'difficulty']):
+                    homework_exercises.append(HomeworkExercise(
+                        exercise_title=h['exercise_title'],
+                        instructions=h['instructions'],
+                        materials_needed=h.get('materials_needed', []),
+                        expected_output=h['expected_output'],
+                        time_estimate_minutes=min(h['time_estimate_minutes'], 480),  # Max 8 hours
+                        difficulty=h['difficulty'],
+                        rubric_points=h.get('rubric_points')
+                    ))
+    except Exception:
+        pass
+
+    total_exercises = len(quiz_questions) + len(discussion_prompts) + len(homework_exercises)
+    
+    return EducationalExercisesResponse(
+        quiz_questions=quiz_questions,
+        discussion_prompts=discussion_prompts,
+        homework_exercises=homework_exercises,
+        total_exercises=total_exercises,
+        chapter_summary=chapter_summary,
+        message=f"Generated {total_exercises} exercises: {len(quiz_questions)} quiz Q's, {len(discussion_prompts)} discussion prompts, {len(homework_exercises)} homework exercises"
+    )

@@ -257,6 +257,14 @@ export const apiClient = {
     ) => api.post(`/chapters/${chapterId}/expand-notes`, data),
     checkConsistency: async (chapterId: string) =>
       api.post(`/chapters/${chapterId}/check-consistency`),
+    suggestCitations: async (chapterId: string) =>
+      api.post(`/chapters/${chapterId}/suggest-citations`),
+    analyzeTone: async (chapterId: string) =>
+      api.post(`/chapters/${chapterId}/analyze-tone`),
+    generateExercises: async (
+      chapterId: string,
+      params?: { difficulty?: string; exercise_types?: string; count?: number }
+    ) => api.post(`/chapters/${chapterId}/generate-exercises`, {}, { params }),
     extractEntities: async (chapterId: string) =>
       api.post(`/chapters/${chapterId}/extract-entities`),
     generateContext: async (chapterId: string, data?: { writing_form?: string; force?: boolean }) =>
@@ -300,9 +308,36 @@ export const apiClient = {
       diff: async (chapterId: string, fromVersionId: string, toVersionId: string) =>
         api.get(`/chapters/${chapterId}/versions/${fromVersionId}/diff/${toVersionId}`),
     },
+    // Suggestions / Track Changes
+    suggestions: {
+      list: async (chapterId: string, params?: { status?: string; author_id?: string; skip?: number; limit?: number }) =>
+        api.get(`/chapters/${chapterId}/suggestions`, { params }),
+      create: async (
+        chapterId: string,
+        data: {
+          suggestion_type: string;
+          text_before: string;
+          text_after: string;
+          position: number;
+          length: number;
+          reason?: string;
+        }
+      ) => api.post(`/chapters/${chapterId}/suggestions`, data),
+      accept: async (chapterId: string, suggestionId: string) =>
+        api.put(`/chapters/${chapterId}/suggestions/${suggestionId}/accept`, {}),
+      reject: async (chapterId: string, suggestionId: string, reason?: string) =>
+        api.put(`/chapters/${chapterId}/suggestions/${suggestionId}/reject`, reason ? { reason } : {}),
+      delete: async (chapterId: string, suggestionId: string) =>
+        api.delete(`/chapters/${chapterId}/suggestions/${suggestionId}`),
+      batchAccept: async (chapterId: string, suggestionIds: string[]) =>
+        api.post(`/chapters/${chapterId}/suggestions/batch-accept`, suggestionIds),
+      batchReject: async (chapterId: string, suggestionIds: string[], reason?: string) =>
+        api.post(
+          `/chapters/${chapterId}/suggestions/batch-reject`,
+          reason ? { suggestion_ids: suggestionIds, reason } : suggestionIds
+        ),
+    },
   },
-
-  // Books
   books: {
     list: async (params?: {
       page?: number;
@@ -365,10 +400,28 @@ export const apiClient = {
       api.delete(`/books/${bookId}/chapters/${chapterId}`),
     reorderChapters: async (bookId: string, chapterIds: string[]) =>
       api.post(`/books/${bookId}/chapters/reorder`, { chapter_ids: chapterIds }),
-    updateFrontMatter: async (bookId: string, data: Record<string, string>) =>
+    updateFrontMatter: async (bookId: string, data: Record<string, string | undefined>) =>
       api.put(`/books/${bookId}/front-matter`, data),
-    updateBackMatter: async (bookId: string, data: Record<string, string>) =>
+    updateBackMatter: async (bookId: string, data: Record<string, string | undefined>) =>
       api.put(`/books/${bookId}/back-matter`, data),
+    compilePreview: async (
+      bookId: string,
+      params?: {
+        include_front_matter?: boolean;
+        include_back_matter?: boolean;
+        include_toc?: boolean;
+        page_size?: string;
+        font_size?: number;
+        line_spacing?: number;
+        preview_mode?: 'print' | 'ebook' | 'submission';
+      }
+    ) => api.get(`/books/${bookId}/compile-preview`, { params }),
+    accessibilityChecks: async (bookId: string) =>
+      api.get(`/books/${bookId}/accessibility-checks`),
+    accessibilityHistory: async (bookId: string) =>
+      api.get(`/books/${bookId}/accessibility-checks/history`),
+    accessibilityWcagGuidelines: async (bookId: string) =>
+      api.get(`/books/${bookId}/accessibility-checks/wcag-guidelines`),
     export: async (bookId: string, format: string, options?: Record<string, unknown>) =>
       api.post(`/books/${bookId}/export`, { format, ...(options || {}) }),
   },
@@ -595,6 +648,24 @@ export const apiClient = {
       api.get(`/books/${bookId}/import/${sourceId}`),
     deleteSource: async (bookId: string | number, sourceId: string | number) =>
       api.delete(`/books/${bookId}/import/${sourceId}`),
+  },
+
+  // Glossary & Terms (P3.8)
+  glossary: {
+    extract: async (bookId: string, input: { confidence_threshold?: number; max_terms?: number; include_chapters?: string[] }) =>
+      api.post(`/books/${bookId}/glossary/extract`, input),
+    confirmExtraction: async (bookId: string, terms: string[]) =>
+      api.post(`/books/${bookId}/glossary/confirm-extraction`, { terms }),
+    list: async (bookId: string, confirmedOnly?: boolean) =>
+      api.get(`/books/${bookId}/glossary`, { params: { confirmed_only: confirmedOnly } }),
+    get: async (bookId: string, entryId: string) =>
+      api.get(`/books/${bookId}/glossary/${entryId}`),
+    create: async (bookId: string, entry: { term: string; definition?: string; definition_source?: string; part_of_speech?: string; context?: string; user_defined?: boolean }) =>
+      api.post(`/books/${bookId}/glossary`, entry),
+    update: async (bookId: string, entryId: string, updates: { definition?: string; definition_source?: string; part_of_speech?: string; context?: string; confirmed?: boolean }) =>
+      api.patch(`/books/${bookId}/glossary/${entryId}`, updates),
+    delete: async (bookId: string, entryId: string) =>
+      api.delete(`/books/${bookId}/glossary/${entryId}`),
   },
 };
 

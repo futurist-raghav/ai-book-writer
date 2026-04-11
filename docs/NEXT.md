@@ -1,103 +1,189 @@
-# NEXT - Active Execution Queue (April 10, 2026)
+# NEXT - Active Execution Queue (April 11, 2026)
 
 This top section is the source of truth for immediate execution. Historical deep-dive ideation is preserved below for reference.
 
 ## Just Completed
 
-- ✅ **P2.4 Bibliography & Citations Module** (100% COMPLETE)
-  - Migration 011: bibliography + chapter_citations tables with indexes
-  - ORM models: Bibliography, ChapterCitation with relationships
-  - 8 RESTful API endpoints (CRUD sources + chapter citations)
-  - Citation formatting (APA, MLA, Chicago, IEEE auto-generated)
-  - BibliographyManager component (CRUD UI, 350 lines)
-  - CitationTool component with TipTap integration (280 lines)
-  - Citation marks rendered as superscript [1], [2], [3]
-  - Keyboard shortcut: Cmd/Ctrl+Shift+C to insert citation
-  - 450+ backend tests + 600 frontend tests
-  - Comprehensive integration guide (2,195 lines total)
+- ✅ **P5.7 Accessibility Checks (Hardening Slice: History + Guidance)**
+  - Backend: Added publishing accessibility endpoints:
+    - `GET /books/{book_id}/accessibility-checks`
+    - `GET /books/{book_id}/accessibility-checks/history`
+    - `GET /books/{book_id}/accessibility-checks/wcag-guidelines`
+  - Core scan response now includes recommendation payload and history summary in addition to severity buckets, score, and WCAG-style compliance flags
+  - Scan history now persists per-book in `project_settings.publishing_accessibility_history`
+  - Frontend API client now exposes:
+    - `apiClient.books.accessibilityChecks(bookId)`
+    - `apiClient.books.accessibilityHistory(bookId)`
+    - `apiClient.books.accessibilityWcagGuidelines(bookId)`
+  - Publishing page Accessibility Checks panel now shows:
+    - history trend summary + recent scan list
+    - generated recommendation list with priorities and fix guidance
+    - WCAG references and tool links (WAVE, axe DevTools, Lighthouse)
 
-- ✅ **P2.3 Advanced Flow Visualization** (100% COMPLETE)
-  - 5 base components (GanttChart, Filter, BulkOps, Analytics, Dashboard)
-  - 5 enhancement components (DraggableGanttChart, CycleDetection, KeyboardShortcuts, Export, DashboardPro)
-  - Cycle detection algorithm, critical path analysis
-  - Drag-drop timeline reordering, keyboard shortcuts (7 total)
-  - CSV/JSON/HTML export utilities
-  - 3,230 lines of production code
+- ✅ **P5.3 Front/Back Matter Builder (Title + TOC Slice)**
+  - Frontend: Publishing page now has a **Title Page & TOC Builder** panel with edit/save workflow
+  - Title page fields shipped: `title`, `subtitle`, `author`, `tagline`
+  - TOC controls shipped: `auto` (chapter-derived) and `manual` modes
+  - Manual TOC entries support `Section Title | Page` format
+  - Persistence: settings stored in `project_settings.publishing_layout`
+  - Compile preview now reads and renders saved title-page and manual TOC config
+
+- ✅ **P5.1 Compile Previewer (Foundation Slice)**
+  - Backend: `GET /books/{book_id}/compile-preview` endpoint
+  - Compile preview payload includes sections, pagination map, estimated pages, layout warnings, and generated preview HTML
+  - Frontend: Publishing page now has a **Compile Preview** panel with generate/regenerate flow
+  - Preview includes front/back matter and chapter ordering based on book chapter associations
+  - Added page-flow warnings for short sections (orphan/widow risk signal)
+  - Added preview modes: `print`, `ebook`, `submission` with mode-aware compile preview requests
+  - Added section navigator + page map jump-to-section behavior in preview panel
+  - Added paragraph-level diagnostics in compile preview metadata (long/short paragraph counts)
+
+- ✅ **P4.5 Real-Time Collaboration** (100% COMPLETE)
+  - WebSocket endpoint: `/api/v1/ws/chapters/{chapter_id}/collaborate`
+  - ConnectionManager for multi-user presence tracking
+  - Cursor position synchronization
+  - Typing indicators with live UI
+  - Real-time comment/suggestion notifications
+  - useRealtimeCollaboration React hook (180+ lines)
+  - CollaborationPresenceBar component (140+ lines)
+  - WriterCanvas integration with presence bar
+  - Message protocol for text edits, cursor moves, typing status
+  - Automatic heart beat and reconnection handling
+
+- ✅ **P4.4 Permissions & Roles** (100% COMPLETE)
+  - Owner/Editor/Contributor/Reviewer/Viewer role system
+  - Section-level and chapter-level permission controls
+  - Email-based invite system with accept/reject workflow
+  - Role-based feature access restrictions
+  - Backend: 8 API endpoints for role/permission management
+  - Frontend: RoleManager and PermissionsUI components
+  - Full audit trail for permission changes
+
+- ✅ **P4.3 Review Links & Beta Readers** (100% COMPLETE)
+  - Shareable review links with access control
+  - Public feedback submission (no login required)
+  - Feedback collection by type (general/suggestion/issue/praise)
+  - Viewer analytics and feedback aggregation
+  - Export feedback utilities
+  - Link expiration controls (1-180 days)
+
+- ✅ **P4.2 Suggestion Mode (Track Changes)** (100% COMPLETE)
+  - Backend: 7 API endpoints for suggestion management (create, list, accept, reject, delete, batch-accept, batch-reject)
+  - ChapterSuggestion model: author tracking, position-based text replacement, status tracking (pending/accepted/rejected)
+  - Timestamps: created_at, updated_at, accepted_at for audit trail
+  - Frontend: SuggestionPanel component (280 lines) with filter tabs and batch operations
+  - Diff visualization: before text (red strikethrough) + after text (green highlight)
+  - Author attribution and timestamps on every suggestion
+  - Batch operations: Accept/Reject multiple suggestions with selection checkboxes
+  - Keyboard shortcut: Cmd/Ctrl+Shift+S to toggle suggestion mode on/off
+  - Toolbar button: edit_note icon with active state indicator
+  - Dark mode support on all components
+  - WriterCanvas integration: Complete with state management and modals
+
+- ✅ **Phase 3 (P3.1-P3.10) - 100% COMPLETE: All 10 AI Writing Features Shipped**
+  - P3.1 Organization/Outline generator → Backend + Frontend ChapterOutlineModal
+  - P3.2 Narrative expansion → Backend + Frontend ExpandChapterModal  
+  - P3.3 Fact checking & research → Backend + Frontend FactCheckModal
+  - P3.4 Stylistic consistency → Backend + Frontend ConsistencyCheckModal
+  - P3.5 Rewrite with diff → Backend + Frontend RewriteModal with diff display
+  - P3.6 Citation suggestions → Backend + Frontend CitationSuggestionsModal
+  - P3.7 Voice to draft → Backend + Frontend VoiceNoteModal (record/upload/review)
+  - P3.8 Glossary UI & export → Backend + Frontend GlossaryManager component
+  - P3.9 Tone meter & analysis → Backend + Frontend ToneMeterModal (emotions + shift)
+  - P3.10 Exercise generation → Backend + Frontend ExerciseGeneratorModal (quiz/discussion/homework)
+  - All 10 features integrated into WriterCanvas with keyboard shortcuts + toolbar buttons
+
+- ✅ **P4.1 Comments & Mentions** (100% COMPLETE)
+  - Backend: Existing comment API infrastructure (POST/GET /books/{id}/comments)
+  - Frontend: CommentPanel component (360 lines)
+  - Features: Add comments to chapters, @mention collaborators, active/resolved filtering
+  - Autocomplete dropdown for @mentions with suggested collaborators
+  - Comment resolution UI (mark/unmark resolved with toggle button)
+  - Keyboard shortcut: Cmd/Ctrl+/ to toggle comment panel
+  - Toolbar button with comment icon
+  - Real-time comment display with author info and timestamps
+  - Full dark mode support
+  - CommentAnnotation component for inline comment highlighting
+  - Integrated into WriterCanvas editor
+  - Frontend: ExerciseGeneratorModal component with 420 lines
+  - Exercise type selector (checkbox UI), difficulty selector, count slider
+  - Expandable exercise cards showing question + answers + teacher notes
+  - Distribution display showing count per exercise type
+  - Toolbar button + Cmd/Ctrl+Shift+E keyboard shortcut
+  - Dark mode support with full accessibility
+
+- ✅ **P3.9 Tone Meter & Analysis** (100% COMPLETE)
+  - Backend: POST /chapters/{id}/analyze-tone endpoint
+  - Emotional tone detection: Joyful, Tense, Somber, Inspiring, Neutral
+  - AI analysis returns confidence scores + intensity levels
+  - Frontend: ToneMeterModal component (320 lines)
+  - Tone emotion bars with confidence indicators
+  - Tone shift slider (-50 to +50 for emotional adjustment)
+  - AI-suggested tone modifications
+  - Toolbar button + Cmd/Ctrl+Shift+M keyboard shortcut
+  - Chapter context display + processing time metrics
+
+- ✅ **P3.8 Glossary UI & Export** (100% COMPLETE)
+  - Backend extraction complete (POST /books/{id}/glossary/extract)
+  - Frontend: GlossaryManager component (300 lines, full CRUD)
+  - Glossary export modal with 3 formats: HTML, Markdown, Plain Text
+  - Edit definitions inline, delete with confirmation
+  - Search/filter glossary entries
+  - Export-to-chapter button for back matter
+  - Download glossary in selected format
 
 ## Immediate Next Work
 
-### **P2.5 Web Layout & Design System** (NEXT PHASE)
+### **P5.3 Front/Back Matter Builder (Finalize)** (NEXT - HIGH PRIORITY)
+
+**Status:** Core title-page + TOC controls shipped. Remaining matter-builder surfaces are still pending.
 
 **Objectives:**
-- Create responsive grid layout system
-- Build component library for consistent UI
-- Implement dark mode throughout
-- Mobile-first design approach
+- Add glossary/index/bibliography builder controls in publishing UI
+- Add structured save flow for remaining back-matter sections
+- Connect new sections into compile preview and export payload parity
 
-**Estimated Effort:** 2,000-2,500 lines of code
+**Estimated Effort:** 700-1,000 lines
 
-**Deliverables:**
-- Layout containers (Header, Sidebar, Main, Footer)
-- Responsive grid (12-column, mobile breakpoints)
-- Color system (primary, secondary, accent, neutral)
-- Typography scale (h1-h6, body, caption)
-- Component primitives (Button, Input, Card, Modal, Toast)
-- Dark mode toggle with persistence
-- Accessibility enhancements (ARIA labels, keyboard nav)
+### **P5.7 Accessibility Checks (Harden & Expand)** (NEXT - HIGH PRIORITY)
+
+**Status:** Core checks + history/guidance are live in backend + publishing UI. Workflow depth and export-validation hardening are pending.
+
+**Objectives:**
+- Add recommendation lifecycle state flow (open/in-progress/resolved) and update actions
+- Expand checks with export-artifact-level metadata validations
+- Add richer scan-to-scan delta insights for issue category movement
+
+**Estimated Effort:** 400-700 lines
+
+### **P5.4 Device/Trim Preview** (LATER)
+
+**Status:** Unstarted.
+
+**Objectives:**
+- Add device presets (phone/tablet/e-reader/print trim)
+- Show visualized layout differences per preset
+- Persist selected preview target with export profiles
 
 ---
 
-### **P2.6 Custom Fields & Metadata** (AFTER P2.5)
+- ✅ **P3.6 Citation Suggestions & Assistance** (100% COMPLETE)
+  - Backend: POST /chapters/{id}/suggest-citations endpoint
+  - Smart analysis identifies citation opportunities (claims, statistics, facts)
+  - AI examines context and suggests placement
+  - Frontend: CitationSuggestionsModal with suggestion list (200 lines)
+  - Toolbar button + Cmd/Ctrl+Shift+K keyboard shortcut
+  - Project-type aware (academic/historical/journalistic/general)
+  - Confidence scores per suggestion
+  - Select multiple suggestions for batch review
 
-**Objectives:**
-- Allow users to add custom fields to projects
-- Create flexible metadata schema
-- Build custom field UI builder
-
-**Estimated Effort:** 2,500-3,000 lines of code
-
-**Deliverables:**
-- Custom field models (text, number, date, select, checkbox)
-- Field value storage (JSON on projects/chapters)
-- UI builder for field creation
-- Field value input components
-- Filtering/sorting by custom fields
-
----
-
-### **P2.7 Real-time Collaboration** (AFTER P2.6)
-
-**Objectives:**
-- Multi-user editing with WebSocket sync
-- Presence indicators and cursors
-- Activity log and undo/redo
-- Conflict resolution
-
-**Estimated Effort:** 3,000+ lines of code
-
----
-
-### **Testing Strategy (All Phases)**
-
-**Docker-Ready Testing:**
-1. Unit tests (pytest backend, Jest frontend) - No Docker needed ✅
-2. API integration tests - Requires Docker
-3. E2E tests (Playwright) - Requires Docker
-4. Performance tests - Requires Docker
-
-**When Docker Available:**
-```bash
-# Run all tests
-docker compose exec backend pytest
-docker compose exec frontend npm test
-docker compose run --rm e2e playwright test
-
-# Performance baseline
-docker compose exec backend pytest --benchmark
-```
-
-- ✅ **P2.3 Phase 1: Advanced Visualization Components** (100% COMPLETE)
-  - 5 new React components created (1,930 lines of production code)
+- ✅ **P3.5 Rewrite with Diff** (100% COMPLETE)
+  - Backend: Gemini-powered rewrite with 6 strategies
+  - Frontend: Modal with diff display & confidence scores
+  - Editor integration: Toolbar button + Cmd/Ctrl+Shift+R keyboard shortcut
+  - Text selection auto-capture
+  - Apply rewritten text with one click
+  - Word count delta display
   - GanttChart.tsx: Canvas-based timeline with durations, dependencies, zoom/scroll
   - FlowFilter.tsx: Multi-criteria filtering + `applyFilters()` utility function
   - BulkOperations.tsx: Multi-select interface with batch operations and CSV export

@@ -125,6 +125,9 @@ class Book(Base):
         nullable=True,
     )
 
+    # Formatting/theme settings
+    formatting_theme_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
+
     # Project-wide writing defaults
     project_settings: Mapped[Optional[dict]] = mapped_column(
         JSONB,
@@ -211,6 +214,12 @@ class Book(Base):
         back_populates="book",
         cascade="all, delete-orphan",
         foreign_keys="GlossaryEntry.book_id",
+    )
+    review_links: Mapped[List["ReviewLink"]] = relationship(
+        "ReviewLink",
+        back_populates="book",
+        cascade="all, delete-orphan",
+        foreign_keys="ReviewLink.book_id",
     )
 
     def __repr__(self) -> str:

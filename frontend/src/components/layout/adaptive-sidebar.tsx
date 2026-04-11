@@ -58,6 +58,12 @@ const MODULE_NAV_MAP: Record<string, NavItem> = {
     icon: 'library_books',
     moduleId: 'references',
   },
+  glossary: {
+    href: '/dashboard/glossary',
+    label: 'Glossary',
+    icon: 'abc',
+    moduleId: 'glossary',
+  },
   collaboration: {
     href: '/dashboard/collaboration',
     label: 'Collaboration',
@@ -100,6 +106,7 @@ function getAdaptiveSidebarItems(projectType?: ProjectType | null): NavItem[] {
       MODULE_NAV_MAP.notes_voice,
       MODULE_NAV_MAP.media,
       MODULE_NAV_MAP.references,
+      MODULE_NAV_MAP.glossary,
       MODULE_NAV_MAP.collaboration,
       MODULE_NAV_MAP.publishing,
       ...FIXED_ITEMS,
@@ -139,6 +146,7 @@ function getAdaptiveLabel(moduleId: string, projectType: ProjectType): string {
     notes_voice: 'Notes & Voice',
     media: 'Media',
     references: 'References',
+    glossary: 'Glossary',
     collaboration: 'Collaboration',
     publishing: 'Publishing',
     settings: 'Settings',
