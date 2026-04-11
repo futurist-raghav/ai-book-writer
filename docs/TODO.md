@@ -1,9 +1,9 @@
 # AI Book Writer - Implementation Todo List
 
 **Last Updated:** April 12, 2026 - PHASE 7 ACCELERATING
-**Status:** Phase 0-5 ✅ 100% | Phase 6 ✅ 87.5% (7/8) | Phase 7 🚀 SHIPPED (P7.1✅ P7.2✅ P7.3✅ / P7.4→)
-**Current Focus:** P7.4 Monetization (subscriptions, tiers) → P7.5 APIs (integrations)
-**Ship Readiness:** P0-P6 ✅ PROD-READY | P7.1-7.3 ✅ SHIPPED | P7.4 NOW
+**Status:** Phase 0-5 ✅ 100% | Phase 6 ✅ 87.5% (7/8) | Phase 7 🚀 SHIPPED (P7.1✅ P7.2✅ P7.3✅ P7.4✅ / P7.5→)
+**Current Focus:** P7.5 APIs & Integrations → P7.6 Mobile Apps
+**Ship Readiness:** P0-P6 ✅ PROD-READY | P7.1-7.4 ✅ SHIPPED | P7.5 NEXT
 
 ---
 
@@ -1232,27 +1232,40 @@
 - Public author pages with book carousel
 - Author collaboration workspace (shared projects)
 
-### P7.4 Monetization Features 🚀 LAUNCHING NOW
+### P7.4 Monetization Features ✅ INFRASTRUCTURE SHIPPED
 
-**Priority 1 - Subscription Tiers (IMPLEMENTING):**
-- [ ] Define 3 tiers: Free, Pro, Studio with feature gates
-- [ ] Subscription model (monthly/annual with 20% annual discount)
-- [ ] Stripe integration for payments
-- [ ] Subscription management dashboard
-- [ ] Usage tracking (chapters, templates, collaborators per tier)
-- [ ] Upgrade/downgrade flow with proration
+**Infrastructure Complete (6 Models, 5 Services, 14 API Routes):**
+- [X] Define 4 tiers: Free, Pro, Studio, Publisher with feature gates
+- [X] AuthorSubscription model with tier management
+- [X] Subscription service with upgrade/cancel logic
+- [X] Subscription API (get, upgrade, cancel)
+- [X] Stripe customer/subscription ID storage (TODO: OAuth flow)
+- [X] MarketplaceRoyalty tracking (sales, earnings, payouts)
+- [X] RoyaltyService with auto-payout at $500 threshold
+- [X] Royalty API (get all, get by book)
+- [X] AffiliateLink creation and tracking
+- [X] AffiliateService with click/conversion recording
+- [X] Affiliate API (create, stats, by book)
+- [X] PricingRecommendation model with ML placeholder
+- [X] PricingService with heuristic algorithm
+- [X] CourseModule for lesson creation
+- [X] CourseService for course lifecycle
+- [X] Course API (create, publish)
+- [X] PatronAccount (Patreon-like support)
+- [X] PatronService for tier management
+- [X] Patron API (create, get)
+- [X] MonetizationDashboard React component
+- [X] Dashboard metrics aggregation API
+- [X] Database migration (018_monetization.py)
 
-**Priority 2 - Marketplace Royalties:**
-- [ ] Template sales tracking per author
-- [ ] Royalty calculation (70% author, 30% platform)
-- [ ] Monthly payout reports
-- [ ] Payment gateway (Stripe Connect)
-
-**Priority 3 - Advanced Features:**
-- [ ] Course creation tools (teach writing courses)
-- [ ] Patron management (Patreon-like support)
-- [ ] Affiliate links in published books
-- [ ] Premium analytics features
+**Remaining for P7.4.5:**
+- [ ] Stripe OAuth/Connect integration
+- [ ] Payout webhook processing
+- [ ] Course lesson CRUD and ordering
+- [ ] Patron enrollment workflow
+- [ ] Email notifications (payout, tier upgrade)
+- [ ] Advanced earnings charts and analytics
+- [ ] Course completion tracking and certificates
 
 ### P7.5 API & Integrations
 
