@@ -397,7 +397,7 @@
 - [X] GET /books/{book_id}/entities/{entity_id}/chapters endpoint for cross-reference queries
 - [X] EntityReference schema and response models (ChapterReferenceResponse, EntityChaptersResponse)
 - [X] Comprehensive test coverage including entity references (11 tests, all passing)
-- [ ] World Building and Characters pages now read from same Entities table
+- [X] World Building and Characters pages now read from same Entities table
   **Status:** ✅ 100% COMPLETE (Backend + Frontend) - Database architecture + extraction integration + reference linking + UI display all finished
   - Alembic migrations 008-009 creates unified Entities table + entity_references table (✅)
   - ORM models with relationships for cascade operations (✅)
@@ -965,7 +965,7 @@
 - [x] Recommendation lifecycle state management (open/in-progress/resolved updates)
 - [ ] Export artifact-level accessibility metadata validation
 
-**Status:** NEAR COMPLETE 🚀 (90% done - Ready for Testing)
+**Status:** NEAR COMPLETE 🚀 (95% done - Backend persistence added, export validation optional)
 - ✅ Backend publishing endpoint returns issue list, severity totals, score/compliance, recommendations, history summary
 - ✅ Three endpoints: core checks, history, WCAG guidelines operational
 - ✅ Publishing page accessibility dashboard with full stats + scan history
@@ -974,9 +974,9 @@
 - ✅ Bulk operations: multi-select + batch state updates
 - ✅ Progress tracking (% resolved), priority + WCAG badges, category grouping
 - ✅ Integrated into publishing page accessibility section
-- ⏳ NEXT: Backend persistence for recommendation states (save to DB)
-- ⏳ NEXT: Export artifact-level validation (deeper checks)
-- **ETA for Done:** 2 hours (backend API + export validation + QA)
+- ✅ PATCH /books/{book_id}/accessibility/recommendations/{recommendation_id} endpoint for state persistence
+- ⏳ OPTIONAL: Export artifact-level validation (deeper checks) - POST-MVP polish
+- **ETA for Done:** 1 hour (E2E testing + export polish)
 
 ---
 
@@ -1354,7 +1354,7 @@
 - [X] Explore & Writing stub screens
 - [X] All screens with error handling and loading states
 
-**Phase 3: Offline & Sync - 90% READY**
+**Phase 3: Offline & Sync - 100% COMPLETE ✅**
 - [X] WatermelonDB schema created (5 tables: books, chapters, sessions, syncs, cache)
 - [X] WatermelonDB model classes with relations (Book, Chapter, WritingSession, PendingSync, CacheMetadata)
 - [X] Database operation hooks (useDatabase) with full CRUD
@@ -1362,7 +1362,7 @@
 - [X] Network detection and auto-sync (30s intervals)
 - [X] Offline indicator UI components
 - [X] Error handling and retry logic with exponential backoff
-- [ ] Final model/hook integration in screens (next session)
+- [X] Final model/hook integration in screens (books list + chapters list screens updated)
 
 **Phase 4: Notifications & Polish - POST-MVP**
 - [ ] Push notification setup (Firebase)

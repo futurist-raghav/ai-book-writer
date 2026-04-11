@@ -5,8 +5,9 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { queryClient } from '../lib/react-query';
-import { useAuthStore } from '../lib/store';
+import { useAuthStore, useDBStore } from '../lib/store';
 import { storage } from '../lib/storage';
+import { initializeDatabase } from '../lib/database';
 
 /**
  * Root layout component
@@ -14,22 +15,27 @@ import { storage } from '../lib/storage';
  */
 export default function RootLayout() {
   const { user, setUser, hydrate } = useAuthStore();
+  const { setDatabase, setInitialized } = useDBStore();
   const [isHydrating, setIsHydrating] = React.useState(true);
 
-  // Hydrate auth state on app launch
+  // Hydrate auth state and initialize database on app launch
   useEffect(() => {
-    const hydrateAuth = async () => {
+    const hydrateApp = async () => {
       try {
         await hydrate();
+        // Initialize WatermelonDB
+        const database = await initializeDatabase();
+        setDatabase(database);
+        setInitialized(true);
       } catch (error) {
-        console.error('Failed to hydrate auth:', error);
+        console.error('Failed to hydrate app:', error);
       } finally {
         setIsHydrating(false);
       }
     };
 
-    hydrateAuth();
-  }, [hydrate]);
+    hydrateApp();
+  }, [hydrate, setDatabase, setInitialized]);
 
   if (isHydrating) {
     return (

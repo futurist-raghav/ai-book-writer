@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   FlatList,
@@ -9,14 +9,21 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
+import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
+import NetInfo from '@react-native-community/netinfo';
 import { api } from '../../../../../lib/api';
 import { queryKeys } from '../../../../../lib/react-query';
+import { useDatabase } from '../../../../../lib/database-hooks';
+import { useDBStore } from '../../../../../lib/store';
 
 export default function ChaptersListScreen() {
   const { id: bookId } = useLocalSearchParams<{ id: string }>();
+  const database = useDBStore((state) => state.database);
+  const { getChapters: getLocalChapters, updateOrCreateChapter } = useDatabase(database);
+  const [localChapters, setLocalChapters] = useState<any[]>([]);
+  const [isOnline, setIsOnline] = useState(true);
 
   const {
     data: chapters = [],
@@ -27,15 +34,68 @@ export default function ChaptersListScreen() {
   } = useQuery({
     queryKey: queryKeys.chaptersForBook(bookId || ''),
     queryFn: () => api.getChapters(bookId || '', { limit: 100 }),
-    enabled: !!bookId,
+    enabled: !!bookId && isOnline,
   });
+
+  // Load local chapters
+  const loadLocalChapters = async () => {
+    try {
+      const chs = await getLocalChapters();
+      setLocalChapters(chs || []);
+    } catch (err) {
+      console.error('Failed to load local chapters:', err);
+    }
+  };
+
+  // Load on focus
+  useFocusEffect(
+    React.useCallback(() => {
+      loadLocalChapters();
+    }, [database])
+  );
+
+  // Monitor network
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      setIsOnline(state.isConnected ?? false);
+    });
+    return unsubscribe;
+  }, []);
+
+  // Sync chapters to local
+  useEffect(() => {
+    const syncChaptersToLocal = async () => {
+      if (chapters.length > 0 && database) {
+        try {
+          for (const chapter of chapters) {
+            await updateOrCreateChapter({
+              id: chapter.id,
+              book_id: bookId,
+              title: chapter.title,
+              chapter_number: chapter.chapter_number,
+              word_count: chapter.word_count || 0,
+              content: chapter.content || '',
+              status: chapter.status,
+              created_at: chapter.created_at,
+              updated_at: chapter.updated_at,
+            });
+          }
+          await loadLocalChapters();
+        } catch (err) {
+          console.error('Failed to sync chapters:', err);
+        }
+      }
+    };
+    syncChaptersToLocal();
+  }, [chapters, database, bookId]);
+
+  const displayChapters = isOnline && chapters.length > 0 ? chapters : localChapters;
 
   const handleChapterPress = (chapterId: string) => {
     router.push(`/(main)/books/${bookId}/chapters/${chapterId}/detail`);
   };
 
   const handleCreateChapter = () => {
-    // Navigate to create chapter screen
     router.push(`/(main)/books/${bookId}/chapters/new`);
   };
 
@@ -72,6 +132,7 @@ export default function ChaptersListScreen() {
         </Text>
       </View>
 
+      {!isOnline && <Ionicons name="cloud-offline" size={16} color="#f59e0b" />}
       <Ionicons name="chevron-forward" size={20} color="#ccc" />
     </TouchableOpacity>
   );
@@ -93,7 +154,13 @@ export default function ChaptersListScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {error ? (
+      {!isOnline && (
+        <View style={styles.offlineBar}>
+          <Ionicons name="cloud-offline" size={16} color="#fff" />
+          <Text style={styles.offlineText}>You are offline - showing cached data</Text>
+        </View>
+      )}
+      {error && isOnline ? (
         <View style={styles.errorContainer}>
           <Ionicons name="alert-circle" size={60} color="#dc2626" />
           <Text style={styles.errorText}>Failed to load chapters</Text>
@@ -106,7 +173,7 @@ export default function ChaptersListScreen() {
         </View>
       ) : (
         <FlatList
-          data={chapters}
+          data={displayChapters}
           renderItem={renderChapter}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
@@ -118,13 +185,13 @@ export default function ChaptersListScreen() {
           }
           ListEmptyComponent={!isLoading ? emptyComponent : null}
           ListHeaderComponent={
-            chapters.length > 0 ? (
+            displayChapters.length > 0 ? (
               <TouchableOpacity
-                style={styles.addButton}
+                style={styles.createChapterButton}
                 onPress={handleCreateChapter}
               >
                 <Ionicons name="add-circle" size={24} color="#0369a1" />
-                <Text style={styles.addButtonText}>New Chapter</Text>
+                <Text style={styles.createChapterButtonText}>New Chapter</Text>
               </TouchableOpacity>
             ) : null
           }
@@ -145,36 +212,33 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
-  listContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  addButton: {
+  offlineBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    marginBottom: 12,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: '#eee',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#f59e0b',
   },
-  addButtonText: {
+  offlineText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '500',
     marginLeft: 8,
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#0369a1',
+  },
+  listContent: {
+    padding: 16,
+    paddingBottom: 32,
   },
   chapterCard: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 12,
-    marginBottom: 8,
-    paddingHorizontal: 12,
-    backgroundColor: '#f9f9f9',
+    paddingHorizontal: 16,
+    marginBottom: 12,
+    backgroundColor: '#f9fafb',
     borderRadius: 8,
-    borderLeftWidth: 4,
-    borderLeftColor: '#0369a1',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
   },
   chapterNumber: {
     width: 40,
@@ -187,14 +251,14 @@ const styles = StyleSheet.create({
   },
   chapterNumberText: {
     color: '#fff',
-    fontWeight: '700',
     fontSize: 14,
+    fontWeight: '700',
   },
   chapterInfo: {
     flex: 1,
   },
   chapterTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: '#000',
     marginBottom: 4,
@@ -205,21 +269,21 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 12,
-    color: '#999',
+    color: '#666',
   },
   metaDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
     backgroundColor: '#999',
     marginHorizontal: 6,
   },
   chapterDate: {
-    marginRight: 8,
+    marginRight: 12,
   },
   dateText: {
     fontSize: 12,
-    color: '#ccc',
+    color: '#999',
   },
   emptyContainer: {
     flex: 1,
@@ -262,7 +326,6 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 16,
     color: '#dc2626',
-    marginTop: 16,
     marginBottom: 16,
   },
   retryButton: {
@@ -281,5 +344,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.8)',
+  },
+  createChapterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginBottom: 12,
+    backgroundColor: '#f0f9ff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#0369a1',
+  },
+  createChapterButtonText: {
+    color: '#0369a1',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 8,
   },
 });

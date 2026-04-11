@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   FlatList,
@@ -10,15 +10,24 @@ import {
   Image,
   SafeAreaView,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
+import NetInfo from '@react-native-community/netinfo';
 import { api } from '../../../lib/api';
 import { queryKeys } from '../../../lib/react-query';
+import { useDatabase } from '../../../lib/database-hooks';
+import { useDBStore } from '../../../lib/store';
 
 export default function BooksScreen() {
+  const database = useDBStore((state) => state.database);
+  const { getBooks: getLocalBooks, updateOrCreateBook } = useDatabase(database);
+  const [localBooks, setLocalBooks] = useState<any[]>([]);
+  const [isOnline, setIsOnline] = useState(true);
+
+  // Fetch from API
   const {
-    data: books = [],
+    data: apiBooks = [],
     isLoading,
     isRefetching,
     refetch,
@@ -26,7 +35,64 @@ export default function BooksScreen() {
   } = useQuery({
     queryKey: queryKeys.booksAll(),
     queryFn: () => api.getBooks({ limit: 50 }),
+    enabled: isOnline,
   });
+
+  // Load books from local database
+  const loadLocalBooks = async () => {
+    try {
+      const books = await getLocalBooks();
+      setLocalBooks(books || []);
+    } catch (err) {
+      console.error('Failed to load local books:', err);
+    }
+  };
+
+  // Load local books on focus
+  useFocusEffect(
+    React.useCallback(() => {
+      loadLocalBooks();
+    }, [database])
+  );
+
+  // Monitor network status
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      setIsOnline(state.isConnected ?? false);
+    });
+    return unsubscribe;
+  }, []);
+
+  // Sync API books to local database
+  useEffect(() => {
+    const syncBooksToLocal = async () => {
+      if (apiBooks.length > 0 && database) {
+        try {
+          for (const book of apiBooks) {
+            await updateOrCreateBook({
+              id: book.id,
+              title: book.title,
+              author_id: book.user_id,
+              status: book.status,
+              word_count: book.word_count || 0,
+              chapter_count: book.chapter_count || 0,
+              cover_url: book.cover_url,
+              description: book.description,
+              created_at: book.created_at,
+              updated_at: book.updated_at,
+            });
+          }
+          await loadLocalBooks();
+        } catch (err) {
+          console.error('Failed to sync books to local:', err);
+        }
+      }
+    };
+    syncBooksToLocal();
+  }, [apiBooks, database]);
+
+  // Use API books if online, otherwise use local books
+  const books = isOnline && apiBooks.length > 0 ? apiBooks : localBooks;
 
   const handleBookPress = (bookId: string) => {
     router.push(`/(main)/books/${bookId}/chapters`);
@@ -292,5 +358,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.8)',
+  },
+  createBookButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginBottom: 12,
+    backgroundColor: '#f0f9ff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#0369a1',
+  },
+  createBookButtonText: {
+    color: '#0369a1',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 8,
   },
 });
