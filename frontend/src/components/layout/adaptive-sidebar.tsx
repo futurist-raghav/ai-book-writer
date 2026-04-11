@@ -93,6 +93,12 @@ const GLOBAL_ITEMS: NavItem[] = [
     moduleId: 'agents',
   },
   {
+    href: '/dashboard/classrooms',
+    label: 'Classrooms',
+    icon: 'groups',
+    moduleId: 'classrooms',
+  },
+  {
     href: '/dashboard/public-share',
     label: 'Share Your Book',
     icon: 'share',
