@@ -111,6 +111,12 @@ const GLOBAL_ITEMS: NavItem[] = [
     moduleId: 'writing_performance',
   },
   {
+    href: '/dashboard/publishing-pipeline',
+    label: 'Publishing Guide',
+    icon: 'publish',
+    moduleId: 'publishing_pipeline',
+  },
+  {
     href: '/dashboard/classrooms',
     label: 'Classrooms',
     icon: 'groups',
