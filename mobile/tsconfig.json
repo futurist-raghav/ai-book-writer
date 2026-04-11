@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "allowJs": true,
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "tsx": "react-jsx",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowSyntheticDefaultImports": true,
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@": ["./"],
+      "@/*": ["./*"],
+      "@app": ["./app"],
+      "@lib": ["./lib"],
+    },
+    "types": ["expo", "expo-module", "react", "react-native"]
+  },
+  "include": ["**/*.ts", "**/*.tsx", "types/**/*"],
+  "exclude": ["node_modules", "dist", ".expo"]
+}
