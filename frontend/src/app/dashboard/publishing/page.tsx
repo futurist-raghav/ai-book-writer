@@ -7,6 +7,10 @@ import { api, apiClient } from '@/lib/api-client';
 import { useProjectContext } from '@/stores/project-context';
 import { Spinner } from '@/components/ui/spinner';
 import { QueryErrorState } from '@/components/ui/query-error-state';
+import { GlossaryBuilderPanel } from '@/components/publishing/glossary-builder-panel';
+import { IndexBuilderPanel } from '@/components/publishing/index-builder-panel';
+import { BibliographyManagerPanel } from '@/components/publishing/bibliography-manager-panel';
+import { RecommendationStateManager } from '@/components/publishing/recommendation-state-manager';
 
 interface ExportFormat {
   format: 'pdf' | 'epub' | 'docx' | 'markdown' | 'latex' | 'fountain' | 'html' | 'json';
@@ -342,7 +346,20 @@ export default function PublishingPage() {
     afterword: '',
     about_author: '',
   });
+  const [glossaryEntries, setGlossaryEntries] = useState<Array<{ term: string; definition: string }>>([]);
+  const [glossaryMode, setGlossaryMode] = useState<'auto' | 'manual'>('manual');
+  const [glossaryEditMode, setGlossaryEditMode] = useState(false);
+  const [indexEntries, setIndexEntries] = useState<Array<{ term: string; pages: string }>>([]);
+  const [indexMode, setIndexMode] = useState<'auto' | 'manual'>('manual');
+  const [indexEditMode, setIndexEditMode] = useState(false);
+  const [bibliographyEntries, setBibliographyEntries] = useState<
+    Array<{ id: string; title: string; authors: string; year: string; source_type: 'book' | 'journal' | 'website' | 'magazine' | 'newspaper' | 'other' }>
+  >([]);
+  const [bibliographyEditMode, setBibliographyEditMode] = useState(false);
   const [accessibilityChecks, setAccessibilityChecks] = useState<AccessibilityChecksResponse | null>(null);
+  const [recommendationStates, setRecommendationStates] = useState<
+    Record<string, 'open' | 'in-progress' | 'resolved'>
+  >({});
 
   // Get the current active book from context
   const projectContext = useProjectContext();
@@ -528,6 +545,107 @@ export default function PublishingPage() {
     onError: () => toast.error('Failed to save front/back matter'),
   });
 
+  const glossaryMutation = useMutation({
+    mutationFn: () => {
+      if (!activeBookId) {
+        throw new Error('No active project selected');
+      }
+
+      const projectSettings = getProjectSettings();
+      const publishingLayoutRaw = projectSettings.publishing_layout;
+      const existingPublishingLayout =
+        publishingLayoutRaw && typeof publishingLayoutRaw === 'object'
+          ? (publishingLayoutRaw as Record<string, unknown>)
+          : {};
+
+      return apiClient.books.update(activeBookId, {
+        project_settings: {
+          ...projectSettings,
+          publishing_layout: {
+            ...existingPublishingLayout,
+            glossary: {
+              mode: glossaryMode,
+              entries: glossaryEntries,
+            },
+          },
+        },
+      });
+    },
+    onSuccess: () => {
+      toast.success('Glossary settings saved');
+      queryClient.invalidateQueries({ queryKey: ['project-publishing', activeBookId] });
+      setGlossaryEditMode(false);
+    },
+    onError: () => toast.error('Failed to save glossary'),
+  });
+
+  const indexMutation = useMutation({
+    mutationFn: () => {
+      if (!activeBookId) {
+        throw new Error('No active project selected');
+      }
+
+      const projectSettings = getProjectSettings();
+      const publishingLayoutRaw = projectSettings.publishing_layout;
+      const existingPublishingLayout =
+        publishingLayoutRaw && typeof publishingLayoutRaw === 'object'
+          ? (publishingLayoutRaw as Record<string, unknown>)
+          : {};
+
+      return apiClient.books.update(activeBookId, {
+        project_settings: {
+          ...projectSettings,
+          publishing_layout: {
+            ...existingPublishingLayout,
+            index: {
+              mode: indexMode,
+              entries: indexEntries,
+            },
+          },
+        },
+      });
+    },
+    onSuccess: () => {
+      toast.success('Index settings saved');
+      queryClient.invalidateQueries({ queryKey: ['project-publishing', activeBookId] });
+      setIndexEditMode(false);
+    },
+    onError: () => toast.error('Failed to save index'),
+  });
+
+  const bibliographyMutation = useMutation({
+    mutationFn: () => {
+      if (!activeBookId) {
+        throw new Error('No active project selected');
+      }
+
+      const projectSettings = getProjectSettings();
+      const publishingLayoutRaw = projectSettings.publishing_layout;
+      const existingPublishingLayout =
+        publishingLayoutRaw && typeof publishingLayoutRaw === 'object'
+          ? (publishingLayoutRaw as Record<string, unknown>)
+          : {};
+
+      return apiClient.books.update(activeBookId, {
+        project_settings: {
+          ...projectSettings,
+          publishing_layout: {
+            ...existingPublishingLayout,
+            bibliography: {
+              entries: bibliographyEntries,
+            },
+          },
+        },
+      });
+    },
+    onSuccess: () => {
+      toast.success('Bibliography settings saved');
+      queryClient.invalidateQueries({ queryKey: ['project-publishing', activeBookId] });
+      setBibliographyEditMode(false);
+    },
+    onError: () => toast.error('Failed to save bibliography'),
+  });
+
   const compilePreviewMutation = useMutation({
     mutationFn: (modeOverride?: PreviewMode) => {
       if (!activeBookId) {
@@ -668,6 +786,58 @@ export default function PublishingPage() {
       afterword: String(project.afterword || ''),
       about_author: String(project.about_author || ''),
     });
+
+    // Load glossary/index/bibliography from publishing layout
+    const glossaryRaw = publishingLayout.glossary;
+    const glossarySettings =
+      glossaryRaw && typeof glossaryRaw === 'object' ? (glossaryRaw as Record<string, unknown>) : {};
+
+    const indexRaw = publishingLayout.index;
+    const indexSettings = indexRaw && typeof indexRaw === 'object' ? (indexRaw as Record<string, unknown>) : {};
+
+    const bibliographyRaw = publishingLayout.bibliography;
+    const bibliographySettings =
+      bibliographyRaw && typeof bibliographyRaw === 'object'
+        ? (bibliographyRaw as Record<string, unknown>)
+        : {};
+
+    setGlossaryMode((String(glossarySettings.mode || 'manual').toLowerCase() === 'auto' ? 'auto' : 'manual') as 'auto' | 'manual');
+    setGlossaryEntries(
+      Array.isArray(glossarySettings.entries)
+        ? glossarySettings.entries.map((entry) => ({
+            term: String(entry?.term || ''),
+            definition: String(entry?.definition || ''),
+          }))
+        : []
+    );
+
+    setIndexMode((String(indexSettings.mode || 'manual').toLowerCase() === 'auto' ? 'auto' : 'manual') as 'auto' | 'manual');
+    setIndexEntries(
+      Array.isArray(indexSettings.entries)
+        ? indexSettings.entries.map((entry) => ({
+            term: String(entry?.term || ''),
+            pages: String(entry?.pages || ''),
+          }))
+        : []
+    );
+
+    setBibliographyEntries(
+      Array.isArray(bibliographySettings.entries)
+        ? bibliographySettings.entries.map((entry) => ({
+            id: String(entry?.id || `bib-${Date.now()}`),
+            title: String(entry?.title || ''),
+            authors: String(entry?.authors || ''),
+            year: String(entry?.year || new Date().getFullYear().toString()),
+            source_type: (String(entry?.source_type || 'other') as
+              | 'book'
+              | 'journal'
+              | 'website'
+              | 'magazine'
+              | 'newspaper'
+              | 'other') || 'other',
+          }))
+        : []
+    );
   }, [projectData]);
 
   const handleExport = (format: ExportFormat['format']) => {
@@ -1135,6 +1305,61 @@ export default function PublishingPage() {
             )}
           </div>
 
+          {/* Glossary Builder */}
+          <GlossaryBuilderPanel
+            entries={glossaryEntries}
+            mode={glossaryMode}
+            onModeChange={setGlossaryMode}
+            onEntriesChange={setGlossaryEntries}
+            isEditing={glossaryEditMode}
+            onEditToggle={() => setGlossaryEditMode(!glossaryEditMode)}
+            onSave={async () => {
+              return new Promise<void>((resolve) => {
+                glossaryMutation.mutate(undefined, {
+                  onSuccess: () => resolve(),
+                  onError: () => resolve(),
+                });
+              });
+            }}
+            isSaving={glossaryMutation.isPending}
+          />
+
+          {/* Index Builder */}
+          <IndexBuilderPanel
+            entries={indexEntries}
+            mode={indexMode}
+            onModeChange={setIndexMode}
+            onEntriesChange={setIndexEntries}
+            isEditing={indexEditMode}
+            onEditToggle={() => setIndexEditMode(!indexEditMode)}
+            onSave={async () => {
+              return new Promise<void>((resolve) => {
+                indexMutation.mutate(undefined, {
+                  onSuccess: () => resolve(),
+                  onError: () => resolve(),
+                });
+              });
+            }}
+            isSaving={indexMutation.isPending}
+          />
+
+          {/* Bibliography Manager */}
+          <BibliographyManagerPanel
+            entries={bibliographyEntries}
+            onEntriesChange={setBibliographyEntries}
+            isEditing={bibliographyEditMode}
+            onEditToggle={() => setBibliographyEditMode(!bibliographyEditMode)}
+            onSave={async () => {
+              return new Promise<void>((resolve) => {
+                bibliographyMutation.mutate(undefined, {
+                  onSuccess: () => resolve(),
+                  onError: () => resolve(),
+                });
+              });
+            }}
+            isSaving={bibliographyMutation.isPending}
+          />
+
           {/* Compile Preview */}
           <div className="bg-surface-container-lowest border border-outline-variant/10 rounded-xl p-8 mb-8">
             <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
@@ -1413,29 +1638,23 @@ export default function PublishingPage() {
                   {(accessibilityChecks.recommendations?.recommendations || []).length === 0 ? (
                     <p className="text-xs text-on-surface-variant">No recommendations generated for this scan.</p>
                   ) : (
-                    <div className="max-h-80 overflow-y-auto space-y-2">
-                      {(accessibilityChecks.recommendations?.recommendations || []).map((recommendation) => (
-                        <div key={recommendation.id} className="rounded-lg border border-outline-variant/20 bg-white p-3">
-                          <div className="flex items-center justify-between gap-2 mb-1">
-                            <p className="text-xs font-bold uppercase tracking-wider text-primary">{recommendation.title}</p>
-                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
-                              recommendation.severity === 'error'
-                                ? 'bg-red-100 text-red-800'
-                                : recommendation.severity === 'warning'
-                                  ? 'bg-amber-100 text-amber-800'
-                                  : 'bg-blue-100 text-blue-800'
-                            }`}>
-                              {recommendation.severity}
-                            </span>
-                          </div>
-                          <p className="text-xs text-primary mb-1">{recommendation.description}</p>
-                          <p className="text-[11px] text-on-surface-variant mb-1">
-                            Priority {recommendation.priority} · {recommendation.implementation_difficulty} · {recommendation.estimated_time_minutes} min
-                          </p>
-                          <p className="text-xs text-on-surface-variant">Suggested fix: {recommendation.steps_to_fix || 'Follow WCAG guidance for this category.'}</p>
-                        </div>
-                      ))}
-                    </div>
+                    <RecommendationStateManager
+                      recommendations={(accessibilityChecks.recommendations?.recommendations || []).map((rec) => ({
+                        id: rec.id,
+                        issue_category: rec.title || 'General',
+                        priority: (rec.priority === 'high' ? 'high' : rec.priority === 'low' ? 'low' : 'medium') as 'low' | 'medium' | 'high',
+                        fix_guidance: rec.description || rec.steps_to_fix || 'Apply WCAG guidance',
+                        tool_reference: rec.implementation_difficulty ? `${rec.implementation_difficulty} · ${String(rec.estimated_time_minutes)} min` : undefined,
+                        wcag_level: rec.severity === 'error' ? 'AA' : rec.severity === 'warning' ? 'A' : undefined,
+                        state: (recommendationStates[rec.id] || 'open') as 'open' | 'in-progress' | 'resolved',
+                      }))}
+                      onStateChange={(recId, newState) => {
+                        setRecommendationStates((prev) => ({
+                          ...prev,
+                          [recId]: newState,
+                        }));
+                      }}
+                    />
                   )}
                 </div>
 

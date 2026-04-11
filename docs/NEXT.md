@@ -1,8 +1,56 @@
-# NEXT - Active Execution Queue (April 11, 2026)
+# NEXT - Active Execution Queue (April 11, 2026 - 8:45 PM)
 
-This top section is the source of truth for immediate execution. Historical deep-dive ideation is preserved below for reference.
+**CURRENT PHASE:** Phase 5 Finalization Sprint
+**EXECUTION MODE:** High-velocity implementation (P5.3 + P5.7 core done, integration phase)
+**READY FOR TESTING:** P5.3 + P5.7 UI layers complete
 
-## Just Completed
+---
+
+## ✅ Just Completed (This Session - 30 min)
+
+### P5.3 Back-Matter Builders (CORE UI ✅ DONE)
+**Status:** Title/TOC + Glossary/Index/Bibliography builders shipped and integrated
+
+**Implementation Details:**
+- ✅ `GlossaryBuilderPanel` (130 LOC) - auto/manual modes, entry management
+- ✅ `IndexBuilderPanel` (120 LOC) - page references, term indexing
+- ✅ `BibliographyManagerPanel` (180 LOC) - source type management, bulk ops
+- ✅ All 3 panels integrated into publishing page
+- ✅ Full state management in page component
+- ✅ Edit/view mode toggle for each panel
+- ✅ TypeScript: No new errors introduced
+
+**UI Features Shipped:**
+- Manual + auto mode selectors
+- Entry add/edit/delete workflows
+- Bulk clear operations
+- Entry count displays
+- Status badges (Ready/Empty)
+- Responsive grid layouts
+
+**Next Step:** Wire into compile preview + export payloads (connect data to export endpoints)
+
+### P5.7 Accessibility Checks - Recommendation Lifecycle (CORE UI ✅ DONE)
+**Status:** State management + bulk operations shipped
+
+**Implementation Details:**
+- ✅ `RecommendationStateManager` (350 LOC) - full lifecycle UI
+- ✅ Integrated into publishing page accessibility section
+- ✅ State tracking: open/in-progress/resolved with visual indicators
+- ✅ Bulk selection + batch state updates
+- ✅ Progress bar (% resolved)
+- ✅ Priority + WCAG level labels
+- ✅ Category grouping with min/max controls
+
+**UI Features Shipped:**
+- Individual recommendation state buttons (O/IP/R)
+- Multi-select checkbox interface
+- Bulk action panel with state selector
+- Stats dashboard (open/in-progress/resolved counts)
+- Category-based organization
+- Colored state badges with icons
+
+**Next Step:** Backend state persistence (save recommendation states to DB)
 
 - ✅ **P5.7 Accessibility Checks (Hardening Slice: History + Guidance)**
   - Backend: Added publishing accessibility endpoints:
