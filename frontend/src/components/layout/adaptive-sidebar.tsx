@@ -92,6 +92,12 @@ const GLOBAL_ITEMS: NavItem[] = [
     icon: 'bolt',
     moduleId: 'agents',
   },
+  {
+    href: '/dashboard/analytics',
+    label: 'Analytics',
+    icon: 'bar_chart',
+    moduleId: 'analytics',
+  },
 ];
 
 // Settings and support are always shown
