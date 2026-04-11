@@ -76,6 +76,12 @@ const MODULE_NAV_MAP: Record<string, NavItem> = {
     icon: 'publish',
     moduleId: 'publishing',
   },
+  writing_goals: {
+    href: '/dashboard/writing-goals',
+    label: 'Writing Goals',
+    icon: 'target',
+    moduleId: 'writing_goals',
+  },
 };
 
 // Global items shown outside of project context
@@ -143,6 +149,7 @@ function getAdaptiveSidebarItems(projectType?: ProjectType | null): NavItem[] {
       MODULE_NAV_MAP.glossary,
       MODULE_NAV_MAP.collaboration,
       MODULE_NAV_MAP.publishing,
+      MODULE_NAV_MAP.writing_goals,
       ...GLOBAL_ITEMS,
       ...FIXED_ITEMS,
     ];
