@@ -27,7 +27,7 @@ export function RatingsSection({ shareUrl, allowRatings }: RatingsProps) {
   const { data: ratingStats, refetch } = useQuery({
     queryKey: ['ratings', shareUrl],
     queryFn: async () => {
-      const response = await apiClient.get(`/share/${shareUrl}/ratings`);
+      const response = await api.get(`/share/${shareUrl}/ratings`);
       return response.data as RatingStats;
     },
     enabled: allowRatings,
@@ -37,7 +37,7 @@ export function RatingsSection({ shareUrl, allowRatings }: RatingsProps) {
   const submitRatingMutation = useMutation({
     mutationFn: async (rating: number) => {
       if (rating === 0) return;
-      const response = await apiClient.post(`/share/${shareUrl}/ratings`, {
+      const response = await api.post(`/share/${shareUrl}/ratings`, {
         rating,
       });
       return response.data;
