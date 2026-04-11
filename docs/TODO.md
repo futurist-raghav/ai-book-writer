@@ -1,9 +1,9 @@
 # AI Book Writer - Implementation Todo List
 
-**Last Updated:** April 12, 2026 - PHASE 7 TURBO
-**Status:** Phase 0-5 ✅ 100% | Phase 6 ✅ 87.5% (7/8) | Phase 7 🚀 SHIPPED (P7.1✅ P7.2✅ P7.3✅ P7.4✅ P7.5 95% / P7.6→)
-**Current Focus:** P7.6 Mobile Apps → P7.7 Enterprise Features
-**Ship Readiness:** P0-P6 ✅ PROD-READY | P7.1-7.5 ✅ SHIPPED | P7.6 NEXT
+**Last Updated:** April 12, 2026 - PHASE 7 FINAL STRETCH
+**Status:** Phase 0-5 ✅ 100% | Phase 6 ✅ 87.5% (7/8) | Phase 7 🚀 77% (P7.1-4✅ P7.5 95% / P7.6 🚀 KICKOFF)
+**Current Focus:** P7.6 Mobile Apps (React Native Expo) → P7.7 Enterprise
+**Ship Readiness:** P0-P6 ✅ PROD-READY | P7.1-7.5 ✅ LIVE | P7.6 IN PROGRESS
 
 ---
 
@@ -1327,6 +1327,46 @@
 - [ ] Email notifications for sync failures
 
 ### P7.6 Mobile Apps
+
+**Status: 🚀 KICKOFF - MVP STARTING THIS SESSION (Target: 30-50% complete)**
+
+**React Native + Expo Architecture:**
+- Native iOS/Android apps with React Native
+- Expo for rapid development & deployment
+- WatermelonDB for offline-first local storage
+- OAuth 2.0 with existing backend
+
+**Phase 1: Foundation (Auth + Navigation) - This session**
+- [ ] Initialize Expo project with TypeScript
+- [ ] Set up Expo Router (native navigation)
+- [ ] Configure App.json and eas.json for iOS/Android building
+- [ ] Implement secure OAuth login (reuse backend endpoints)
+- [ ] Set up SecureStore for token persistence
+- [ ] Create bottom navigation (Books, Chapters, Profile, Settings)
+- [ ] Initialize WatermelonDB offline storage
+
+**Phase 2: Core Screens**
+- [ ] Books list screen (offline + live data)
+- [ ] Chapter list screen with filtering
+- [ ] Chapter reader screen (read-only)
+- [ ] Quick draft creation form
+- [ ] Profile & Settings screen
+
+**Phase 3: Offline & Sync**
+- [ ] WatermelonDB schema mirroring backend models
+- [ ] Action queue for offline writes
+- [ ] Sync engine (automatic on reconnect)
+- [ ] Conflict resolution (last-write-wins)
+- [ ] Offline indicator UI
+
+**Phase 4: Notifications & Polish**
+- [ ] Push notification setup (Firebase Cloud Messaging)
+- [ ] Notification handlers (feedback, collaboration, streaks)
+- [ ] App theme switching (light/dark)
+- [ ] Error handling & retry logic
+- [ ] Performance optimization
+
+**Full Documentation:** See `/docs/P7.6_MOBILE_APPS_PLAN.md` for detailed architecture and implementation guide.
 
 - [ ] iOS/Android native apps (React Native)
 - [ ] Offline writing with sync
