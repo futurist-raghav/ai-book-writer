@@ -1061,7 +1061,7 @@
 
 ### P6.5 Public Share & Feedback Pages
 
-**Status: 30% COMPLETE - Backend & API Foundation**
+**Status: 80% COMPLETE - UI Pages Built**
 
 - [x] Backend: PublicShare model with secure tokens, expiration, password protection
 - [x] Backend: BookFeedback model for reader feedback (anonymous or named)
@@ -1071,10 +1071,11 @@
 - [x] API: Get feedback and ratings (public endpoints)
 - [x] Frontend: usePublicShare, useFeedback, usePublicRatings hooks
 - [x] Frontend: Types for all public share data structures
-- [ ] Frontend: Public share preview page (book preview + embedded feedback form)
-- [ ] Frontend: Feedback form UI with validation
-- [ ] Frontend: Share link management page (create/disable/update settings)
-- [ ] Frontend: Public book preview (read-only chapter viewer)
+- [x] Frontend: Public share preview page (book preview + embedded feedback form) at /share/[token]
+- [x] Frontend: Feedback form UI with star rating, optional name/email, feedback type
+- [x] Frontend: Share link management page (/dashboard/sharing) with create/disable/update
+- [ ] Frontend: Public book preview (read-only chapter viewer with pagination)
+- [ ] Frontend: Advanced - Feedback analytics on share dashboard (response rates, trends)
 
 ### P6.6 Classroom/Institution Plans
 
