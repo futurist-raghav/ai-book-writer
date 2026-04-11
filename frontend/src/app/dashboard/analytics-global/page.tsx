@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { apiClient } from '@/lib/api-client';
+import { api } from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
@@ -44,7 +44,7 @@ export default function GlobalAnalyticsPage() {
   const { data: analyticsData, isLoading, error } = useQuery({
     queryKey: ['global-analytics'],
     queryFn: async () => {
-      const response = await apiClient.get('/analytics/global');
+      const response = await api.get('/analytics/global');
       return response.data as GlobalAnalyticsData;
     },
   });
@@ -65,7 +65,7 @@ export default function GlobalAnalyticsPage() {
   const handleExport = async () => {
     try {
       await toast.promise(
-        apiClient.get('/analytics/global/export', { responseType: 'blob' }),
+        api.get('/analytics/global/export', { responseType: 'blob' }),
         {
           loading: 'Exporting analytics...',
           success: (response) => {

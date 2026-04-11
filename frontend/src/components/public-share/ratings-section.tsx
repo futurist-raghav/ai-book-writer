@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { apiClient } from '@/lib/api-client';
+import { api } from '@/lib/api-client';
 import { Star } from 'lucide-react';
 import { toast } from 'sonner';
 

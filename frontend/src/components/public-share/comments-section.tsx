@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { apiClient } from '@/lib/api-client';
+import { api } from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -39,7 +39,7 @@ export function CommentSection({ shareUrl, allowComments, isOwner = false }: Com
   const { data: commentsData, isLoading, refetch } = useQuery({
     queryKey: ['comments', shareUrl],
     queryFn: async () => {
-      const response = await apiClient.get(`/share/${shareUrl}/comments`);
+      const response = await api.get(`/share/${shareUrl}/comments`);
       return response.data || [];
     },
     enabled: allowComments,
@@ -54,7 +54,7 @@ export function CommentSection({ shareUrl, allowComments, isOwner = false }: Com
   // Submit comment mutation
   const submitCommentMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiClient.post(`/share/${shareUrl}/comments`, {
+      const response = await api.post(`/share/${shareUrl}/comments`, {
         reader_name: readerName,
         reader_email: readerEmail,
         content: newComment,
@@ -78,7 +78,7 @@ export function CommentSection({ shareUrl, allowComments, isOwner = false }: Com
   // Delete comment mutation
   const deleteCommentMutation = useMutation({
     mutationFn: async (commentId: string) => {
-      await apiClient.delete(`/comments/${commentId}`);
+      await api.delete(`/comments/${commentId}`);
     },
     onSuccess: () => {
       toast.success('Comment deleted');
@@ -92,7 +92,7 @@ export function CommentSection({ shareUrl, allowComments, isOwner = false }: Com
   // Like comment mutation
   const likeCommentMutation = useMutation({
     mutationFn: async (commentId: string) => {
-      const response = await apiClient.post(`/comments/${commentId}/like`);
+      const response = await api.post(`/comments/${commentId}/like`);
       return response.data;
     },
     onSuccess: () => {

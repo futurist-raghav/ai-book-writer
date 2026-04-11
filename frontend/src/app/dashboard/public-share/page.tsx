@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { apiClient } from '@/lib/api-client';
+import { api } from '@/lib/api-client';
 import { useBookStore } from '@/stores/book-store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -43,7 +43,7 @@ export default function PublicSharePage() {
     queryKey: ['public-share', selectedBook.id],
     queryFn: async () => {
       try {
-        const response = await apiClient.get(`/books/${selectedBook.id}/public-share`);
+        const response = await api.get(`/books/${selectedBook.id}/public-share`);
         return response.data;
       } catch {
         return null;
@@ -59,7 +59,7 @@ export default function PublicSharePage() {
 
   const createShareMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiClient.post(`/books/${selectedBook.id}/public-share`, {
+      const response = await api.post(`/books/${selectedBook.id}/public-share`, {
         allow_comments: true,
         allow_ratings: true,
       });
@@ -76,7 +76,7 @@ export default function PublicSharePage() {
 
   const updateShareMutation = useMutation({
     mutationFn: async (settings: Partial<ShareSettings>) => {
-      const response = await apiClient.put(`/books/${selectedBook.id}/public-share`, settings);
+      const response = await api.put(`/books/${selectedBook.id}/public-share`, settings);
       return response.data;
     },
     onSuccess: (data) => {

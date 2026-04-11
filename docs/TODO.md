@@ -1,9 +1,9 @@
 # AI Book Writer - Implementation Todo List
 
-**Last Updated:** April 12, 2026 - 12:30 AM
-**Status:** Phase 0-5 ✅ 100% COMPLETE | Phase 6 🚀 P6.2 95% | P6.3 90% | P6.4 60% | P6.5 ✅ 100% | P6.6 ✅ 100% | P6.7 ✅ 100%
-**Current Push:** Phase 6 momentum - completing reader engagement (P6.5-6.7) completed, P6.3-6.4 to finalize
-**Ship Readiness:** P0-P5 ✅ LIVE | P6.2-6.7 CORE FEATURES COMPLETE | Ready for next phase milestone
+**Last Updated:** April 12, 2026 - 1:15 AM
+**Status:** Phase 0-5 ✅ 100% COMPLETE | Phase 6 🚀 P6.2 95% | P6.3 70% | P6.4 60% | P6.5 80% | P6.6 STARTED 20% | Production Shipping
+**Current Push:** Rapidly completing P6 features - P6.5 UI complete, started P6.6 Classroom/Institution
+**Ship Readiness:** P0-P5 ✅ LIVE | P6.2 MVP Complete | P6.3-6.5 Core Foundation | P6.6 In Progress
 
 ---
 
@@ -1079,40 +1079,52 @@
 - [x] Frontend: Navigation integration - "Share Your Book" link in sidebar
 - [x] Full end-to-end: Create share → Generate link → Share with readers → See feedback
 
-### P6.6 Reader Comments & Ratings System
+### P6.6 Classroom & Institution Learning Plans
 
-**Status: ✅ 100% COMPLETE - Full Engagement Features**
+**Status: 20% COMPLETE - Backend Foundation Laid**
 
-- [x] Backend: Comment creation and retrieval endpoints
-- [x] Backend: Like/unlike comment functionality
-- [x] Backend: Comment deletion (owner/admin only)
-- [x] Backend: Rating submission and statistics aggregation
-- [x] Backend: Sentiment analysis for comments (positive/neutral/negative)
-- [x] Frontend: CommentSection component with rich text, threading support
-- [x] Frontend: RatingsSection component with star ratings and distribution
-- [x] Frontend: Reader identity handling (name/email for anonymous readers)
-- [x] Frontend: Moderation tools (delete comments, manage ratings)
-- [x] Full reader engagement flow implemented
+- [x] Classroom model with owner, code-based joining, public/private access
+- [x] ClassAssignment model with due dates, word count requirements, rubrics
+- [x] ClassroomSubmission model with versioning and status tracking
+- [x] ClassroomGrade model with scoring and feedback
+- [x] SubmissionFeedback model for line-by-line instructor comments
+- [x] Backend API: Full CRUD for classrooms, assignments, submissions, grades
+- [x] Backend API: Student submission and grading endpoints
+- [x] Frontend types: classroom.ts with all TypeScript interfaces
+- [x] Frontend hooks: useClassroom.ts with React Query integration
+- [ ] Frontend: Teacher dashboard for classroom management
+- [ ] Frontend: Assignment creation wizard with requirements
+- [ ] Frontend: Student submission interface (connect to book project or upload text)
+- [ ] Frontend: Grading interface with rubric scoring
+- [ ] Frontend: Class analytics (submission rates, grade distribution)
+- [ ] Frontend: Student roster management and bulk invitations
+- [ ] Advanced: Peer review system (student-to-student feedback)
+- [ ] Advanced: Class announcements and discussion threads
+- [ ] Advanced: Integration with grade books (Canvas, Blackboard sync)
 
-### P6.7 Analytics Dashboard with Global Performance Tracking
+### P6.7 Reader Comments & Ratings System
 
-**Status: ✅ 100% COMPLETE - Full Dashboard**
+**Status: ⏳ PLANNED - Reader Engagement Optional Feature**
 
-- [x] Backend: Global analytics service for all user books
-- [x] Backend: Aggregate metrics (total books, shares, views, comments, average rating)
-- [x] Backend: Engagement trends (views/comments/ratings over time)
-- [x] Backend: Top performing books ranked by performance
-- [x] Backend: Comment sentiment distribution
-- [x] Backend: Analytics export to CSV
-- [x] API: /analytics/global endpoint for dashboard data
-- [x] API: /analytics/global/export endpoint for CSV download
-- [x] Frontend: GlobalAnalyticsDashboard at /dashboard/analytics-global
-- [x] Frontend: KPI cards (Total Books, Public Shares, Views, Comments, Avg Rating)
-- [x] Frontend: Engagement trends line chart
-- [x] Frontend: Comment sentiment donut chart
-- [x] Frontend: Top books table with drilling capability
-- [x] Frontend: Export analytics button with CSV download
-- [x] Full analytics visibility for book performance
+- [ ] Backend: Comment creation and retrieval endpoints
+- [ ] Backend: Like/unlike comment functionality
+- [ ] Backend: Comment deletion (owner/admin only)
+- [ ] Backend: Rating submission and statistics aggregation
+- [ ] Backend: Sentiment analysis for comments
+- [ ] Frontend: CommentSection component with threading
+- [ ] Frontend: RatingsSection component with star ratings
+- [ ] Frontend: Reader identity handling (name/email)
+- [ ] Frontend: Moderation tools
+
+### P6.8 Analytics Dashboard with Global Performance Tracking
+
+**Status: ⏳ PLANNED - Analytics Optional Feature**
+
+- [ ] Backend: Global analytics service for all user books
+- [ ] Backend: Aggregate metrics and trends
+- [ ] API: /analytics/global endpoint
+- [ ] Frontend: GlobalAnalyticsDashboard at /dashboard/analytics-global
+- [ ] Frontend: KPI cards and charts
 
 ---
 

@@ -3,7 +3,7 @@
 import React, { Suspense } from 'react';
 import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { apiClient } from '@/lib/api-client';
+import { api } from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
 import { CommentSection } from '@/components/public-share/comments-section';
 import { RatingsSection } from '@/components/public-share/ratings-section';
@@ -32,7 +32,7 @@ function BookViewContent() {
   const { data: bookData, isLoading, error } = useQuery({
     queryKey: ['shared-book', shareUrl],
     queryFn: async () => {
-      const response = await apiClient.get(`/share/${shareUrl}`);
+      const response = await api.get(`/share/${shareUrl}`);
       return response.data as BookPage;
     },
   });
@@ -64,7 +64,7 @@ function BookViewContent() {
   const handleDownload = async () => {
     try {
       toast.promise(
-        apiClient.get(`/share/${shareUrl}/download`, { responseType: 'blob' }),
+        api.get(`/share/${shareUrl}/download`, { responseType: 'blob' }),
         {
           loading: 'Preparing download...',
           success: (response) => {
