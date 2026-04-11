@@ -408,8 +408,8 @@ export default function PublishTemplatePage() {
               </div>
 
               <p className="text-sm text-gray-600 bg-blue-50 p-3 rounded">
-                💡 Tip: Chapter structure and metadata will be extracted from your
-                selected book automatically in the next step.
+                💡 Tip: Your book's chapter structure and metadata were automatically
+                extracted in the previous step.
               </p>
             </div>
 
