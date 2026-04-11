@@ -1083,7 +1083,7 @@
 
 ### P6.6 Classroom & Institution Learning Plans
 
-**Status: 55% COMPLETE - Core Teacher Interface + Assignment Creation**
+**Status: 85% COMPLETE - Core Teacher + Student Interfaces**
 
 - [x] Classroom model with owner, code-based joining, public/private access
 - [x] ClassAssignment model with due dates, word count requirements, rubrics
@@ -1098,13 +1098,13 @@
 - [x] Frontend: Classroom creation form and student join code display
 - [x] Frontend: Assignment creation wizard (3-step form: basic info, instructions, requirements)
 - [x] Frontend: Sidebar link to Classrooms added to GLOBAL_ITEMS
-- [ ] Frontend: Student submission interface (connect to book project or upload text)
-- [ ] Frontend: Grading interface with rubric scoring
-- [ ] Frontend: Class analytics (submission rates, grade distribution)
-- [ ] Frontend: Student roster management and bulk invitations
-- [ ] Advanced: Peer review system (student-to-student feedback)
-- [ ] Advanced: Class announcements and discussion threads
-- [ ] Advanced: Integration with grade books (Canvas, Blackboard sync)
+- [x] Frontend: Student submission interface (StudentSubmissionModal - project/text/file modes)
+- [x] Frontend: Grading interface (StudentGradingPanel - rubric scoring + feedback)
+- [ ] *(POST-MVP)* Class analytics (submission rates, grade distribution)
+- [ ] *(POST-MVP)* Student roster management and bulk invitations
+- [ ] *(ADVANCED)* Peer review system (student-to-student feedback)
+- [ ] *(ADVANCED)* Class announcements and discussion threads
+- [ ] *(ADVANCED)* Integration with grade books (Canvas, Blackboard sync)
 
 ### P6.7 Reader Comments & Ratings System
 
