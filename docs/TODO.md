@@ -479,8 +479,8 @@
 
 **Next Steps (P2.4.2 onwards):**
 - [X] Wire CitationTool to WriterCanvas editor (✅ Done - citation panel integrated)
-- [ ] Add Bibliography tab to project dashboard
-- [ ] AI Citation suggestions (auto-detect citation spots) (✅ Backend ready, modal wired)
+- [X] Add Bibliography tab to project dashboard (✅ Done - BibliographyManagerPanel mounted in publishing page)
+- [X] AI Citation suggestions (auto-detect citation spots) (✅ Backend ready, modal wired)
 - [ ] Bibliography export to PDF/Word
 - [ ] Citation style auto-generator (APA/MLA/Chicago/IEEE selector)
 

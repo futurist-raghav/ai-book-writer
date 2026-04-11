@@ -2,8 +2,10 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 import { useBookStore } from '@/stores/book-store';
+import { apiClient } from '@/lib/api-client';
 import { ProjectType, ProjectTypeConfigService } from '@/lib/project-types';
 
 interface NavItem {
@@ -12,6 +14,21 @@ interface NavItem {
   icon: string;
   moduleId: string;
   requiresProjectType?: ProjectType[];
+}
+
+interface WorkspaceTerminology {
+  characters_label: string;
+  world_building_label: string;
+  timeline_label: string;
+  flow_label: string;
+  notes_label: string;
+  references_label: string;
+  part_singular: string;
+  part_plural: string;
+  chapter_singular: string;
+  chapter_plural: string;
+  section_singular: string;
+  section_plural: string;
 }
 
 // Module mapping to navigation items
@@ -187,9 +204,12 @@ interface SidebarProps {
 }
 
 /**
- * Get adaptive sidebar items based on project type
+ * Get adaptive sidebar items based on project type and terminology
  */
-function getAdaptiveSidebarItems(projectType?: ProjectType | null): NavItem[] {
+function getAdaptiveSidebarItems(
+  projectType?: ProjectType | null,
+  terminology?: WorkspaceTerminology
+): NavItem[] {
   if (!projectType) {
     // Fallback to default items if no project type
     return [
@@ -220,7 +240,7 @@ function getAdaptiveSidebarItems(projectType?: ProjectType | null): NavItem[] {
     if (MODULE_NAV_MAP[moduleId]) {
       items.push({
         ...MODULE_NAV_MAP[moduleId],
-        label: getAdaptiveLabel(moduleId, projectType),
+        label: getAdaptiveLabel(moduleId, projectType, terminology),
       });
     }
   }
@@ -229,19 +249,23 @@ function getAdaptiveSidebarItems(projectType?: ProjectType | null): NavItem[] {
 }
 
 /**
- * Get adaptive label for a module based on project type
+ * Get adaptive label for a module based on project type and custom terminology
  */
-function getAdaptiveLabel(moduleId: string, projectType: ProjectType): string {
+function getAdaptiveLabel(
+  moduleId: string,
+  projectType: ProjectType,
+  terminology?: WorkspaceTerminology
+): string {
   const config = ProjectTypeConfigService.getConfig(projectType);
 
   const labelMap: Record<string, string> = {
     overview: 'Overview',
-    structure: config.structureUnitName,
-    entities: config.entityConfig.pageName,
-    flow: config.flowPageName,
-    notes_voice: 'Notes & Voice',
+    structure: terminology?.chapter_singular || config.structureUnitName,
+    entities: terminology?.characters_label || config.entityConfig.pageName,
+    flow: terminology?.flow_label || config.flowPageName,
+    notes_voice: terminology?.notes_label ? terminology.notes_label : 'Notes & Voice',
     media: 'Media',
-    references: 'References',
+    references: terminology?.references_label || 'References',
     glossary: 'Glossary',
     collaboration: 'Collaboration',
     publishing: 'Publishing',
@@ -260,7 +284,18 @@ export function AdaptiveSidebar({ projectType }: SidebarProps) {
   
   // Use provided projectType or fallback to selectedBook
   const activeProjectType = (projectType || selectedBook?.project_type) as ProjectType | undefined;
-  const navItems = getAdaptiveSidebarItems(activeProjectType);
+  
+  // Fetch workspace customization
+  const { data: customization } = useQuery({
+    queryKey: ['workspace-customization', selectedBook?.id],
+    queryFn: () => 
+      apiClient.workspaceCustomization.get(selectedBook!.id) as Promise<{
+        terminology?: WorkspaceTerminology;
+      }>,
+    enabled: !!selectedBook?.id,
+  });
+  
+  const navItems = getAdaptiveSidebarItems(activeProjectType, customization?.terminology);
   
   const displayBook = selectedBook && String(selectedBook.status) !== 'draft' ? selectedBook : null;
 
@@ -337,7 +372,7 @@ export function AdaptiveSidebar({ projectType }: SidebarProps) {
 }
 
 /**
- * Mobile bottom bar that adapts based on project type
+ * Mobile bottom bar that adapts based on project type and terminology
  */
 export function AdaptiveBottomBar({ projectType }: SidebarProps) {
   const pathname = usePathname();
@@ -345,9 +380,19 @@ export function AdaptiveBottomBar({ projectType }: SidebarProps) {
   
   const activeProjectType = (projectType || selectedBook?.project_type) as ProjectType | undefined;
   
+  // Fetch workspace customization
+  const { data: customization } = useQuery({
+    queryKey: ['workspace-customization', selectedBook?.id],
+    queryFn: () => 
+      apiClient.workspaceCustomization.get(selectedBook!.id) as Promise<{
+        terminology?: WorkspaceTerminology;
+      }>,
+    enabled: !!selectedBook?.id,
+  });
+  
   // For mobile, show only essential modules
   const essentialModules = ['overview', 'structure', 'entities', 'flow', 'media', 'settings'];
-  const navItems = getAdaptiveSidebarItems(activeProjectType).filter(item =>
+  const navItems = getAdaptiveSidebarItems(activeProjectType, customization?.terminology).filter(item =>
     essentialModules.includes(item.moduleId) || item.moduleId === 'settings'
   );
 
