@@ -7,7 +7,7 @@ Combines all API routes into a single router.
 from fastapi import APIRouter
 
 from app.api.v1 import ai, audio, auth, books, chapters, chapter_versions, chapter_edits, section_approvals, formatting_themes, matter_config, device_preview, export_bundle, book_metadata, accessibility, collaboration, collaborator_roles, comments, custom_fields, entities, events, export, flow_engine, references, suggestions, transcriptions, bibliography, workspace_customization, import_export, glossary, realtime, workspace, marketplace_template, agents, analytics, public_share, public_comments, classroom, writing_performance, publishing_pipeline, monetization, api_integrations
-from app.routes import marketplace_analytics, publishing_pipeline, author_community, subscriptions
+from app.routes import marketplace_analytics, publishing_pipeline, author_community, subscriptions, writing_groups
 
 api_router = APIRouter()
 
@@ -55,6 +55,7 @@ api_router.include_router(public_comments.router, tags=["Public Comments & Ratin
 api_router.include_router(classroom.router, tags=["Classrooms & Learning"])
 api_router.include_router(writing_performance.router, tags=["Writing Performance"])
 api_router.include_router(author_community.router, tags=["Author Community"])
+api_router.include_router(writing_groups.router, tags=["Writing Groups"])
 api_router.include_router(subscriptions.router, tags=["Subscriptions & Monetization"])
 api_router.include_router(monetization.router, tags=["Monetization"])
 api_router.include_router(api_integrations.router, tags=["Integrations"])
