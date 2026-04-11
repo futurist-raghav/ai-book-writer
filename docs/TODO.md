@@ -1005,22 +1005,24 @@
 - ✅ Role-based access control (3 roles: admin/editor/viewer)
 - ✅ Router registered, models exported
 
-### P6.2 Template Marketplace 🚧
+### P6.2 Template Marketplace �
 
-**Status: IN PROGRESS (50% - Core Browse/Review System)**
+**Status: 70% COMPLETE - Core Browse/Review System Live + Publishing Wizard Started**
 
 - [x] Backend: Marketplace models (MarketplaceTemplate, TemplateReview, TemplateCategory)
-- [x] Backend: 15+ API endpoints (browse, search, create, update, delete, reviews, favorites)
-- [x] Frontend: Browse/search with filtering, sorting, pagination
-- [x] Frontend: Template detail page with reviews
-- [x] Frontend: User template management ("My Templates")
+- [x] Backend: 15+ API endpoints (browse, search, create, update, delete, reviews, favorites, categories)
+- [x] Frontend: Browse/search with filtering, sorting (popularity/rating/recent/trending), pagination
+- [x] Frontend: Template detail page with reviews, ratings, creator info, usage stats
+- [x] Frontend: User template management ("My Templates" page)
 - [x] Frontend: Rate/review templates (1-5 stars, title, content)
-- [x] Frontend: Favorite templates with user favorites list
-- [ ] Frontend: Publish template wizard (select content, metadata, preview)
-- [ ] Frontend: Template analytics (views, ratings, usage tracking)
-- [ ] UI: Marketplace integration into main navigation
-- [ ] Paid premium templates (Phase 6.2 v2)
-- [ ] Admin: Template verification/moderation tools (Phase 6.2 v2)
+- [x] Frontend: Favorite templates with toggle + favorites list
+- [x] Frontend: Navigation integration (Marketplace link added to sidebar under global items)
+- [x] Frontend: Publish template wizard (3-step: details → content → review) - STARTED
+- [ ] Button: "Use This Template" integration (create book from template)
+- [ ] Template analytics page (views, ratings over time, usage trends)
+- [ ] Admin: Template verification/moderation tools
+- [ ] UI: Premium template badges + pricing tier selection
+- [ ] Optional: Payment integration for premium templates (Phase 6.2 v2)
 
 ### P6.3 Premium AI Agents
 

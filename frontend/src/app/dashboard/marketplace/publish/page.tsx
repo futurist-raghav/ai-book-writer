@@ -38,13 +38,14 @@ export default function PublishTemplatePage() {
   const [tagInput, setTagInput] = useState('');
   const [books, setBooks] = useState<any[]>([]);
   const [selectedBookId, setSelectedBookId] = useState<string>('');
+  const [isLoadingBookContent, setIsLoadingBookContent] = useState(false);
 
   // Fetch user's books
   const { data: booksData } = useQuery({
     queryKey: ['books'],
     queryFn: async () => {
-      const response = await apiClient.books.list({ limit: 100 });
-      return response;
+      const response = await apiClient.get('/books?limit=100');
+      return response.data.books || [];
     },
   });
 
@@ -53,6 +54,54 @@ export default function PublishTemplatePage() {
       setBooks(booksData);
     }
   }, [booksData]);
+
+  // Extract content from selected book
+  const extractBookContent = async (bookId: string) => {
+    if (!bookId) return;
+    
+    setIsLoadingBookContent(true);
+    try {
+      // Fetch book details including chapters and metadata
+      const bookResponse = await apiClient.get(`/books/${bookId}`);
+      const book = bookResponse.data;
+      
+      // Fetch chapters for structure
+      const chaptersResponse = await apiClient.get(`/books/${bookId}/chapters?limit=100`);
+      const chapters = chaptersResponse.data.chapters || [];
+      
+      // Build chapter structure
+      const chapterStructure = chapters.map((ch: any) => ({
+        id: ch.id,
+        title: ch.title,
+        order: ch.chapter_number,
+        word_count: ch.word_count,
+      }));
+      
+      // Extract initial metadata from book
+      const initialMetadata = {
+        title: book.title,
+        project_type: book.project_type,
+        status: book.status,
+        created_at: book.created_at,
+        word_count: book.word_count,
+      };
+      
+      // Update form data with extracted content
+      setFormData(prev => ({
+        ...prev,
+        chapter_structure: chapterStructure,
+        initial_metadata: initialMetadata,
+        // Auto-set category from project type if available
+        category: book.project_type || prev.category,
+      }));
+      
+    } catch (error) {
+      console.error('Failed to extract book content:', error);
+      alert('Failed to load book content. Please try again.');
+    } finally {
+      setIsLoadingBookContent(false);
+    }
+  };
 
   const publishMutation = useMutation({
     mutationFn: async (data: PublishTemplateFormData) => {
@@ -154,11 +203,46 @@ export default function PublishTemplatePage() {
         {step === 1 && (
           <div className="rounded-lg border border-gray-200 bg-white p-6">
             <h2 className="mb-6 text-xl font-semibold text-gray-900">
-              Template Details
+              Select Book & Template Details
             </h2>
 
             <div className="space-y-4">
-              {/* Name */}
+              {/* Select Book */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Select Book to Convert to Template *
+                </label>
+                <select
+                  value={selectedBookId}
+                  onChange={(e) => {
+                    const bookId = e.target.value;
+                    setSelectedBookId(bookId);
+                    if (bookId) {
+                      extractBookContent(bookId);
+                    }
+                  }}
+                  disabled={isLoadingBookContent}
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 disabled:bg-gray-100 disabled:text-gray-500"
+                >
+                  <option value="">Choose a book...</option>
+                  {books.map((book) => (
+                    <option key={book.id} value={book.id}>
+                      {book.title} ({book.chapter_count || 0} chapters, {book.word_count || 0} words)
+                    </option>
+                  ))}
+                </select>
+                {isLoadingBookContent && (
+                  <p className="mt-2 text-sm text-gray-500">Loading book content...</p>
+                )}
+                {formData.initial_metadata && (
+                  <p className="mt-2 text-sm text-green-600">
+                    ✓ Book loaded: {formData.initial_metadata.title} ({formData.chapter_structure?.length || 0} chapters)
+                  </p>
+                )}
+              </div>
+
+              <div className="border-t pt-4">
+                {/* Subsection: Template Details */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Template Name *

@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useTemplateDetail, useTemplateReviews, useFavoriteTemplate, useUnfavoriteTemplate, useCreateTemplateReview } from '@/hooks/useMarketplace';
+import { useTemplateDetail, useTemplateReviews, useFavoriteTemplate, useUnfavoriteTemplate, useCreateTemplateReview, useCreateBookFromTemplate } from '@/hooks/useMarketplace';
 import { Button } from '@/components/ui/button';
-import { Heart, Star, Eye, ArrowLeft } from 'lucide-react';
+import { Heart, Star, Eye, ArrowLeft, Download } from 'lucide-react';
 import Link from 'next/link';
 import { use } from 'react';
 import { Input } from '@/components/ui/input';
@@ -29,6 +29,7 @@ export default function TemplatePage({ params }: PageProps) {
   const favoriteMutation = useFavoriteTemplate();
   const unfavoriteMutation = useUnfavoriteTemplate();
   const reviewMutation = useCreateTemplateReview();
+  const createBookMutation = useCreateBookFromTemplate();
 
   const handleFavorite = () => {
     if (isFavorited) {
@@ -311,8 +312,14 @@ export default function TemplatePage({ params }: PageProps) {
                 </div>
 
                 {/* Use Template Button */}
-                <Button className="w-full" size="lg">
-                  Use This Template
+                <Button 
+                  className="w-full gap-2" 
+                  size="lg"
+                  onClick={() => createBookMutation.mutate(id)}
+                  disabled={createBookMutation.isPending}
+                >
+                  <Download className="h-4 w-4" />
+                  {createBookMutation.isPending ? 'Creating...' : 'Use This Template'}
                 </Button>
               </div>
             </div>

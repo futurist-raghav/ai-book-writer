@@ -186,3 +186,24 @@ export function useCreateTemplateReview() {
     },
   });
 }
+
+export function useCreateBookFromTemplate() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (templateId: string) => {
+      // This endpoint doesn't exist yet in backend, but we can create it
+      // For now, we'll create a book with template data
+      const response = await apiClient.books.create({
+        title: `Book from Template`,
+        description: 'Created from marketplace template',
+        project_type: 'novel',
+        metadata: { template_id: templateId },
+      });
+      return response;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["books"] });
+    },
+  });
+}
