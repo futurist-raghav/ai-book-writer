@@ -14,7 +14,7 @@ import {
   matchesShortcut,
   findShortcutByAction,
   KEYBOARD_SHORTCUTS,
-} from './keyboard-shortcuts';
+} from '@/lib/keyboard-shortcuts';
 
 export type ShortcutHandler = {
   [key in ShortcutAction]?: () => void;

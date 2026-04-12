@@ -3,7 +3,6 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePathname } from 'next/navigation';
-import Link from 'next/link';
 import { useAuthStore } from '@/stores/auth-store';
 import { useKeyboardShortcutsContext } from '@/stores/keyboard-shortcuts-context';
 import { cn } from '@/lib/utils';
@@ -40,8 +39,8 @@ export function Header() {
     <header className="fixed top-0 z-50 w-full px-6 md:px-8 h-20 flex justify-between items-center bg-[#f8f9fa]/80 backdrop-blur-md shadow-[0_4px_20px_rgba(25,28,29,0.06)]">
       <div className="flex items-center gap-6">
         <div>
-          <span className="text-xs text-secondary font-semibold uppercase tracking-widest block mb-0.5">Workspace</span>
-          <h1 className="text-xl font-bold text-primary italic font-headline tracking-tight">The Editorial Sanctuary</h1>
+          <span className="text-xs text-slate-600 font-semibold uppercase tracking-widest block mb-0.5">Workspace</span>
+          <h1 className="text-xl font-bold text-slate-800 italic font-headline tracking-tight">The Editorial Sanctuary</h1>
         </div>
       </div>
       
@@ -50,18 +49,18 @@ export function Header() {
           {topNav.map((item) => {
             const active = pathname === item.href || (item.href === '/dashboard/books' && pathname === '/dashboard');
             return (
-              <Link
+              <a
                 key={item.href}
                 href={item.href}
                 className={cn(
                   'font-label text-sm transition-colors duration-300 pb-1 border-b-2',
                   active
                     ? 'text-primary font-bold border-primary'
-                    : 'text-primary/60 hover:text-primary border-transparent'
+                    : 'text-slate-600 hover:text-slate-800 border-transparent'
                 )}
               >
                 {item.label}
-              </Link>
+              </a>
             );
           })}
         </div>
@@ -74,9 +73,9 @@ export function Header() {
         >
           help_outline
         </button>
-        <Link href="/dashboard/settings" className="material-symbols-outlined text-primary/70 hover:bg-surface-container-low p-2 rounded-full transition-all" title="Settings">
+        <a href="/dashboard/settings" className="material-symbols-outlined text-primary/70 hover:bg-surface-container-low p-2 rounded-full transition-all" title="Settings">
           settings
-        </Link>
+        </a>
         <button 
           onClick={handleLogout}
           className="material-symbols-outlined text-primary/70 hover:bg-surface-container-low p-2 rounded-full transition-all"

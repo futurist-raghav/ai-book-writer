@@ -21,7 +21,7 @@ export default function ArchivePage() {
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['books', 'archive'],
-    queryFn: () => apiClient.books.list({ limit: 100 }),
+    queryFn: () => apiClient.books.list({ limit: 100, status: 'archived,completed,published' }),
   });
 
   const restoreMutation = useMutation({
@@ -42,8 +42,7 @@ export default function ArchivePage() {
     onError: () => toast.error('Failed to delete archived project'),
   });
 
-  const books = (data?.data?.items || []) as ArchivedProject[];
-  const archived = books.filter((book) => ['archived', 'completed', 'published'].includes(String(book.status)));
+  const archived = (data?.data?.items || []) as ArchivedProject[];
 
   if (isLoading) {
     return <div className="flex h-64 items-center justify-center"><Spinner className="w-8 h-8 text-primary" /></div>;

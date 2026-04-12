@@ -12,11 +12,13 @@ import { Loader2, ArrowRight } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { useBookStore } from '@/stores/book-store';
 
 type SetupStep = 'welcome' | 'project-type' | 'project-details' | 'template' | 'loading';
 
 export default function SetupPage() {
   const router = useRouter();
+  const { selectBook } = useBookStore();
   const [step, setStep] = useState<SetupStep>('welcome');
   const [selectedType, setSelectedType] = useState<ProjectType | string>('novel');
   const [projectTitle, setProjectTitle] = useState('');
@@ -45,11 +47,16 @@ export default function SetupPage() {
         title: projectTitle || `Untitled ${ProjectTypeConfigService.getDisplayName(selectedType as ProjectType)}`,
         description: projectDescription,
         project_type: selectedType as string,
-        status: 'draft',
+        status: 'in_progress',
         ai_enhancement_enabled: true,
       });
 
-      const bookId = response.data?.data?.id as string | undefined;
+      const createdBook = (response.data?.data || response.data) as Record<string, unknown> | undefined;
+      const bookId = typeof createdBook?.id === 'string' ? createdBook.id : undefined;
+      if (!bookId) {
+        throw new Error('Project was created but response payload was invalid.');
+      }
+
       const templateRequested = Boolean(bookId && selectedTemplateId);
       let templateApplied = false;
 
@@ -63,9 +70,9 @@ export default function SetupPage() {
         }
       }
 
-      return { bookId, templateApplied, templateRequested };
+      return { bookId, createdBook, templateApplied, templateRequested };
     },
-    onSuccess: ({ bookId, templateApplied, templateRequested }) => {
+    onSuccess: ({ createdBook, templateApplied, templateRequested }) => {
       if (templateRequested && !templateApplied) {
         toast.warning('Project created, but the selected template could not be applied.');
       }
@@ -75,10 +82,19 @@ export default function SetupPage() {
           ? 'Project and template created! Starting your journey...'
           : 'Project created! Starting your journey...'
       );
-      router.push(bookId ? `/dashboard?book=${bookId}` : '/dashboard');
+
+      if (createdBook) {
+        selectBook(createdBook as any);
+      }
+
+      if (typeof window !== 'undefined') {
+        window.location.assign('/dashboard');
+        return;
+      }
+      router.push('/dashboard');
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Failed to create project');
+      toast.error(error?.response?.data?.detail || error?.message || 'Failed to create project');
       setStep('project-details');
     },
   });

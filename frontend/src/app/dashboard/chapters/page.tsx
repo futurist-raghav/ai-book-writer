@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { AxiosError } from 'axios';
 import { toast } from 'sonner';
 import { Spinner } from '@/components/ui/spinner';
 import { QueryErrorState } from '@/components/ui/query-error-state';
@@ -38,6 +39,7 @@ interface ProjectOption {
   title: string;
   status: string;
   ai_enhancement_enabled?: boolean;
+  chapter_count?: number;
 }
 
 function formatTag(value?: string): string {
@@ -78,6 +80,15 @@ function reorderIds(ids: string[], fromId: string, toId: string): string[] {
   return next;
 }
 
+function getHttpStatus(error: unknown): number | null {
+  if (error instanceof AxiosError) {
+    return error.response?.status ?? null;
+  }
+
+  const status = (error as { response?: { status?: number } } | undefined)?.response?.status;
+  return typeof status === 'number' ? status : null;
+}
+
 export default function ChaptersPage() {
   const queryClient = useQueryClient();
   const { selectedBook, selectBook } = useBookStore();
@@ -100,8 +111,31 @@ export default function ChaptersPage() {
   const pluralName = structureUnitName.endsWith('s') ? structureUnitName : `${structureUnitName}s`;
 
   const { data, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ['chapters'],
-    queryFn: () => apiClient.chapters.list({ limit: 100 }),
+    queryKey: ['chapters', selectedProjectId],
+    enabled: Boolean(selectedProjectId),
+    queryFn: async () => {
+      try {
+        return await apiClient.chapters.list({ limit: 100 });
+      } catch (queryError) {
+        if (getHttpStatus(queryError) === 404) {
+          return {
+            data: {
+              items: [],
+              total: 0,
+              page: 1,
+              pages: 1,
+            },
+            meta: {
+              chaptersApiUnavailable: true,
+            },
+          } as any;
+        }
+
+        throw queryError;
+      }
+    },
+    staleTime: 2 * 60 * 1000,
+    retry: (failureCount, queryError) => getHttpStatus(queryError) !== 404 && failureCount < 2,
   });
 
   const {
@@ -112,7 +146,8 @@ export default function ChaptersPage() {
     refetch: refetchBooks,
   } = useQuery({
     queryKey: ['books', 'for-chapter-form'],
-    queryFn: () => apiClient.books.list({ limit: 100 }),
+    queryFn: () => apiClient.books.list({ limit: 100, status: 'draft,in_progress,review' }),
+    staleTime: 2 * 60 * 1000,
   });
 
   const createMutation = useMutation({
@@ -225,6 +260,11 @@ export default function ChaptersPage() {
   });
 
   const handleCreateChapter = () => {
+    if (chaptersApiUnavailable) {
+      toast.error('Chapter service is currently unavailable in this deployment.');
+      return;
+    }
+
     if (!newChapterTitle.trim()) return;
     if (!selectedProjectId) {
       toast.error('Select a project first');
@@ -243,8 +283,11 @@ export default function ChaptersPage() {
   };
 
   const chapters: Chapter[] = data?.data?.items || [];
+  const chaptersApiUnavailable = Boolean((data as any)?.meta?.chaptersApiUnavailable);
   const projects: ProjectOption[] = booksData?.data?.items || [];
   const assignableProjects = projects.filter((project) => !['archived', 'completed', 'published'].includes(String(project.status)));
+  const selectedProject = assignableProjects.find((project) => project.id === selectedProjectId);
+  const selectedProjectChapterCount = Number(selectedProject?.chapter_count || 0);
   const workflowOptions = Array.from(new Set(chapters.map((chapter) => chapter.workflow_status).filter(Boolean))) as string[];
   const chapterTypeOptions = Array.from(new Set(chapters.map((chapter) => chapter.chapter_type).filter(Boolean))) as string[];
 
@@ -253,6 +296,7 @@ export default function ChaptersPage() {
     : [];
 
   const canReorder =
+    !chaptersApiUnavailable &&
     Boolean(selectedProjectId) &&
     workflowFilter === 'all' &&
     chapterTypeFilter === 'all' &&
@@ -326,6 +370,11 @@ export default function ChaptersPage() {
   };
 
   const handleBulkApply = () => {
+    if (chaptersApiUnavailable) {
+      toast.error('Bulk editing is unavailable because chapter APIs are not currently reachable.');
+      return;
+    }
+
     if (selectedChapterIds.length === 0) {
       toast.error('Select at least one chapter for bulk update');
       return;
@@ -454,6 +503,13 @@ export default function ChaptersPage() {
 
       {selectedProjectId ? (
         <div className="mb-8 space-y-3 rounded-xl border border-outline-variant/10 bg-surface-container-lowest p-4">
+          {chaptersApiUnavailable ? (
+            <div className="rounded-lg border border-amber-300/60 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+              Chapter endpoints are unavailable in the current backend deployment. You can still navigate the dashboard, but chapter editing actions are temporarily disabled.
+              {selectedProjectChapterCount > 0 ? ` This project reports ${selectedProjectChapterCount} chapter(s).` : ''}
+            </div>
+          ) : null}
+
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="font-label text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
               {canReorder
@@ -508,7 +564,7 @@ export default function ChaptersPage() {
 
             <button
               onClick={handleBulkApply}
-              disabled={bulkUpdateMutation.isPending || selectedChapterIds.length === 0}
+              disabled={chaptersApiUnavailable || bulkUpdateMutation.isPending || selectedChapterIds.length === 0}
               className="rounded-lg bg-primary px-4 py-2 text-xs font-bold uppercase tracking-wider text-white transition-opacity hover:opacity-90 disabled:opacity-50"
             >
               {bulkUpdateMutation.isPending ? 'Applying...' : 'Apply Bulk Edit'}
@@ -539,7 +595,7 @@ export default function ChaptersPage() {
             
             <button 
               onClick={handleCreateChapter} 
-              disabled={createMutation.isPending || !newChapterTitle.trim() || !selectedProjectId}
+              disabled={chaptersApiUnavailable || createMutation.isPending || !newChapterTitle.trim() || !selectedProjectId}
               className="bg-secondary text-white px-8 py-3 rounded-lg font-label font-bold text-sm shadow-sm hover:bg-secondary/90 transition-all disabled:opacity-50 h-[46px] flex items-center justify-center"
             >
               {createMutation.isPending ? <Spinner className="w-4 h-4 mr-2" /> : null}
@@ -718,7 +774,7 @@ export default function ChaptersPage() {
                         povMutation.mutate({ chapterId: chapter.id, povCharacter: nextPov.trim() || undefined });
                       }
                     }}
-                    disabled={povMutation.isPending}
+                    disabled={chaptersApiUnavailable || povMutation.isPending}
                     className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-primary shadow-sm hover:bg-primary-container hover:text-white transition-colors disabled:opacity-50"
                     title="Set POV"
                   >
@@ -732,7 +788,7 @@ export default function ChaptersPage() {
                   </Link>
                   <button
                     onClick={() => compileMutation.mutate(chapter.id)}
-                    disabled={compileMutation.isPending}
+                    disabled={chaptersApiUnavailable || compileMutation.isPending}
                     className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-primary shadow-sm hover:bg-secondary hover:text-white transition-colors disabled:opacity-50"
                     title="Compile"
                   >
@@ -748,7 +804,7 @@ export default function ChaptersPage() {
                         deleteMutation.mutate(chapter.id);
                       }
                     }}
-                    disabled={deleteMutation.isPending}
+                    disabled={chaptersApiUnavailable || deleteMutation.isPending}
                     className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-error shadow-sm hover:bg-error hover:text-white transition-colors disabled:opacity-50"
                     title="Delete"
                   >

@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
@@ -230,7 +229,7 @@ function getAdaptiveSidebarItems(
   }
 
   const config = ProjectTypeConfigService.getConfig(projectType as ProjectType);
-  const visibleModules = config.visibleModules;
+  const visibleModules = Array.isArray(config.visibleModules) ? config.visibleModules : [];
   
   // Map visible modules to nav items
   const items: NavItem[] = [];
@@ -309,7 +308,7 @@ export function AdaptiveSidebar({ projectType }: SidebarProps) {
     : 'Chapters';
 
   return (
-    <nav className="hidden lg:flex flex-col w-72 h-full bg-slate-50 border-r border-transparent py-8 px-6 overflow-y-auto">
+    <nav className="hidden lg:flex flex-col w-72 h-full bg-slate-50 border-r border-slate-200/50 py-8 px-6 overflow-y-auto">
       {/* Current Manuscript Section */}
       <div className="mb-10">
         <h3 className="text-xs uppercase tracking-[0.2em] text-slate-500 font-bold mb-4">
@@ -334,7 +333,7 @@ export function AdaptiveSidebar({ projectType }: SidebarProps) {
 
       {/* Navigation Items */}
       <div className="space-y-1 flex-grow">
-        <div className="text-[10px] uppercase tracking-[0.15em] text-slate-400 font-bold px-4 mb-3">
+        <div className="text-[10px] uppercase tracking-[0.15em] text-slate-500 font-bold px-4 mb-3">
           Workspace
         </div>
         {navItems.map((item) => {
@@ -342,30 +341,30 @@ export function AdaptiveSidebar({ projectType }: SidebarProps) {
             pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
 
           return (
-            <Link
+            <a
               key={item.href}
               href={item.href}
               className={cn(
                 'flex items-center gap-3 rounded-lg px-4 py-3 font-semibold text-xs uppercase tracking-widest transition-all',
-                isActive ? 'bg-secondary/10 text-secondary' : 'text-slate-500 hover:bg-white/50'
+                isActive ? 'bg-secondary/10 text-secondary' : 'text-slate-700 hover:bg-white/70'
               )}
             >
               <span className="material-symbols-outlined text-lg">{item.icon}</span>
               <span>{item.label}</span>
-            </Link>
+            </a>
           );
         })}
       </div>
 
       {/* Support Footer */}
       <div className="pt-6 border-t border-slate-200/50 space-y-2">
-        <Link
+        <a
           href="/support"
-          className="flex items-center gap-3 text-slate-400 px-4 py-2 hover:bg-white/50 rounded-lg text-[10px] uppercase tracking-[0.15em] transition-all"
+          className="flex items-center gap-3 text-slate-600 px-4 py-2 hover:bg-white/70 rounded-lg text-[10px] uppercase tracking-[0.15em] transition-all"
         >
           <span className="material-symbols-outlined text-sm">help</span>
           Support
-        </Link>
+        </a>
       </div>
     </nav>
   );
@@ -404,12 +403,12 @@ export function AdaptiveBottomBar({ projectType }: SidebarProps) {
             pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
 
           return (
-            <Link
+            <a
               key={item.href}
               href={item.href}
               className={cn(
                 'flex flex-col items-center gap-1 min-w-[68px]',
-                isActive ? 'text-primary' : 'text-slate-400'
+                isActive ? 'text-primary' : 'text-slate-600'
               )}
             >
               <span
@@ -419,7 +418,7 @@ export function AdaptiveBottomBar({ projectType }: SidebarProps) {
                 {item.icon}
               </span>
               <span className="text-[10px] font-bold uppercase">{item.label}</span>
-            </Link>
+            </a>
           );
         })}
       </div>

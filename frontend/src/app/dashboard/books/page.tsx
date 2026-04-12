@@ -349,6 +349,10 @@ export default function BooksPage() {
 
   const handleOpenWorkspace = (book: Book) => {
     selectBook(book as any);
+    if (typeof window !== 'undefined') {
+      window.location.assign('/dashboard');
+      return;
+    }
     router.push('/dashboard');
   };
 
@@ -391,6 +395,10 @@ export default function BooksPage() {
 
       const lastChapter = bookChapters[0];
       selectBook(book as any);
+      if (typeof window !== 'undefined') {
+        window.location.assign(`/dashboard/chapters/${lastChapter.id}`);
+        return;
+      }
       router.push(`/dashboard/chapters/${lastChapter.id}`);
     } catch {
       toast.error('Failed to find last chapter. Please try again.');

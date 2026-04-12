@@ -3,9 +3,74 @@ import { useAuthStore } from '@/stores/auth-store';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
 
+function normalizeBookListResponse(payload: any, requestedLimit?: number) {
+  const normalizedPayload = payload && typeof payload === 'object' ? payload : {};
+  const nestedData = normalizedPayload.data && typeof normalizedPayload.data === 'object'
+    ? normalizedPayload.data
+    : {};
+
+  const items = Array.isArray(nestedData.items)
+    ? nestedData.items
+    : Array.isArray(normalizedPayload.items)
+      ? normalizedPayload.items
+      : Array.isArray(normalizedPayload.books)
+        ? normalizedPayload.books
+        : [];
+
+  const fallbackLimit =
+    Number(requestedLimit) > 0
+      ? Number(requestedLimit)
+      : Number(nestedData.limit || normalizedPayload.limit) > 0
+        ? Number(nestedData.limit || normalizedPayload.limit)
+        : items.length || 20;
+
+  const totalRaw = Number(nestedData.total ?? normalizedPayload.total ?? normalizedPayload.count ?? items.length);
+  const total = Number.isFinite(totalRaw) && totalRaw >= 0 ? totalRaw : items.length;
+
+  const pageRaw = Number(nestedData.page ?? normalizedPayload.page ?? 1);
+  const page = Number.isFinite(pageRaw) && pageRaw >= 1 ? pageRaw : 1;
+
+  const pagesRaw = Number(nestedData.pages ?? normalizedPayload.pages);
+  const pages = Number.isFinite(pagesRaw) && pagesRaw >= 1
+    ? pagesRaw
+    : Math.max(1, Math.ceil(total / Math.max(1, fallbackLimit)));
+
+  return {
+    ...normalizedPayload,
+    data: {
+      ...nestedData,
+      items,
+      total,
+      page,
+      limit: fallbackLimit,
+      pages,
+    },
+  };
+}
+
+function normalizeBookDetailResponse(payload: any) {
+  if (payload && typeof payload === 'object') {
+    if (payload.data && typeof payload.data === 'object') {
+      return payload;
+    }
+
+    if (payload.book && typeof payload.book === 'object') {
+      return {
+        ...payload,
+        data: payload.book,
+      };
+    }
+  }
+
+  return {
+    data: payload,
+  };
+}
+
 // Create axios instance
 export const api = axios.create({
   baseURL: API_BASE_URL,
+  timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -348,9 +413,20 @@ export const apiClient = {
       pinned?: boolean;
       sort_by?: 'updated_at' | 'created_at' | 'title' | 'status';
       sort_order?: 'asc' | 'desc';
-    }) =>
-      api.get('/books', { params }),
-    get: async (id: string) => api.get(`/books/${id}`),
+    }) => {
+      const response = await api.get('/books', { params });
+      return {
+        ...response,
+        data: normalizeBookListResponse(response.data, params?.limit),
+      };
+    },
+    get: async (id: string) => {
+      const response = await api.get(`/books/${id}`);
+      return {
+        ...response,
+        data: normalizeBookDetailResponse(response.data),
+      };
+    },
     create: async (data: {
       title: string;
       subtitle?: string;
@@ -373,7 +449,13 @@ export const apiClient = {
       ai_enhancement_enabled?: boolean;
       status?: string;
       auto_create_chapters?: number;
-    }) => api.post('/books', data),
+    }) => {
+      const response = await api.post('/books', data);
+      return {
+        ...response,
+        data: normalizeBookDetailResponse(response.data),
+      };
+    },
     update: async (id: string, data: Partial<{ title: string; description?: string; project_context?: string; project_settings?: Record<string, unknown>; project_type?: string; book_type?: string; genres?: string[]; tags?: string[]; labels?: string[]; cover_image_url?: string; cover_color?: string; target_word_count?: number | null; deadline_at?: string | null; is_pinned?: boolean; default_writing_form?: string; default_chapter_tone?: string; ai_enhancement_enabled?: boolean; status?: string }>) =>
       api.put(`/books/${id}`, data),
     delete: async (id: string) => api.delete(`/books/${id}`),

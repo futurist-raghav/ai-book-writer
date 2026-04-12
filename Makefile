@@ -1,7 +1,10 @@
 SHELL := /bin/bash
 DC := docker compose
+DEPLOY_MODE ?= git
+DEPLOY_BRANCH ?= main
+CF_PAGES_PROJECT ?= ai-book-writer-frontend
 
-.PHONY: help setup start stop restart logs clean test lint format migrate shell-be shell-fe backup restore build pull status stats verify-services ensure-running reclaim-space start-prod stop-prod restart-prod logs-prod scale-backend-prod test-notifications test-monetization
+.PHONY: help setup start stop restart logs clean test lint format migrate shell-be shell-fe backup restore build pull status stats verify-services ensure-running reclaim-space start-prod stop-prod restart-prod logs-prod scale-backend-prod test-notifications test-monetization deploy deploy-git deploy-cloudflare frontend-build
 
 # Default target
 help:
@@ -24,6 +27,7 @@ help:
 	@echo "lint         - Run linters"
 	@echo "format       - Format code"
 	@echo "migrate      - Run database migrations"
+	@echo "deploy       - Build + deploy website (DEPLOY_MODE=git|cloudflare)"
 	@echo "shell-be     - Open backend shell"
 	@echo "shell-fe     - Open frontend shell"
 	@echo "status       - Show service status (all states)"
@@ -223,6 +227,46 @@ restore:
 build:
 	@echo "Building Docker images..."
 	$(DC) build
+
+# Build frontend bundle used by deployment flows
+frontend-build:
+	@echo "Building frontend for deployment..."
+	npm --prefix frontend run build
+
+# Deploy website via selected mode
+deploy: frontend-build
+	@if [ "$(DEPLOY_MODE)" = "cloudflare" ]; then \
+		$(MAKE) --no-print-directory deploy-cloudflare; \
+	else \
+		$(MAKE) --no-print-directory deploy-git; \
+	fi
+
+# Deploy through git-integrated hosting (push to branch)
+deploy-git:
+	@if [ -n "$$(git status --porcelain)" ]; then \
+		echo "ERROR: Working tree is dirty. Commit/stash changes before deploy."; \
+		exit 1; \
+	fi
+	@current_branch=$$(git rev-parse --abbrev-ref HEAD); \
+	if [ "$$current_branch" != "$(DEPLOY_BRANCH)" ]; then \
+		echo "ERROR: Current branch is '$$current_branch'. Switch to '$(DEPLOY_BRANCH)' or pass DEPLOY_BRANCH=..."; \
+		exit 1; \
+	fi
+	@echo "Pushing $(DEPLOY_BRANCH) to origin (hosted deploy will trigger automatically)..."
+	@git push origin $(DEPLOY_BRANCH)
+	@echo "Deploy trigger complete."
+
+# Direct deploy to Cloudflare Pages using next-on-pages + wrangler
+deploy-cloudflare:
+	@if ! command -v node >/dev/null 2>&1; then \
+		echo "ERROR: node is required for Cloudflare deployment."; \
+		exit 1; \
+	fi
+	@echo "Building Cloudflare Pages output with next-on-pages..."
+	@cd frontend && npx --yes @cloudflare/next-on-pages@1
+	@echo "Deploying to Cloudflare Pages project '$(CF_PAGES_PROJECT)'..."
+	@cd frontend && npx --yes wrangler pages deploy .vercel/output/static --project-name "$(CF_PAGES_PROJECT)" --branch "$(DEPLOY_BRANCH)"
+	@echo "Cloudflare deployment complete."
 
 # Pull latest images
 pull:

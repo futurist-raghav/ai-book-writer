@@ -17,9 +17,10 @@ export function DarkModeProvider({ children }: { children: ReactNode }) {
   // Hydrate from localStorage on mount
   useEffect(() => {
     const stored = localStorage.getItem('theme-mode');
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    
-    const shouldBeDark = stored ? stored === 'dark' : prefersDark;
+
+    // Keep dashboard visuals predictable across devices by defaulting to light mode
+    // unless the user has explicitly chosen dark mode.
+    const shouldBeDark = stored === 'dark';
     setIsDark(shouldBeDark);
     applyTheme(shouldBeDark);
     setIsHydrated(true);

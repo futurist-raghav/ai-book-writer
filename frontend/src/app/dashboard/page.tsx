@@ -74,11 +74,6 @@ export default function ProjectOverviewPage() {
     enabled: !!book?.id,
   });
 
-  const { data: eventsData } = useQuery({
-    queryKey: ['events', 'list'],
-    queryFn: () => apiClient.events.list({ limit: 1000 }),
-  });
-
   // Call all hooks BEFORE any early returns (Rules of Hooks)
   useEffect(() => {
     if (bookDetailsData?.data && book) {
@@ -185,8 +180,7 @@ export default function ProjectOverviewPage() {
   })();
 
   // Calculate writing stats
-  const events = eventsData?.data?.items || [];
-  const eventCount = events.length;
+  const eventCount = Number((bookDetails as any)?.event_count ?? (book as any)?.event_count ?? 0);
   const totalWordCount = bookDetails?.word_count || book?.word_count || 0;
   const averageWordsPerChapter = book.chapter_count > 0 ? Math.round((book.word_count || 0) / book.chapter_count) : 0;
   const averageMinutesPerChapter = book.chapter_count > 0 ? Math.round((Math.ceil(totalWordCount / 200) * 60) / book.chapter_count) : 0;

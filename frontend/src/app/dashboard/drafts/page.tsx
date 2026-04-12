@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
 import { Spinner } from '@/components/ui/spinner';
@@ -24,7 +23,7 @@ export default function DraftsPage() {
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['books', 'drafts'],
-    queryFn: () => apiClient.books.list({ limit: 100 }),
+    queryFn: () => apiClient.books.list({ limit: 100, status: 'draft' }),
   });
 
   const promoteMutation = useMutation({
@@ -54,8 +53,7 @@ export default function DraftsPage() {
     onError: () => toast.error('Failed to delete draft'),
   });
 
-  const books = (data?.data?.items || []) as DraftProject[];
-  const drafts = books.filter((book) => String(book.status) === 'draft');
+  const drafts = (data?.data?.items || []) as DraftProject[];
 
   if (isLoading) {
     return <div className="flex h-64 items-center justify-center"><Spinner className="w-8 h-8 text-primary" /></div>;
@@ -94,14 +92,19 @@ export default function DraftsPage() {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <Link
-                      href="/dashboard"
-                      onClick={() => selectBook(project as any)}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        selectBook(project as any);
+                        if (typeof window !== 'undefined') {
+                          window.location.assign('/dashboard');
+                        }
+                      }}
                       className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-primary shadow-sm hover:bg-primary hover:text-white transition-colors"
                       title="Open"
                     >
                       <span className="material-symbols-outlined text-[20px]">visibility</span>
-                    </Link>
+                    </button>
                     <button
                       onClick={() => promoteMutation.mutate(project.id)}
                       disabled={promoteMutation.isPending}
