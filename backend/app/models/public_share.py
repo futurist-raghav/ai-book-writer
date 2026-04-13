@@ -38,6 +38,7 @@ class PublicShare(Base):
     # Relationships
     book = relationship("Book", backref="public_shares")
     feedback_responses = relationship("BookFeedback", back_populates="share")
+    comments = relationship("PublicComment", back_populates="public_share")
     
     def __repr__(self):
         return f"<PublicShare {self.id} for book {self.book_id}>"
