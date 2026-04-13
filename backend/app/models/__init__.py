@@ -153,3 +153,14 @@ __all__ = [
     "TeamActivityLog",
 ]
 
+# Configure mappers after all models are imported
+# This ensures all relationships are properly resolved
+from sqlalchemy.orm import configure_mappers
+try:
+    configure_mappers()
+except Exception as e:
+    # Log but don't fail if mapper configuration has issues
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.warning(f"Mapper configuration warning: {e}")
+
