@@ -219,7 +219,6 @@ class Book(Base):
     review_links: Mapped[List["ReviewLink"]] = relationship(
         "ReviewLink",
         cascade="all, delete-orphan",
-        foreign_keys="ReviewLink.book_id",
     )
 
     def __repr__(self) -> str:
