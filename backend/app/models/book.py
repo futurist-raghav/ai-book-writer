@@ -216,12 +216,12 @@ class Book(Base):
         cascade="all, delete-orphan",
         foreign_keys="GlossaryEntry.book_id",
     )
-    # ReviewLink relationship - use lazy evaluation to avoid circular imports
-    review_links: Mapped[List["ReviewLink"]] = relationship(
-        "ReviewLink",
-        cascade="all, delete-orphan",
-        viewonly=False,
-    )
+    # # ReviewLink relationship - use lazy evaluation to avoid circular imports
+    # review_links: Mapped[List["ReviewLink"]] = relationship(
+    #     "ReviewLink",
+    #     cascade="all, delete-orphan",
+    #     viewonly=False,
+    # )
 
     def __repr__(self) -> str:
         return f"<Book {self.title}>"

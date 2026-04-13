@@ -1,7 +1,7 @@
 # Database Models
 from app.models.audio import AudioFile  # noqa: F401
 from app.models.reference import Reference  # noqa: F401
-from app.models.review_link import ReviewLink  # noqa: F401
+# from app.models.review_link import ReviewLink  # noqa: F401  # TEMPORARILY DISABLED - has circular dependency
 from app.models.book import Book, BookChapter, BookStatus  # noqa: F401
 from app.models.bibliography import Bibliography, ChapterCitation  # noqa: F401
 from app.models.chapter import Chapter  # noqa: F401
@@ -24,7 +24,7 @@ from app.models.export import Export  # noqa: F401
 from app.models.flow_engine import FlowEvent, FlowDependency, FlowChapterEvent, FlowEventType, FlowEventStatus, FlowDependencyType  # noqa: F401
 from app.models.glossary import GlossaryEntry  # noqa: F401
 from app.models.reference import Reference  # noqa: F401
-from app.models.review_link import ReviewLink  # noqa: F401
+# from app.models.review_link import ReviewLink  # noqa: F401  # TEMPORARILY DISABLED - circular dependency
 from app.models.transcription import Transcription  # noqa: F401
 from app.models.user import User  # noqa: F401
 from app.models.workspace_customization import WorkspaceCustomization  # noqa: F401
@@ -84,7 +84,7 @@ __all__ = [
     "FlowEventStatus",
     "FlowDependencyType",
     "GlossaryEntry",
-    "ReviewLink",
+    # "ReviewLink",  # TEMPORARILY DISABLED - circular dependency
     "TextSuggestion",
     "Transcription",
     "User",
