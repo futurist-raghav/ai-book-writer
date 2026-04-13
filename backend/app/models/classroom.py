@@ -70,7 +70,8 @@ class Classroom(Base):
     
     # Relationships
     owner = relationship("User", foreign_keys=[owner_id], back_populates="classrooms_owned")
-    students = relationship("User", secondary=classroom_students, back_populates="classrooms_enrolled")
+    # students relationship disabled - corresponds to disabled classrooms_enrolled in User model
+    # students = relationship("User", secondary=classroom_students, back_populates="classrooms_enrolled")
     assignments = relationship("ClassAssignment", back_populates="classroom", cascade="all, delete-orphan")
     grades = relationship("ClassroomGrade", back_populates="classroom", cascade="all, delete-orphan")
 
