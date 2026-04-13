@@ -509,36 +509,29 @@ deploy-vm-backend:
 	@gcloud config set project $(GCP_PROJECT_ID) --quiet
 	@echo ""
 	@echo "Testing SSH connection to VM..."
-	@if gcloud compute ssh $$VM_NAME \
+	@gcloud compute ssh $$VM_NAME \
 		--zone=asia-south1-c \
 		--project=$(GCP_PROJECT_ID) \
-		--command="echo 'SSH connection successful'" > /dev/null 2>&1; then \
-		echo "✅ SSH connection verified"; \
-		echo ""; \
-		echo "Uploading backend code..."; \
-		gcloud compute scp \
-			--recurse \
-			--zone=asia-south1-c \
-			--project=$(GCP_PROJECT_ID) \
-			./backend \
-			$$VM_NAME:/tmp/scribe-house-backend \
-			--compress \
-			2>&1 | grep -v "WARNING:"; \
-		echo ""; \
-		echo "Running deployment on VM..."; \
-		gcloud compute ssh $$VM_NAME \
-			--zone=asia-south1-c \
-			--project=$(GCP_PROJECT_ID) \
-			--command="bash /tmp/scribe-house-backend/deploy-vm.sh" \
-			2>&1; \
-		echo "✅ Backend deployment complete"; \
-	else \
-		echo "⚠️  SSH via gcloud failed."; \
-		echo ""; \
-		echo "ALTERNATIVE: Follow manual deployment steps:"; \
-		echo "  See: MANUAL_DEPLOYMENT.md"; \
-		exit 1; \
-	fi
+		--command="echo 'SSH connection successful'" 2>&1 | grep -q "SSH connection successful" && \
+	echo "✅ SSH connection verified" || (echo "⚠️  SSH via gcloud failed. See MANUAL_DEPLOYMENT.md"; exit 1)
+	@echo ""
+	@echo "Uploading backend code..."
+	@gcloud compute scp \
+		--recurse \
+		--zone=asia-south1-c \
+		--project=$(GCP_PROJECT_ID) \
+		./backend \
+		$$VM_NAME:/tmp/scribe-house-backend \
+		--compress \
+		2>&1 | grep -v "WARNING:" || true
+	@echo ""
+	@echo "Running deployment on VM..."
+	@gcloud compute ssh $$VM_NAME \
+		--zone=asia-south1-c \
+		--project=$(GCP_PROJECT_ID) \
+		--command="bash /tmp/scribe-house-backend/deploy-vm.sh" \
+		2>&1
+	@echo "✅ Backend deployment complete"
 
 # Deploy only frontend config (connects to existing VM backend)
 deploy-vm-frontend:
