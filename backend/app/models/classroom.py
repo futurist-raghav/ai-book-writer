@@ -3,10 +3,10 @@
 from typing import TYPE_CHECKING, Optional
 
 from datetime import datetime
-from sqlalchemy import String, DateTime, ForeignKey, Enum, Integer, Boolean, Table, Text, Float, JSON
+from sqlalchemy import String, DateTime, ForeignKey, Enum, Integer, Boolean, Table, Text, Float, JSON, Column
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 import enum
-from app.db import Base
+from app.core.db import Base
 
 # Association table for classroom students
 classroom_students = Table(
