@@ -11,7 +11,7 @@ from app.core.db import Base
 
 # Association table for template favorites
 template_favorites = Table(
-    "template_favorites", Base.metadata
+    "template_favorites", Base.metadata,
     Column("user_id", UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE")),
     Column("template_id", UUID(as_uuid=True), ForeignKey("marketplace_templates.id", ondelete="CASCADE")),
 )
