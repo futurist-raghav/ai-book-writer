@@ -515,6 +515,8 @@ deploy-vm-backend:
 	@gcloud compute scp backend/requirements.txt scribe-house:/tmp/scribe-house-backend/requirements.txt --zone=asia-south1-c --project=$(GCP_PROJECT_ID) 2>&1 | grep -v "WARNING:" || true
 	@echo "Uploading migrations..."
 	@gcloud compute scp --recurse backend/alembic scribe-house:/tmp/scribe-house-backend/ --zone=asia-south1-c --project=$(GCP_PROJECT_ID) 2>&1 | grep -v "WARNING:" || true
+	@echo "Uploading application code..."
+	@gcloud compute scp --recurse backend/app scribe-house:/tmp/scribe-house-backend/ --zone=asia-south1-c --project=$(GCP_PROJECT_ID) 2>&1 | grep -v "WARNING:" || true
 	@echo ""
 	@echo "Running deployment script on VM..."
 	@gcloud compute ssh scribe-house --zone=asia-south1-c --project=$(GCP_PROJECT_ID) --command="bash /tmp/scribe-house-backend/deploy-vm.sh" 2>&1
