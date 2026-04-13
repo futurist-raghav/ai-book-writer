@@ -64,13 +64,6 @@ class Workspace(Base):
         lazy="select"
     )
     
-    # books: Mapped[list["Book"]] = relationship(  # TEMPORARILY DISABLED - no foreign key link
-    #     "Book",
-    #     back_populates="workspace",
-    #     cascade="all, delete-orphan",
-    #     lazy="select"
-    # )
-    
     style_guides: Mapped[list["StyleGuide"]] = relationship(
         "StyleGuide",
         back_populates="workspace",
