@@ -23,6 +23,7 @@ if TYPE_CHECKING:
     from app.models.export import Export
     from app.models.bibliography import Bibliography
     from app.models.reference import Reference
+    from app.models.review_link import ReviewLink
     from app.models.user import User
 
 
