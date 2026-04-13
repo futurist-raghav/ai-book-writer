@@ -5,9 +5,7 @@
   "compatibility_flags": ["nodejs_compat"],
   "env": {
     "production": {
-      "vars": {
-        "NEXT_PUBLIC_API_URL": "http://35.200.193.248:8000/api/v1"
-      }
+      "vars": {}
     }
   }
 }
