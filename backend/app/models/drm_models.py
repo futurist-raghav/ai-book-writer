@@ -7,7 +7,7 @@ Tracks encrypted files, issued licenses, access control, and piracy auditing.
 from typing import TYPE_CHECKING, Optional
 
 from datetime import datetime
-from sqlalchemy import String, Integer, Boolean, DateTime, JSON, Text, LargeBinary, Enum, ForeignKey, Float
+from sqlalchemy import String, Integer, Boolean, DateTime, JSON, Text, LargeBinary, Enum, ForeignKey, Float, Column
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 import enum
 
