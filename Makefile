@@ -507,8 +507,14 @@ deploy-vm-backend:
 	@echo "Setting up GCP project..."
 	@gcloud config set project $(GCP_PROJECT_ID) --quiet
 	@echo ""
-	@echo "Uploading backend code to VM..."
-	@gcloud compute scp --recurse --zone=asia-south1-c --project=$(GCP_PROJECT_ID) ./backend scribe-house:/tmp/scribe-house-backend --compress 2>&1 | grep -v "WARNING:" || true
+	@echo "Creating deployment directory on VM..."
+	@gcloud compute ssh scribe-house --zone=asia-south1-c --project=$(GCP_PROJECT_ID) --command="mkdir -p /tmp/scribe-house-backend" 2>&1 | grep -v "WARNING:" || true
+	@echo "Uploading deployment script..."
+	@gcloud compute scp backend/deploy-vm.sh scribe-house:/tmp/scribe-house-backend/deploy-vm.sh --zone=asia-south1-c --project=$(GCP_PROJECT_ID) 2>&1 | grep -v "WARNING:" || true
+	@echo "Uploading requirements file..."
+	@gcloud compute scp backend/requirements.txt scribe-house:/tmp/scribe-house-backend/requirements.txt --zone=asia-south1-c --project=$(GCP_PROJECT_ID) 2>&1 | grep -v "WARNING:" || true
+	@echo "Uploading migrations..."
+	@gcloud compute scp --recurse backend/alembic scribe-house:/tmp/scribe-house-backend/ --zone=asia-south1-c --project=$(GCP_PROJECT_ID) 2>&1 | grep -v "WARNING:" || true
 	@echo ""
 	@echo "Running deployment script on VM..."
 	@gcloud compute ssh scribe-house --zone=asia-south1-c --project=$(GCP_PROJECT_ID) --command="bash /tmp/scribe-house-backend/deploy-vm.sh" 2>&1
