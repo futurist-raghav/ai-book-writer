@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     UVICORN_KEEPALIVE: int = 5
 
     # CORS
-    ALLOWED_ORIGINS: str = "http://localhost:3000,http://localhost:3001"
+    ALLOWED_ORIGINS: str = "http://localhost:3000,http://localhost:3001,https://scribe-house.pages.dev,https://5aef67e7.scribe-house.pages.dev,https://main.scribe-house.pages.dev"
 
     @property
     def allowed_origins_list(self) -> List[str]:
