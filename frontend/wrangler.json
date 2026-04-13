@@ -1,21 +1,10 @@
 {
-  "name": "ai-book-writer-prod",
-  "type": "service",
-  "main": "functions/[[path]].ts",
-  "routes": [
-    {
-      "pattern": "ai-book-writer-prod.raghav-10168-19.workers.dev/*",
-      "zone_name": ""
-    },
-    {
-      "pattern": "aibookwriter.raghavagarwal.com/*",
-      "zone_name": ""
-    }
-  ],
+  "name": "scribe-house",
+  "pages_build_output_dir": ".vercel/output/static",
   "env": {
     "production": {
       "vars": {
-        "BACKEND_URL": "http://34.14.172.251:8000"
+        "BACKEND_URL": "http://35.200.193.248:8000"
       }
     }
   }
