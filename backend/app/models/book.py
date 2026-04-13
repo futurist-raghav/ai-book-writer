@@ -23,7 +23,6 @@ if TYPE_CHECKING:
     from app.models.export import Export
     from app.models.bibliography import Bibliography
     from app.models.reference import Reference
-    from app.models.review_link import ReviewLink
     from app.models.user import User
 
 
@@ -216,10 +215,11 @@ class Book(Base):
         cascade="all, delete-orphan",
         foreign_keys="GlossaryEntry.book_id",
     )
-    review_links: Mapped[List["ReviewLink"]] = relationship(
-        "ReviewLink",
-        cascade="all, delete-orphan",
-    )
+    # TODO: Fix circular dependency with ReviewLink model
+    # review_links: Mapped[List["ReviewLink"]] = relationship(
+    #     "ReviewLink",
+    #     cascade="all, delete-orphan",
+    # )
 
     def __repr__(self) -> str:
         return f"<Book {self.title}>"
