@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import Optional, TYPE_CHECKING
 from enum import Enum
-from sqlalchemy import String, Text, DateTime, ForeignKey, Boolean, Integer, Float, Enum as SQLEnum, Table, JSON
+from sqlalchemy import String, Text, DateTime, ForeignKey, Boolean, Integer, Float, Enum as SQLEnum, Table, JSON, Column
 from sqlalchemy.dialects.postgresql import UUID, ARRAY
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from uuid import uuid4
