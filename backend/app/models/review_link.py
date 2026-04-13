@@ -34,7 +34,7 @@ class ReviewLink(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     
     # Relationships
-    book = relationship("Book", back_populates="review_links")
+    book = relationship("Book", foreign_keys=[book_id])
     comments = relationship("ReviewerComment", back_populates="review_link", cascade="all, delete-orphan")
 
 

@@ -218,7 +218,6 @@ class Book(Base):
     )
     review_links: Mapped[List["ReviewLink"]] = relationship(
         "ReviewLink",
-        back_populates="book",
         cascade="all, delete-orphan",
         foreign_keys="ReviewLink.book_id",
     )
