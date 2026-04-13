@@ -1,8 +1,8 @@
-# AI Book Writer - Product Roadmap 2026
+# Scribe House - Product Roadmap 2026
 
 ## Vision
 
-Transform AI Book Writer into the **universal writing OS**—a web-native, collaboration-enabled platform that adapts to every writer's genre, process, and ambition. Not just for memoirs. For everyone.
+Transform Scribe House into the **universal writing OS**—a web-native, collaboration-enabled platform that adapts to every writer's genre, process, and ambition. Not just for memoirs. For everyone.
 
 ---
 

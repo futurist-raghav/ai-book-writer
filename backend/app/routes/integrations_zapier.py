@@ -285,7 +285,7 @@ async def get_zapier_stats(
 async def get_zapier_marketplace_info():
     """Get Zapier app marketplace listing information"""
     return {
-        "app_name": "AI Book Writer",
+        "app_name": "Scribe House",
         "description": "Automate your writing workflow with Zapier",
         "category": ["Writing", "Productivity", "Publishing"],
         "available_in_marketplace": True,

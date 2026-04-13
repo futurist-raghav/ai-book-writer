@@ -30,7 +30,7 @@ class EmailNotificationService:
         smtp_server: str = "localhost",
         smtp_port: int = 587,
         from_email: str = "noreply@aiebookwriter.com",
-        from_name: str = "AI Book Writer",
+        from_name: str = "Scribe House",
         use_tls: bool = True,
     ):
         self.smtp_server = smtp_server

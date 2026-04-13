@@ -62,12 +62,12 @@ describe('PwaRuntime', () => {
 
     await dispatchInstallPromptEvent({ outcome: 'dismissed', platform: 'web' });
 
-    expect(await screen.findByText('Install AI Book Writer')).toBeInTheDocument();
+    expect(await screen.findByText('Install Scribe House')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Not now' }));
 
     await waitFor(() => {
-      expect(screen.queryByText('Install AI Book Writer')).not.toBeInTheDocument();
+      expect(screen.queryByText('Install Scribe House')).not.toBeInTheDocument();
     });
   });
 
@@ -84,7 +84,7 @@ describe('PwaRuntime', () => {
 
     await waitFor(() => {
       expect(prompt).toHaveBeenCalledTimes(1);
-      expect(screen.queryByText('Install AI Book Writer')).not.toBeInTheDocument();
+      expect(screen.queryByText('Install Scribe House')).not.toBeInTheDocument();
     });
   });
 });

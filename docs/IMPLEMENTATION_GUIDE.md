@@ -1,8 +1,8 @@
-# AI Book Writer - Current Architecture & Implementation Status
+# Scribe House - Current Architecture & Implementation Status
 
 ## Overview
 
-AI Book Writer now operates on a **Unified Data Context Model** where all features (editor, AI, characters, world building, events, audio) read from and write to a single client-side context store. This architecture eliminates data silos and ensures seamless AI integration with full project awareness.
+Scribe House now operates on a **Unified Data Context Model** where all features (editor, AI, characters, world building, events, audio) read from and write to a single client-side context store. This architecture eliminates data silos and ensures seamless AI integration with full project awareness.
 
 ## What's Been Built ✅
 

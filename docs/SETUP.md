@@ -1,6 +1,6 @@
 # Development Setup Guide
 
-This guide will help you set up the AI Book Writer development environment on your local machine.
+This guide will help you set up the Scribe House development environment on your local machine.
 
 ## Prerequisites
 
@@ -453,7 +453,7 @@ redis-cli ping
 
 Open browser to `http://localhost:3000`
 
-You should see the AI Book Writer landing page.
+You should see the Scribe House landing page.
 
 ### 5. Create Test User
 

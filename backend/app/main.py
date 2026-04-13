@@ -1,5 +1,5 @@
 """
-AI Book Writer - FastAPI Application
+Scribe House - FastAPI Application
 
 Main entry point for the backend API.
 """

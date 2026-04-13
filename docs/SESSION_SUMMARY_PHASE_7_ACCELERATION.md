@@ -266,7 +266,7 @@ This session represents a **major acceleration** of Phase 7 delivery:
 - **Delivered: 2,780 LOC across 8 files, 8 commits**
 - **Achieved: Phase 7 now 77% complete from baseline 57%**
 
-The AI Book Writer now has a comprehensive ecosystem for writers:
+The Scribe House now has a comprehensive ecosystem for writers:
 1. **Performance tracking** to measure progress
 2. **Publishing guides** for all major platforms
 3. **Author community** for collaboration and feedback

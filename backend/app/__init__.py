@@ -1,1 +1,1 @@
-# AI Book Writer Backend Application
+# Scribe House Backend Application

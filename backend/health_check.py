@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 import os
 from datetime import datetime
 
-app = FastAPI(title="AI Book Writer API (Health Check Mode)")
+app = FastAPI(title="Scribe House API (Health Check Mode)")
 
 @app.get("/health")
 async def health_check():

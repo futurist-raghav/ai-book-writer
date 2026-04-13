@@ -1,6 +1,6 @@
 # Deployment Guide
 
-This guide covers deploying AI Book Writer to various platforms. Choose the deployment option that best fits your needs and budget.
+This guide covers deploying Scribe House to various platforms. Choose the deployment option that best fits your needs and budget.
 
 ## Table of Contents
 
@@ -46,7 +46,7 @@ brew install google-cloud-sdk
 gcloud init
 
 # Create new project
-gcloud projects create ai-book-writer-prod --name="AI Book Writer"
+gcloud projects create ai-book-writer-prod --name="Scribe House"
 
 # Set project
 gcloud config set project ai-book-writer-prod

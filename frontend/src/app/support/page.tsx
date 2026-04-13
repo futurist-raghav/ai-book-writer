@@ -5,7 +5,7 @@ export default function SupportPage() {
     <main className="max-w-4xl mx-auto px-6 pt-16 pb-24">
       <h1 className="text-5xl md:text-6xl font-light tracking-tighter text-primary font-body mb-3">Support</h1>
       <p className="font-label text-sm text-on-surface-variant mb-10">
-        Need help with AI Book Writer? Reach out through project issues or internal support channels.
+        Need help with Scribe House? Reach out through project issues or internal support channels.
       </p>
 
       <section className="bg-surface-container-lowest p-8 rounded-xl border border-outline-variant/10 space-y-3">

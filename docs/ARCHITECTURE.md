@@ -2,7 +2,7 @@
 
 ## Current Architecture: Unified Data Context Model
 
-AI Book Writer uses a **single unified data store** (Project Context) as the foundation. All features—editor, AI assistant, characters, world building, events, and audio—read from and write to this single source of truth. This ensures seamless integration and eliminates data silos.
+Scribe House uses a **single unified data store** (Project Context) as the foundation. All features—editor, AI assistant, characters, world building, events, and audio—read from and write to this single source of truth. This ensures seamless integration and eliminates data silos.
 
 ## High-Level Architecture
 

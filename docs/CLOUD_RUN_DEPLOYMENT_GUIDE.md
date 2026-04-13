@@ -130,7 +130,7 @@ make deploy DEPLOY_MODE=cloudflare
 
 ### Frontend (.env)
 - [ ] NEXT_PUBLIC_API_URL=https://ai-book-writer-xxxxx-asia-south1.a.run.app/api/v1
-- [ ] NEXT_PUBLIC_APP_NAME=AI Book Writer
+- [ ] NEXT_PUBLIC_APP_NAME=Scribe House
 - [ ] NEXT_PUBLIC_APP_URL=https://aibookwriter.raghavagarwal.com
 
 ### Worker (wrangler.json)

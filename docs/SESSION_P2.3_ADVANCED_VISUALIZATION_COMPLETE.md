@@ -454,4 +454,4 @@ interface EnhancedFlowDashboardProps {
 
 *Compiled: April 10, 2026*  
 *Engineer: GitHub Copilot*  
-*Project: AI Book Writer - P2.2 Complete, P2.3 Ready*
+*Project: Scribe House - P2.2 Complete, P2.3 Ready*

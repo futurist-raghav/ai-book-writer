@@ -34,13 +34,13 @@ async def list_make_modules(
     module_type: str = Query(None, regex="^(trigger|action)$"),
     current_user: User = Depends(get_current_user),
 ):
-    """List all available Make.com modules for AI Book Writer"""
+    """List all available Make.com modules for Scribe House"""
     triggers = [
         {
             "module_id": "trigger_new_chapter",
             "module_type": "trigger",
             "name": "New Chapter Created",
-            "app": "AI Book Writer",
+            "app": "Scribe House",
             "description": "Trigger when a new chapter is added",
             "fields": ["book_id", "book_title", "chapter_title", "word_count", "created_at"],
         },
@@ -48,7 +48,7 @@ async def list_make_modules(
             "module_id": "trigger_book_status",
             "module_type": "trigger",
             "name": "Book Status Changed",
-            "app": "AI Book Writer",
+            "app": "Scribe House",
             "description": "Trigger when book status changes",
             "fields": ["book_id", "book_title", "status", "changed_at"],
         },
@@ -56,7 +56,7 @@ async def list_make_modules(
             "module_id": "trigger_collaboration",
             "module_type": "trigger",
             "name": "Collaboration Invite",
-            "app": "AI Book Writer",
+            "app": "Scribe House",
             "description": "Trigger when someone collabs with you",
             "fields": ["collaborator_name", "book_title", "role"],
         },
@@ -64,7 +64,7 @@ async def list_make_modules(
             "module_id": "trigger_milestone",
             "module_type": "trigger",
             "name": "Word Count Milestone",
-            "app": "AI Book Writer",
+            "app": "Scribe House",
             "description": "Trigger at specific word count milestones",
             "fields": ["milestone", "total_words", "book_title"],
         },
@@ -177,7 +177,7 @@ async def get_make_scenario_details(
             {
                 "module_id": "trigger_milestone",
                 "position": 1,
-                "name": "AI Book Writer - Word Count Milestone",
+                "name": "Scribe House - Word Count Milestone",
                 "outputs": ["milestone", "total_words", "book_title"],
             },
             {
@@ -281,7 +281,7 @@ async def get_make_stats(
 async def get_make_public_app_info():
     """Get Make.com app directory listing information"""
     return {
-        "app_name": "AI Book Writer",
+        "app_name": "Scribe House",
         "description": "Automate your writing workflow and publishing process with Make",
         "category": ["Writing", "Productivity", "Publishing"],
         "available": True,

@@ -89,7 +89,7 @@ export default function HomePage() {
 
       {/* Footer */}
       <footer className="container mx-auto px-4 py-12 text-center text-muted-foreground">
-        <p>© 2024 AI Book Writer. All rights reserved.</p>
+        <p>© 2024 Scribe House. All rights reserved.</p>
       </footer>
     </div>
   );

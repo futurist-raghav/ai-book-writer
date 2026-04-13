@@ -721,7 +721,7 @@ export default function ChapterWorkspaceClient({ chapterId }: { chapterId: strin
     const chapterTitle = workspaceQuery.data?.data?.title || 'Chapter';
     const hasUnsavedChanges = writerHtml && lastSavedContent && writerHtml !== lastSavedContent;
     const prefix = hasUnsavedChanges ? '● ' : '';
-    document.title = `${prefix}${chapterTitle} - AI Book Writer`;
+    document.title = `${prefix}${chapterTitle} - Scribe House`;
   }, [writerHtml, lastSavedContent, workspaceQuery.data?.data?.title]);
 
   const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {

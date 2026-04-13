@@ -1,6 +1,6 @@
 # Manual Testing Guide
 
-Comprehensive checklist for QA and manual testing of AI Book Writer features. Use this guide after each major release or feature implementation.
+Comprehensive checklist for QA and manual testing of Scribe House features. Use this guide after each major release or feature implementation.
 
 ## Table of Contents
 

@@ -129,7 +129,7 @@ export default function SetupPage() {
         <div className="flex flex-col items-center justify-center min-h-screen px-4">
           <div className="max-w-2xl text-center">
             <h1 className="text-5xl md:text-6xl font-light tracking-tight text-slate-900 mb-6">
-              Welcome to <span className="font-semibold">AI Book Writer</span>
+              Welcome to <span className="font-semibold">Scribe House</span>
             </h1>
             <p className="text-xl text-slate-600 mb-8">
               Transform any writing project into a polished masterpiece with AI-assisted planning, drafting, and revision tools.

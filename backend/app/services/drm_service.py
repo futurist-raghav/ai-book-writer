@@ -300,7 +300,7 @@ class DRMService:
             if file_type == "pdf":
                 # Add PDF metadata
                 watermark_metadata = f"""
-/Producer (AI Book Writer DRM {user_id})
+/Producer (Scribe House DRM {user_id})
 /CreationDate (D:{datetime.utcnow().strftime('%Y%m%d%H%M%S')})
 /LicensedTo {user_id}
 """.encode()

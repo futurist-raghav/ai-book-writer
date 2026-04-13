@@ -83,7 +83,7 @@ export function PwaRuntime() {
 
       {showInstallPrompt ? (
         <div className="fixed bottom-24 right-4 z-[70] w-[min(92vw,320px)] rounded-xl border border-outline-variant/20 bg-white p-4 shadow-lg md:bottom-6">
-          <p className="text-sm font-bold text-primary">Install AI Book Writer</p>
+          <p className="text-sm font-bold text-primary">Install Scribe House</p>
           <p className="mt-1 text-xs text-on-surface-variant">
             Add this app to your device for faster launch and better offline access.
           </p>

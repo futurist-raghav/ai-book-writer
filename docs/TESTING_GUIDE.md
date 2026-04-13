@@ -1,6 +1,6 @@
 # Testing Guide
 
-Comprehensive guide to running, writing, and maintaining tests for AI Book Writer.
+Comprehensive guide to running, writing, and maintaining tests for Scribe House.
 
 ## Table of Contents
 

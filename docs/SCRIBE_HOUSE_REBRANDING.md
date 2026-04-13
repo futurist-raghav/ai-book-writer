@@ -2,7 +2,7 @@
 
 ## 🎯 Overview
 
-The AI Book Writer application has been officially rebranded to **Scribe House**. This guide covers:
+The Scribe House application has been officially rebranded to **Scribe House**. This guide covers:
 1. All files and configurations that have been updated with the new name
 2. How to seed the admin user account
 3. Credential management best practices
@@ -13,7 +13,7 @@ The AI Book Writer application has been officially rebranded to **Scribe House**
 
 ### Files Updated
 
-The following categories of files have been updated from "AI Book Writer" / "The Editorial Sanctuary" to "Scribe House":
+The following categories of files have been updated from "Scribe House" / "The Editorial Sanctuary" to "Scribe House":
 
 #### Backend Configuration
 - `backend/.env.example` - APP_NAME

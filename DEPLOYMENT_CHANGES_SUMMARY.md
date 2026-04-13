@@ -9,7 +9,7 @@
 ## 📊 Summary of Changes
 
 ### 1️⃣ App Rebranding ✅
-- Updated from "AI Book Writer" / "The Editorial Sanctuary" → **Scribe House**
+- Updated from "Scribe House" / "The Editorial Sanctuary" → **Scribe House**
 - **50+ configuration files updated** across frontend, backend, mobile, and deployment configs
 - All user-facing text, descriptions, and titles now reflect "Scribe House"
 

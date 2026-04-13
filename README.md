@@ -1,4 +1,4 @@
-# AI Book Writer
+# Scribe House
 
 > Transform your voice recordings into professionally formatted books using AI
 
