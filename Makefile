@@ -513,6 +513,8 @@ deploy-vm-backend:
 	@gcloud compute scp backend/deploy-vm.sh scribe-house:/tmp/scribe-house-backend/deploy-vm.sh --zone=asia-south1-c --project=$(GCP_PROJECT_ID) 2>&1 | grep -v "WARNING:" || true
 	@echo "Uploading requirements file..."
 	@gcloud compute scp backend/requirements.txt scribe-house:/tmp/scribe-house-backend/requirements.txt --zone=asia-south1-c --project=$(GCP_PROJECT_ID) 2>&1 | grep -v "WARNING:" || true
+	@echo "Uploading alembic config..."
+	@gcloud compute scp backend/alembic.ini scribe-house:/tmp/scribe-house-backend/alembic.ini --zone=asia-south1-c --project=$(GCP_PROJECT_ID) 2>&1 | grep -v "WARNING:" || true
 	@echo "Uploading migrations..."
 	@gcloud compute scp --recurse backend/alembic scribe-house:/tmp/scribe-house-backend/ --zone=asia-south1-c --project=$(GCP_PROJECT_ID) 2>&1 | grep -v "WARNING:" || true
 	@echo "Uploading application code..."
