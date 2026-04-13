@@ -122,12 +122,12 @@ class User(Base):
         back_populates="owner",
         cascade="all, delete-orphan",
     )
-    classrooms_enrolled: Mapped[List["Classroom"]] = relationship(
-        "Classroom",
-        secondary="classroom_students",
-        foreign_keys="classroom_students.c.user_id",
-        back_populates="students",
-    )
+    # classrooms_enrolled: Mapped[List["Classroom"]] = relationship(  # TEMPORARILY DISABLED - relationship config issue
+    #     "Classroom",
+    #     secondary="classroom_students",
+    #     foreign_keys="classroom_students.c.user_id",
+    #     back_populates="students",
+    # )
 
     def __repr__(self) -> str:
         return f"<User {self.email}>"
