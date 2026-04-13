@@ -3,7 +3,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime
 import uuid
 
-from app.db.base import Base
+from app.db import Base
 
 class AgentUsage(Base):
     __tablename__ = "agent_usage"
