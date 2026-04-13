@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation';
 import { useAuthStore } from '@/stores/auth-store';
 import { useKeyboardShortcutsContext } from '@/stores/keyboard-shortcuts-context';
 import { useDarkMode } from '@/stores/dark-mode-context';
+import { ScribeHouseLogo } from '@/components/scribe-house-logo';
 import { cn } from '@/lib/utils';
 
 const topNav = [
@@ -44,9 +45,9 @@ export function Header() {
   return (
     <header className="fixed top-0 z-50 w-full border-b border-outline-variant/40 bg-surface/80 backdrop-blur-xl">
       <div className="mx-auto flex h-20 max-w-[1700px] items-center justify-between gap-4 px-4 md:px-8">
-        <div className="flex min-w-0 items-center gap-3 md:gap-4">
-          <div className="hidden h-10 w-10 items-center justify-center rounded-xl bg-primary/12 text-primary md:flex">
-            <span className="material-symbols-outlined">book_5</span>
+        <Link href="/dashboard" className="flex min-w-0 items-center gap-3 md:gap-4">
+          <div className="h-12 w-12 flex-shrink-0">
+            <ScribeHouseLogo className="h-12 w-12" />
           </div>
           <div className="min-w-0">
             <span className="block text-[10px] font-semibold uppercase tracking-[0.2em] text-on-surface-variant">
@@ -56,7 +57,7 @@ export function Header() {
               Scribe House
             </h1>
           </div>
-        </div>
+        </Link>
 
         <nav className="hidden items-center gap-1 rounded-xl border border-outline-variant/35 bg-surface-container-low p-1 lg:flex">
           {topNav.map((item) => {

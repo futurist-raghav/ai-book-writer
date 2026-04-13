@@ -1,7 +1,11 @@
 /** @type {import('next').NextConfig} */
 const isProduction = process.env.NODE_ENV === 'production';
-const configuredApiBase = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1').replace(/\/+$/, '');
-const configuredApiOrigin = configuredApiBase.replace(/\/api\/v1$/, '');
+// In production (Cloudflare Pages), use relative paths for API calls
+// The Cloudflare Worker function will proxy /api/v1/* to the backend
+const configuredApiBase = isProduction 
+  ? '/api/v1'
+  : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1').replace(/\/+$/, '');
+const configuredApiOrigin = isProduction ? '' : configuredApiBase.replace(/\/api\/v1$/, '');
 
 const nextConfig = {
   reactStrictMode: true,

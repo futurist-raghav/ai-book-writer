@@ -1,6 +1,7 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { Mic, BookOpen, Sparkles, FileText } from 'lucide-react';
+import { Mic, Sparkles, FileText } from 'lucide-react';
 
 export default function HomePage() {
   return (
@@ -8,10 +9,15 @@ export default function HomePage() {
       {/* Header */}
       <header className="container mx-auto px-4 py-6">
         <nav className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <BookOpen className="h-8 w-8 text-primary" />
-            <span className="text-xl font-bold">AI Book Writer</span>
-          </div>
+          <Link href="/" className="flex items-center gap-2">
+            <Image
+              src="/scribe-house-logo-horizontal.svg"
+              alt="Scribe House Logo"
+              width={180}
+              height={60}
+              className="h-12 w-auto"
+            />
+          </Link>
           <div className="flex items-center gap-4">
             <Link href="/login">
               <Button variant="ghost">Login</Button>
