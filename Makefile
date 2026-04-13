@@ -503,34 +503,15 @@ deploy-vm-backend:
 		echo "ERROR: VM_IP not set."; \
 		exit 1; \
 	fi
-	@VM_NAME="scribe-house"
 	@echo "📦 Deploying backend to VM at $(VM_IP)..."
 	@echo "Setting up GCP project..."
 	@gcloud config set project $(GCP_PROJECT_ID) --quiet
 	@echo ""
-	@echo "Testing SSH connection to VM..."
-	@gcloud compute ssh $$VM_NAME \
-		--zone=asia-south1-c \
-		--project=$(GCP_PROJECT_ID) \
-		--command="echo 'SSH connection successful'" 2>&1 | grep -q "SSH connection successful" && \
-	echo "✅ SSH connection verified" || (echo "⚠️  SSH via gcloud failed. See MANUAL_DEPLOYMENT.md"; exit 1)
+	@echo "Uploading backend code to VM..."
+	@gcloud compute scp --recurse --zone=asia-south1-c --project=$(GCP_PROJECT_ID) ./backend scribe-house:/tmp/scribe-house-backend --compress 2>&1 | grep -v "WARNING:" || true
 	@echo ""
-	@echo "Uploading backend code..."
-	@gcloud compute scp \
-		--recurse \
-		--zone=asia-south1-c \
-		--project=$(GCP_PROJECT_ID) \
-		./backend \
-		$$VM_NAME:/tmp/scribe-house-backend \
-		--compress \
-		2>&1 | grep -v "WARNING:" || true
-	@echo ""
-	@echo "Running deployment on VM..."
-	@gcloud compute ssh $$VM_NAME \
-		--zone=asia-south1-c \
-		--project=$(GCP_PROJECT_ID) \
-		--command="bash /tmp/scribe-house-backend/deploy-vm.sh" \
-		2>&1
+	@echo "Running deployment script on VM..."
+	@gcloud compute ssh scribe-house --zone=asia-south1-c --project=$(GCP_PROJECT_ID) --command="bash /tmp/scribe-house-backend/deploy-vm.sh" 2>&1
 	@echo "✅ Backend deployment complete"
 
 # Deploy only frontend config (connects to existing VM backend)
