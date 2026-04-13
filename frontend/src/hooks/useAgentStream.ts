@@ -59,8 +59,9 @@ export function useAgentStream(agentType: 'research' | 'factcheck' | 'tone' | 'c
               try {
                 const parsed = JSON.parse(line) as StreamChunk;
                 if (parsed.data) {
-                  setChunks((prev) => [...prev, parsed.data]);
-                  setResult((prev) => prev + parsed.data);
+                  const nextChunk = parsed.data;
+                  setChunks((prev) => [...prev, nextChunk]);
+                  setResult((prev) => prev + nextChunk);
                 }
                 if (parsed.error) {
                   toast.error(parsed.error);

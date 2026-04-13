@@ -308,22 +308,22 @@ export function AdaptiveSidebar({ projectType }: SidebarProps) {
     : 'Chapters';
 
   return (
-    <nav className="hidden lg:flex flex-col w-72 h-full bg-slate-50 border-r border-slate-200/50 py-8 px-6 overflow-y-auto">
+    <nav className="scrollbar-sleek hidden h-full w-72 flex-col overflow-y-auto border-r border-outline-variant/35 bg-surface-container-low/85 px-5 py-6 backdrop-blur-xl lg:flex">
       {/* Current Manuscript Section */}
-      <div className="mb-10">
-        <h3 className="text-xs uppercase tracking-[0.2em] text-slate-500 font-bold mb-4">
+      <div className="mb-8">
+        <h3 className="mb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-on-surface-variant">
           Current Manuscript
         </h3>
-        <div className="flex items-center gap-4 p-3 bg-white rounded-xl shadow-sm border border-outline-variant/10">
-          <div className="w-10 h-10 bg-primary-container rounded-lg flex items-center justify-center text-white italic font-bold">
+        <div className="theme-chip flex items-center gap-3 rounded-xl p-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/14 text-sm font-bold italic text-primary">
             {displayBook?.title ? displayBook.title.charAt(0).toUpperCase() : '?'}
           </div>
           <div className="overflow-hidden flex-1">
-            <p className="text-sm font-bold text-primary truncate">
+            <p className="truncate text-sm font-bold text-on-surface">
               {displayBook?.title || 'No Active Project Selected'}
             </p>
             {activeProjectType && (
-              <p className="text-[10px] text-slate-400 uppercase tracking-tighter truncate">
+              <p className="truncate text-[10px] uppercase tracking-[0.14em] text-on-surface-variant">
                 {ProjectTypeConfigService.getDisplayName(activeProjectType as ProjectType)}
               </p>
             )}
@@ -332,8 +332,8 @@ export function AdaptiveSidebar({ projectType }: SidebarProps) {
       </div>
 
       {/* Navigation Items */}
-      <div className="space-y-1 flex-grow">
-        <div className="text-[10px] uppercase tracking-[0.15em] text-slate-500 font-bold px-4 mb-3">
+      <div className="flex-grow space-y-1">
+        <div className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant">
           Workspace
         </div>
         {navItems.map((item) => {
@@ -345,11 +345,13 @@ export function AdaptiveSidebar({ projectType }: SidebarProps) {
               key={item.href}
               href={item.href}
               className={cn(
-                'flex items-center gap-3 rounded-lg px-4 py-3 font-semibold text-xs uppercase tracking-widest transition-all',
-                isActive ? 'bg-secondary/10 text-secondary' : 'text-slate-700 hover:bg-white/70'
+                'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors',
+                isActive
+                  ? 'bg-primary text-primary-foreground shadow-[0_10px_18px_-14px_hsl(var(--primary))]'
+                  : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
               )}
             >
-              <span className="material-symbols-outlined text-lg">{item.icon}</span>
+              <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
               <span>{item.label}</span>
             </a>
           );
@@ -357,10 +359,10 @@ export function AdaptiveSidebar({ projectType }: SidebarProps) {
       </div>
 
       {/* Support Footer */}
-      <div className="pt-6 border-t border-slate-200/50 space-y-2">
+      <div className="space-y-2 border-t border-outline-variant/35 pt-5">
         <a
           href="/support"
-          className="flex items-center gap-3 text-slate-600 px-4 py-2 hover:bg-white/70 rounded-lg text-[10px] uppercase tracking-[0.15em] transition-all"
+          className="flex items-center gap-3 rounded-lg px-3 py-2 text-[10px] uppercase tracking-[0.15em] text-on-surface-variant transition-colors hover:bg-surface-container hover:text-on-surface"
         >
           <span className="material-symbols-outlined text-sm">help</span>
           Support
@@ -396,7 +398,7 @@ export function AdaptiveBottomBar({ projectType }: SidebarProps) {
   );
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-md h-20 px-2 shadow-[0_-4px_20px_rgba(25,28,29,0.06)] z-50 overflow-x-auto">
+    <nav className="scrollbar-sleek fixed bottom-0 left-0 z-50 h-20 w-full overflow-x-auto border-t border-outline-variant/35 bg-surface/90 px-2 shadow-[0_-4px_20px_hsl(var(--foreground)/0.18)] backdrop-blur-xl lg:hidden">
       <div className="min-w-max h-full flex items-center gap-4 px-2">
         {navItems.map((item) => {
           const isActive =
@@ -408,7 +410,7 @@ export function AdaptiveBottomBar({ projectType }: SidebarProps) {
               href={item.href}
               className={cn(
                 'flex flex-col items-center gap-1 min-w-[68px]',
-                isActive ? 'text-primary' : 'text-slate-600'
+                isActive ? 'text-primary' : 'text-on-surface-variant'
               )}
             >
               <span

@@ -502,7 +502,7 @@ Would you like the next step as a **founder execution document** with:
 - and landing page positioning copy?
 
 
-# The Editorial Sanctuary — Master Strategy Document
+# Scribe House — Master Strategy Document
 ### From Personal Writing Tool → Best-in-Class Universal Writing Platform
 **Version 1.0 | April 2026 | Confidential — Raghav Agarwal**
 
@@ -527,12 +527,12 @@ Would you like the next step as a **founder execution document** with:
 
 ## 1. VISION STATEMENT
 
-> **"The Editorial Sanctuary is the only writing platform that adapts to the writer — not the other way around. From the novelist crafting their epic fantasy to the quantum computing professor writing their textbook, from the K-Pop songwriter building an album to the MBA student completing their thesis — every writer deserves a workspace that feels built for them, thinks with them, and gets out of their way when they need to flow."**
+> **"Scribe House is the only writing platform that adapts to the writer — not the other way around. From the novelist crafting their epic fantasy to the quantum computing professor writing their textbook, from the K-Pop songwriter building an album to the MBA student completing their thesis — every writer deserves a workspace that feels built for them, thinks with them, and gets out of their way when they need to flow."**
 
 ### The Core Problem We Solve
 Every existing writing tool forces the writer into its mental model. Scrivener forces you into its binder. Sudowrite forces you into fiction. Google Docs forces you into a blank page. Notion forces you into databases. None of them feel like a **writing sanctuary** — a place specifically designed around how *you* write.
 
-The Editorial Sanctuary's moat is **adaptive context** — the platform reshapes itself, its terminology, its AI prompts, its sidebar modules, its export formats, and its structural templates based on what you're writing. A songwriter and a computer science professor should both open this platform and feel like it was built *for them*.
+The Scribe House's moat is **adaptive context** — the platform reshapes itself, its terminology, its AI prompts, its sidebar modules, its export formats, and its structural templates based on what you're writing. A songwriter and a computer science professor should both open this platform and feel like it was built *for them*.
 
 ### North Star Metric
 **"Sessions per writer per week"** — because the best writing tool is the one writers return to compulsively, not the one with the most features.
@@ -633,7 +633,7 @@ These are the exact user types the platform must serve. Each gets their own adap
 **Pricing:** $59.99 one-time (Mac or Windows), $23.99 iOS
 **Target:** Novelists, academics, screenwriters
 
-**What Editorial Sanctuary can beat it on:** Real-time AI, cloud-native, collaboration, modern UX, universality across genres, web access from any device.
+**What Scribe House can beat it on:** Real-time AI, cloud-native, collaboration, modern UX, universality across genres, web access from any device.
 
 ---
 
@@ -665,7 +665,7 @@ These are the exact user types the platform must serve. Each gets their own adap
 **Pricing:** $19/mo (Hobby), $29/mo (Pro), $129/mo (Max) — credit-based
 **Target:** Fiction novelists, short story writers
 
-**What Editorial Sanctuary can beat it on:** Every non-fiction writer (they have zero competition here), universal genre support, pricing (no credit limits), integrated project structure + AI (not just an AI bolted onto a text box), export quality.
+**What Scribe House can beat it on:** Every non-fiction writer (they have zero competition here), universal genre support, pricing (no credit limits), integrated project structure + AI (not just an AI bolted onto a text box), export quality.
 
 ---
 
@@ -697,7 +697,7 @@ These are the exact user types the platform must serve. Each gets their own adap
 **Pricing:** $4/mo (Scribe), $8/mo (Hobbyist+AI), $14/mo (Artisan), $20/mo (Specialist)
 **Target:** Plotters, long-form fiction writers, self-publishing novelists
 
-**What Editorial Sanctuary can beat it on:** Built-in AI (no API key needed), beautiful design, audio transcription, universal project types, better onboarding, non-fiction/academic/songwriting support.
+**What Scribe House can beat it on:** Built-in AI (no API key needed), beautiful design, audio transcription, universal project types, better onboarding, non-fiction/academic/songwriting support.
 
 ---
 
@@ -728,7 +728,7 @@ These are the exact user types the platform must serve. Each gets their own adap
 **Pricing:** $147 one-time purchase
 **Target:** Self-publishing authors who want professional formatting without Vellum's $250 price
 
-**What Editorial Sanctuary can beat it on:** AI integration, drafting + planning tools, multi-genre support, subscription model (lower barrier), audio-to-text, real-time cloud editing.
+**What Scribe House can beat it on:** AI integration, drafting + planning tools, multi-genre support, subscription model (lower barrier), audio-to-text, real-time cloud editing.
 
 ---
 

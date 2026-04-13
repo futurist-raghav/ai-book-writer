@@ -6,7 +6,7 @@ import { useFullAnalytics, useWritingVelocity, useProductivityMetrics, usePacing
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { Button } from '@/components/ui/button';
 import { TrendingUp, Zap, Calendar, Target, BarChart3 } from 'lucide-react';
-import { QueryErrorState } from '@/components/dashboard/QueryErrorState';
+import { QueryErrorState } from '@/components/ui/query-error-state';
 import { VelocityLineChart, ChapterDistributionPie, ChapterComparisonBar } from '@/components/analytics-charts';
 
 export default function AnalyticsPage() {

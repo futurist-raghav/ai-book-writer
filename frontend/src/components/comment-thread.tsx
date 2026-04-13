@@ -10,10 +10,10 @@
 
 import React, { useState, useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { format, formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns';
 
-import { api } from '@/lib/api';
-import { useAuth } from '@/hooks/useAuth';
+import { api } from '@/lib/api-client';
+import { useAuthStore } from '@/stores/auth-store';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -51,6 +51,11 @@ interface CommentReply {
   likes: number;
 }
 
+interface CommentsResponse {
+  comments: Comment[];
+  unresolved_count?: number;
+}
+
 interface CommentThreadProps {
   chapterId: string;
   commentId: string;
@@ -69,7 +74,7 @@ export const CommentThread: React.FC<CommentThreadProps> = ({
   onResolve,
   onUserMention,
 }) => {
-  const { user } = useAuth();
+  const { user } = useAuthStore();
   const queryClient = useQueryClient();
   const [isReplying, setIsReplying] = useState(false);
   const [replyText, setReplyText] = useState('');
@@ -81,33 +86,29 @@ export const CommentThread: React.FC<CommentThreadProps> = ({
   //   () => api.get(`/api/v1/chapters/${chapterId}/comments/${commentId}`)
   // );
 
-  const resolveCommentMutation = useMutation(
-    async () => {
-      await api.patch(`/api/v1/chapters/${chapterId}/comments/${commentId}/resolve`);
+  const resolveCommentMutation = useMutation({
+    mutationFn: async () => {
+      await api.patch(`/chapters/${chapterId}/comments/${commentId}/resolve`);
     },
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['comments', chapterId]);
-        onResolve?.();
-      },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['comments', chapterId] });
+      onResolve?.();
     }
-  );
+  });
 
-  const replyMutation = useMutation(
-    async (content: string) => {
-      await api.post(`/api/v1/chapters/${chapterId}/comments/${commentId}/reply`, {
+  const replyMutation = useMutation({
+    mutationFn: async (content: string) => {
+      await api.post(`/chapters/${chapterId}/comments/${commentId}/reply`, {
         content,
         mentioned_users: [],
       });
     },
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['comments', commentId]);
-        setReplyText('');
-        setIsReplying(false);
-      },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['comments', commentId] });
+      setReplyText('');
+      setIsReplying(false);
     }
-  );
+  });
 
   const handleSubmitReply = useCallback(() => {
     if (replyText.trim()) {
@@ -249,20 +250,15 @@ export const CommentsList: React.FC<CommentsListProps> = ({
   const [showResolved, setShowResolved] = useState(false);
 
   // Fetch comments for chapter
-  const { data: commentsData, isLoading } = useQuery(
-    ['comments', chapterId, { resolved: showResolved }],
-    async () => {
-      const response = await api.get(
-        `/api/v1/chapters/${chapterId}/comments?resolved_only=${showResolved}`
-      );
-      return response;
-    }
-  );
+  const { data: commentsData, isLoading } = useQuery<CommentsResponse>({
+    queryKey: ['comments', chapterId, { resolved: showResolved }],
+    queryFn: async () => {
+      const response = await api.get(`/chapters/${chapterId}/comments?resolved_only=${showResolved}`);
+      return response.data as CommentsResponse;
+    },
+  });
 
-  const comments = useMemo(
-    () => commentsData?.comments ?? [],
-    [commentsData]
-  );
+  const comments = useMemo<Comment[]>(() => commentsData?.comments ?? [], [commentsData]);
 
   if (isLoading) {
     return <div className="text-center py-8 text-gray-500">Loading comments...</div>;

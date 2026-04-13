@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     )
 
     # Application
-    APP_NAME: str = "AI Book Writer"
+    APP_NAME: str = "Scribe House"
     VERSION: str = "1.0.0"
     ENVIRONMENT: str = "development"
     DEBUG: bool = True
@@ -88,8 +88,11 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
     # AI Service API Keys
-    PREFERRED_STT_SERVICE: str = "openai"
-    STT_PROVIDER: str = "openai"
+    # Default to Gemma 4 for optimal performance (auto-deployed via Ollama)
+    PREFERRED_STT_SERVICE: str = "gemma4"
+    STT_PROVIDER: str = "gemma4"
+    
+    # OpenAI Whisper STT (Fallback)
     WHISPER_TIMEOUT_SECONDS: int = 3600
     WHISPER_VM_BASE_URL: Optional[str] = None
     WHISPER_VM_MODEL_NAME: str = "large-v3"
@@ -98,6 +101,21 @@ class Settings(BaseSettings):
     WHISPER_VM_ENCODE: bool = True
     WHISPER_VM_WORD_TIMESTAMPS: bool = False
 
+    # Gemma 4 STT (Self-hosted via Ollama) - PRIMARY STT SERVICE
+    # Auto-deployment: Model is pulled automatically on first startup
+    GEMMA4_AUTO_DEPLOY: bool = True  # Auto-pull and setup on startup
+    GEMMA4_AUTO_DEPLOY_WAIT_TIMEOUT: int = 900  # 15 minutes timeout for model pull
+    GEMMA4_BASE_URL: Optional[str] = None  # http://localhost:11434 (Ollama)
+    GEMMA4_MODEL: str = "gemma4:latest"  # Use latest Gemma 4 with native audio support
+    GEMMA4_TIMEOUT_SECONDS: int = 600  # 10 minutes for audio processing
+    GEMMA4_TEMPERATURE: float = 0.2  # Very low for accurate transcription
+    GEMMA4_TOP_P: float = 0.85  # Slightly lower for deterministic output
+    GEMMA4_MAX_TOKENS: int = 8192  # Increased for longer transcriptions
+    GEMMA4_AUDIO_SAMPLE_RATE: int = 16000  # 16 kHz required for Gemma 4
+    GEMMA4_AUDIO_CHANNELS: int = 1  # Mono audio
+    GEMMA4_AUDIO_FORMAT: str = "float32"  # Gemma 4 audio encoding
+
+    # LLM API Keys
     OPENAI_API_KEY: Optional[str] = None
     GOOGLE_AI_API_KEY: Optional[str] = None
     GOOGLE_GEMINI_API_KEY: Optional[str] = None
@@ -125,8 +143,8 @@ class Settings(BaseSettings):
     def validate_stt_provider(cls, value: str) -> str:
         """Restrict STT provider values to supported options."""
         normalized = value.strip().lower()
-        if normalized not in {"openai", "whisper_vm"}:
-            raise ValueError("STT provider must be 'openai' or 'whisper_vm'")
+        if normalized not in {"openai", "whisper_vm", "gemma4"}:
+            raise ValueError("STT provider must be 'openai', 'whisper_vm', or 'gemma4'")
         return normalized
 
     @field_validator("WHISPER_VM_OUTPUT_FORMAT")

@@ -15,10 +15,24 @@ interface BibliographyManagerProps {
   onSelectCitation?: (bibliography: Bibliography) => void;
 }
 
+interface NewBibliographyState {
+  title: string;
+  authors: string[];
+  year?: number;
+  source_type: string;
+  source_url: string;
+}
+
 export function BibliographyManager({ bookId, onSelectCitation }: BibliographyManagerProps) {
   const queryClient = useQueryClient();
   const [isAdding, setIsAdding] = useState(false);
-  const [newBibData, setNewBibData] = useState({ title: '', authors: [''], year: undefined, source_type: 'article', source_url: '' });
+  const [newBibData, setNewBibData] = useState<NewBibliographyState>({
+    title: '',
+    authors: [''],
+    year: undefined,
+    source_type: 'article',
+    source_url: '',
+  });
   const [searchQuery, setSearchQuery] = useState('');
 
   // Fetch bibliography for book

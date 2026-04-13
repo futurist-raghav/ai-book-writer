@@ -140,7 +140,7 @@ export function WritingGoalSettings({
       {/* Action Buttons */}
       <div className="flex gap-3">
         <Button
-          variant="primary"
+          variant="default"
           size="lg"
           onClick={handleSave}
           disabled={isSaving || dailyTarget === currentDailyTarget}
@@ -150,7 +150,7 @@ export function WritingGoalSettings({
         </Button>
         {onCancel && (
           <Button
-            variant="outlined"
+            variant="outline"
             size="lg"
             onClick={onCancel}
             disabled={isSaving}

@@ -7,8 +7,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { api } from '@/lib/api';
-import { useAuth } from '@/hooks/useAuth';
+import { api } from '@/lib/api-client';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -41,6 +40,13 @@ interface SuggestionListProps {
   onApply?: (suggestion: Suggestion) => void;
 }
 
+interface SuggestionListResponse {
+  suggestions: Suggestion[];
+  pending_count: number;
+  accepted_count: number;
+  rejected_count: number;
+}
+
 /**
  * List and manage all suggestions for a chapter
  */
@@ -53,48 +59,42 @@ export const SuggestionList: React.FC<SuggestionListProps> = ({
   const [selectedSuggestions, setSelectedSuggestions] = useState<Set<string>>(new Set());
 
   // Fetch suggestions
-  const { data: suggestionsData, isLoading } = useQuery(
-    ['suggestions', chapterId, statusFilter],
-    async () => {
+  const { data: suggestionsData, isLoading } = useQuery<SuggestionListResponse>({
+    queryKey: ['suggestions', chapterId, statusFilter],
+    queryFn: async () => {
       const response = await api.get(
-        `/api/v1/chapters/${chapterId}/suggestions?status_filter=${statusFilter}`
+        `/chapters/${chapterId}/suggestions?status_filter=${statusFilter}`
       );
-      return response;
-    }
-  );
+      return response.data as SuggestionListResponse;
+    },
+    enabled: Boolean(chapterId),
+  });
 
-  const suggestions = useMemo(
-    () => suggestionsData?.suggestions ?? [],
-    [suggestionsData]
-  );
+  const suggestions = useMemo<Suggestion[]>(() => suggestionsData?.suggestions ?? [], [suggestionsData]);
 
-  const resolveMutation = useMutation(
-    async ({ suggestionId, action }: { suggestionId: string; action: 'accept' | 'reject' }) => {
-      await api.patch(`/api/v1/chapters/${chapterId}/suggestions/${suggestionId}`, {
+  const resolveMutation = useMutation({
+    mutationFn: async ({ suggestionId, action }: { suggestionId: string; action: 'accept' | 'reject' }) => {
+      await api.patch(`/chapters/${chapterId}/suggestions/${suggestionId}`, {
         action,
       });
     },
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['suggestions', chapterId]);
-      },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['suggestions', chapterId] });
     }
-  );
+  });
 
-  const batchResolveMutation = useMutation(
-    async (action: 'accept' | 'reject') => {
-      await api.post(`/api/v1/chapters/${chapterId}/suggestions/batch-resolve`, {
+  const batchResolveMutation = useMutation({
+    mutationFn: async (action: 'accept' | 'reject') => {
+      await api.post(`/chapters/${chapterId}/suggestions/batch-resolve`, {
         action,
         suggestion_ids: Array.from(selectedSuggestions),
       });
     },
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['suggestions', chapterId]);
-        setSelectedSuggestions(new Set());
-      },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['suggestions', chapterId] });
+      setSelectedSuggestions(new Set());
     }
-  );
+  });
 
   const handleToggleSuggestion = useCallback((id: string) => {
     setSelectedSuggestions((prev) => {

@@ -29,6 +29,16 @@ interface Member {
   };
 }
 
+interface WorkspaceDetail {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+interface WorkspaceMembersResponse {
+  members: Member[];
+}
+
 interface WorkspaceSettingsProps {
   workspaceId: string;
 }
@@ -41,22 +51,22 @@ export function WorkspaceSettings({ workspaceId }: WorkspaceSettingsProps) {
   const [workspaceDescription, setWorkspaceDescription] = useState('');
 
   // Fetch workspace details
-  const { data: workspace, isLoading: workspaceLoading } = useQuery({
+  const { data: workspace, isLoading: workspaceLoading } = useQuery<WorkspaceDetail>({
     queryKey: ['workspace-detail', workspaceId],
     queryFn: async () => {
       const response = await fetch(`/api/v1/workspaces/${workspaceId}`);
       if (!response.ok) throw new Error('Failed to fetch workspace');
-      return response.json();
+      return (await response.json()) as WorkspaceDetail;
     },
   });
 
   // Fetch members
-  const { data: membersResponse, refetch: refetchMembers } = useQuery({
+  const { data: membersResponse, refetch: refetchMembers } = useQuery<WorkspaceMembersResponse>({
     queryKey: ['workspace-members', workspaceId],
     queryFn: async () => {
       const response = await fetch(`/api/v1/workspaces/${workspaceId}/members`);
       if (!response.ok) throw new Error('Failed to fetch members');
-      return response.json();
+      return (await response.json()) as WorkspaceMembersResponse;
     },
   });
 

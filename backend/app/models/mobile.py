@@ -1,8 +1,10 @@
 """Mobile app models for iOS/Android."""
 
+from typing import TYPE_CHECKING, Optional
+
 from datetime import datetime
-from sqlalchemy import Column, String, DateTime, ForeignKey, Integer, Boolean, JSON, Text
-from sqlalchemy.orm import relationship
+from sqlalchemy import String, DateTime, ForeignKey, Integer, Boolean, JSON, Text, Float
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db import Base
 
 
@@ -11,24 +13,24 @@ class MobileSession(Base):
     
     __tablename__ = "mobile_sessions"
     
-    id = Column(String(36), primary_key=True, index=True)
-    user_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, index=True)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False, index=True)
     
     # Session info
-    device_id = Column(String(255), nullable=False)
-    device_type = Column(String(50))  # ios, android
-    device_model = Column(String(255))
-    app_version = Column(String(50))
+    device_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    device_type: Mapped[str] = mapped_column(String(50)) # ios, android
+    device_model: Mapped[str] = mapped_column(String(255))
+    app_version: Mapped[str] = mapped_column(String(50))
     
     # Status
-    is_active = Column(Integer, default=1)
+    is_active: Mapped[int] = mapped_column(Integer, default=1)
     
     # Tracking
-    last_activity_at = Column(DateTime, default=datetime.utcnow)
-    push_token = Column(String(500), nullable=True)  # For push notifications
+    last_activity_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    push_token: Mapped[Optional[str]] = mapped_column(String(500), nullable=True) # For push notifications
     
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     user = relationship("User", foreign_keys=[user_id])
@@ -39,29 +41,29 @@ class OfflineDraft(Base):
     
     __tablename__ = "offline_drafts"
     
-    id = Column(String(36), primary_key=True, index=True)
-    user_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, index=True)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False, index=True)
     
     # Content
-    chapter_id = Column(String(36), ForeignKey("chapters.id"), nullable=False)
-    book_id = Column(String(36), ForeignKey("books.id"), nullable=False)
+    chapter_id: Mapped[str] = mapped_column(String(36), ForeignKey("chapters.id"), nullable=False)
+    book_id: Mapped[str] = mapped_column(String(36), ForeignKey("books.id"), nullable=False)
     
     # Local content
-    content = Column(Text, nullable=True)
-    last_synced_version = Column(Integer, default=0)
-    local_version = Column(Integer, default=1)
+    content: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    last_synced_version: Mapped[int] = mapped_column(Integer, default=0)
+    local_version: Mapped[int] = mapped_column(Integer, default=1)
     
     # Sync status
-    sync_status = Column(String(50), default="pending")  # pending, synced, conflicted
-    conflict_resolution = Column(String(50), nullable=True)  # local, remote, merged
+    sync_status: Mapped[str] = mapped_column(String(50), default="pending") # pending, synced, conflicted
+    conflict_resolution: Mapped[Optional[str]] = mapped_column(String(50), nullable=True) # local, remote, merged
     
     # Device info
-    device_id = Column(String(255), nullable=False)
+    device_id: Mapped[str] = mapped_column(String(255), nullable=False)
     
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    synced_at = Column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    synced_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     
     # Relationships
     user = relationship("User", foreign_keys=[user_id])
@@ -74,28 +76,28 @@ class MobileNotification(Base):
     
     __tablename__ = "mobile_notifications"
     
-    id = Column(String(36), primary_key=True, index=True)
-    user_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, index=True)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False, index=True)
     
     # Content
-    title = Column(String(255), nullable=False)
-    body = Column(Text, nullable=False)
-    notification_type = Column(String(100))  # feedback_received, collaboration_invited, etc
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    notification_type: Mapped[str] = mapped_column(String(100)) # feedback_received, collaboration_invited, etc
     
     # Data
-    data = Column(JSON, default={})
-    deep_link = Column(String(500), nullable=True)  # /chapter/123/comments
+    data: Mapped[dict] = mapped_column(JSON, default={})
+    deep_link: Mapped[Optional[str]] = mapped_column(String(500), nullable=True) # /chapter/123/comments
     
     # Status
-    is_sent = Column(Integer, default=0)
-    is_read = Column(Integer, default=0)
+    is_sent: Mapped[int] = mapped_column(Integer, default=0)
+    is_read: Mapped[int] = mapped_column(Integer, default=0)
     
     # Badge counter
-    badge_count = Column(Integer, default=0)
+    badge_count: Mapped[int] = mapped_column(Integer, default=0)
     
-    created_at = Column(DateTime, default=datetime.utcnow)
-    sent_at = Column(DateTime, nullable=True)
-    read_at = Column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    sent_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    read_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     
     # Relationships
     user = relationship("User", foreign_keys=[user_id])
@@ -106,29 +108,29 @@ class VoiceNote(Base):
     
     __tablename__ = "voice_notes"
     
-    id = Column(String(36), primary_key=True, index=True)
-    user_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, index=True)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False, index=True)
     
     # Reference
-    book_id = Column(String(36), ForeignKey("books.id"), nullable=False)
-    chapter_id = Column(String(36), ForeignKey("chapters.id"), nullable=True)
+    book_id: Mapped[str] = mapped_column(String(36), ForeignKey("books.id"), nullable=False)
+    chapter_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("chapters.id"), nullable=True)
     
     # Content
-    audio_url = Column(String(500), nullable=True)  # Cloud storage URL
-    audio_duration_seconds = Column(Integer, nullable=True)
-    transcription = Column(Text, nullable=True)
-    transcription_status = Column(String(50), default="pending")  # pending, processing, completed, failed
+    audio_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True) # Cloud storage URL
+    audio_duration_seconds: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    transcription: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    transcription_status: Mapped[str] = mapped_column(String(50), default="pending") # pending, processing, completed, failed
     
     # Quality
-    transcription_confidence = Column(float, default=0.0)
-    language = Column(String(10), default="en")
+    transcription_confidence: Mapped[float] = mapped_column(Float, default=0.0)
+    language: Mapped[str] = mapped_column(String(10), default="en")
     
     # Usage
-    is_converted_to_text = Column(Integer, default=0)
-    converted_at = Column(DateTime, nullable=True)
+    is_converted_to_text: Mapped[int] = mapped_column(Integer, default=0)
+    converted_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     user = relationship("User", foreign_keys=[user_id])
@@ -141,28 +143,28 @@ class ReadingMode(Base):
     
     __tablename__ = "reading_modes"
     
-    id = Column(String(36), primary_key=True, index=True)
-    user_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
-    book_id = Column(String(36), ForeignKey("books.id"), nullable=False, unique=True)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, index=True)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False, index=True)
+    book_id: Mapped[str] = mapped_column(String(36), ForeignKey("books.id"), nullable=False, unique=True)
     
     # Preferences
-    font_size = Column(Integer, default=16)  # points
-    font_family = Column(String(50), default="system")  # system, serif, monospace
-    line_height = Column(float, default=1.5)
-    theme = Column(String(50), default="light")  # light, dark, sepia
+    font_size: Mapped[int] = mapped_column(Integer, default=16) # points
+    font_family: Mapped[str] = mapped_column(String(50), default="system") # system, serif, monospace
+    line_height: Mapped[float] = mapped_column(Float, default=1.5)
+    theme: Mapped[str] = mapped_column(String(50), default="light") # light, dark, sepia
     
     # Content state
-    current_chapter_id = Column(String(36), nullable=True)
-    current_position_percent = Column(float, default=0.0)
-    last_read_at = Column(DateTime, nullable=True)
+    current_chapter_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
+    current_position_percent: Mapped[float] = mapped_column(Float, default=0.0)
+    last_read_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     
     # Accessibility
-    text_alignment = Column(String(50), default="left")
-    letter_spacing = Column(float, default=0.0)
-    paragraph_spacing = Column(float, default=1.0)
+    text_alignment: Mapped[str] = mapped_column(String(50), default="left")
+    letter_spacing: Mapped[float] = mapped_column(Float, default=0.0)
+    paragraph_spacing: Mapped[float] = mapped_column(Float, default=1.0)
     
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     user = relationship("User", foreign_keys=[user_id])
@@ -174,28 +176,28 @@ class AppAnalytics(Base):
     
     __tablename__ = "app_analytics"
     
-    id = Column(String(36), primary_key=True, index=True)
-    user_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
-    device_id = Column(String(255), nullable=False)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, index=True)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False, index=True)
+    device_id: Mapped[str] = mapped_column(String(255), nullable=False)
     
     # Session metrics
-    session_duration_seconds = Column(Integer, default=0)
-    pages_viewed = Column(Integer, default=0)
-    actions_taken = Column(Integer, default=0)
+    session_duration_seconds: Mapped[int] = mapped_column(Integer, default=0)
+    pages_viewed: Mapped[int] = mapped_column(Integer, default=0)
+    actions_taken: Mapped[int] = mapped_column(Integer, default=0)
     
     # Writing metrics
-    characters_added = Column(Integer, default=0)
-    characters_deleted = Column(Integer, default=0)
-    time_writing = Column(Integer, default=0)  # seconds
+    characters_added: Mapped[int] = mapped_column(Integer, default=0)
+    characters_deleted: Mapped[int] = mapped_column(Integer, default=0)
+    time_writing: Mapped[int] = mapped_column(Integer, default=0) # seconds
     
     # Feature usage
-    features_used = Column(JSON, default=[])  # [writing, reading, feedback, etc]
+    features_used: Mapped[dict] = mapped_column(JSON, default=[]) # [writing, reading, feedback, etc]
     
     # Engagement
-    crash_count = Column(Integer, default=0)
-    error_count = Column(Integer, default=0)
+    crash_count: Mapped[int] = mapped_column(Integer, default=0)
+    error_count: Mapped[int] = mapped_column(Integer, default=0)
     
-    recorded_at = Column(DateTime, default=datetime.utcnow)
+    recorded_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     
     # Relationships
     user = relationship("User", foreign_keys=[user_id])

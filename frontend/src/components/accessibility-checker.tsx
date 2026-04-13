@@ -244,7 +244,7 @@ export function AccessibilityChecker({
               <h3 className="font-semibold text-gray-900 dark:text-white">
                 Issues Details
               </h3>
-              {latestScan.issues.map((issue, idx) => (
+              {latestScan.issues.map((issue: any, idx: number) => (
                 <div
                   key={idx}
                   className="border border-gray-200 dark:border-gray-700 rounded-lg"

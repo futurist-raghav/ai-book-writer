@@ -3,8 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { api } from '@/lib/api';
-import { useAuthStore } from '@/stores/authStore';
+import { api } from '@/lib/api-client';
+import { useAuthStore } from '@/stores/auth-store';
 
 interface PublishingProfile {
   id: string;

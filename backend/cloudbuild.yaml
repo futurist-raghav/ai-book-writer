@@ -1,0 +1,27 @@
+steps:
+  # Step 1: Build Docker image
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      - "build"
+      - "-f"
+      - "Dockerfile.prod"
+      - "-t"
+      - "gcr.io/$PROJECT_ID/ai-book-writer:latest"
+      - "-t"
+      - "gcr.io/$PROJECT_ID/ai-book-writer:$SHORT_SHA"
+      - "."
+    dir: "backend"
+
+  # Step 2: Push to Container Registry
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      - "push"
+      - "gcr.io/$PROJECT_ID/ai-book-writer:latest"
+
+images:
+  - "gcr.io/$PROJECT_ID/ai-book-writer:latest"
+  - "gcr.io/$PROJECT_ID/ai-book-writer:$SHORT_SHA"
+
+options:
+  machineType: "N1_HIGHCPU_8"
+  logging: CLOUD_LOGGING_ONLY

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { api } from '@/lib/api';
+import { api } from '@/lib/api-client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +11,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Trophy, 
   Zap, 
-  Fire, 
   Target, 
   Star, 
   Award,
@@ -66,7 +65,7 @@ const AchievementIcon = ({ icon }: { icon: string }) => {
     case 'crown':
       return <Award className="h-6 w-6 text-yellow-600" />;
     case 'fire':
-      return <Fire className="h-6 w-6 text-orange-600" />;
+      return <Flame className="h-6 w-6 text-orange-600" />;
     case 'flame':
       return <Flame className="h-6 w-6 text-red-600" />;
     case 'inferno':
@@ -164,7 +163,7 @@ export default function MotivationDashboardPage() {
                     {achievements?.longest_streak || 0} days
                   </p>
                 </div>
-                <Fire className="h-12 w-12 text-orange-400" />
+                <Flame className="h-12 w-12 text-orange-400" />
               </div>
             </CardContent>
           </Card>

@@ -1,7 +1,7 @@
 {
-  "name": "ai-book-writer-mobile",
+  "name": "scribe-house-mobile",,
   "version": "1.0.0",
-  "description": "AI Book Writer Mobile App - Write on the go with offline support",
+  "description": "Scribe House Mobile App - Write on the go with offline support",
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",

@@ -1,7 +1,7 @@
 {
-  "name": "ai-book-writer-frontend",
+  "name": "scribe-house-frontend",
   "version": "1.0.0",
-  "description": "AI Book Writer - Frontend Application",
+  "description": "Scribe House - Frontend Application",
   "private": true,
   "scripts": {
     "dev": "next dev",

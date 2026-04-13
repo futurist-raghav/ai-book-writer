@@ -1,8 +1,10 @@
 """Models for reader comments and ratings on public shares."""
 
+from typing import TYPE_CHECKING, Optional
+
 from datetime import datetime
-from sqlalchemy import Column, String, DateTime, ForeignKey, Integer, Float, Text, Boolean
-from sqlalchemy.orm import relationship
+from sqlalchemy import String, DateTime, ForeignKey, Integer, Float, Text, Boolean, JSON
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db import Base
 
 
@@ -11,26 +13,26 @@ class PublicComment(Base):
     
     __tablename__ = "public_comments"
     
-    id = Column(String(36), primary_key=True, index=True)
-    public_share_id = Column(String(36), ForeignKey("public_shares.id"), nullable=False, index=True)
-    reader_name = Column(String(255), nullable=True)  # Anonymous if null
-    reader_email = Column(String(255), nullable=True)  # For follow-ups (anonymized in public)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, index=True)
+    public_share_id: Mapped[str] = mapped_column(String(36), ForeignKey("public_shares.id"), nullable=False, index=True)
+    reader_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True) # Anonymous if null
+    reader_email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)  # For follow-ups (anonymized in public)
     
     # Comment content
-    content = Column(Text, nullable=False)
-    comment_type = Column(String(50))  # 'general', 'grammar', 'structure', 'style', 'characters', etc.
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    comment_type: Mapped[str] = mapped_column(String(50)) # 'general', 'grammar', 'structure', 'style', 'characters', etc.
     
     # Moderation
-    is_approved = Column(Boolean, default=True)
-    is_flagged = Column(Boolean, default=False)
-    flag_reason = Column(String(255))
+    is_approved: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_flagged: Mapped[bool] = mapped_column(Boolean, default=False)
+    flag_reason: Mapped[str] = mapped_column(String(255))
     
     # Engagement
-    likes = Column(Integer, default=0)
+    likes: Mapped[int] = mapped_column(Integer, default=0)
     
     # Metadata
-    created_at = Column(DateTime, default=datetime.utcnow, index=True)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     public_share = relationship("PublicShare", back_populates="comments")
@@ -41,19 +43,19 @@ class PublicRating(Base):
     
     __tablename__ = "public_ratings"
     
-    id = Column(String(36), primary_key=True, index=True)
-    public_share_id = Column(String(36), ForeignKey("public_shares.id"), nullable=False, index=True)
-    reader_name = Column(String(255), nullable=True)
-    reader_email = Column(String(255), nullable=True)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, index=True)
+    public_share_id: Mapped[str] = mapped_column(String(36), ForeignKey("public_shares.id"), nullable=False, index=True)
+    reader_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    reader_email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     
     # Rating
-    rating = Column(Integer, nullable=False)  # 1-5
-    title = Column(String(255))  # Optional review title
-    review_text = Column(Text)  # Optional detailed review
+    rating: Mapped[int] = mapped_column(Integer, nullable=False) # 1-5
+    title: Mapped[str] = mapped_column(String(255)) # Optional review title
+    review_text: Mapped[str] = mapped_column(Text) # Optional detailed review
     
     # Metadata
-    created_at = Column(DateTime, default=datetime.utcnow, index=True)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     public_share = relationship("PublicShare", back_populates="ratings")

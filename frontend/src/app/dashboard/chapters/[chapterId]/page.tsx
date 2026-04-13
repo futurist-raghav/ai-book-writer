@@ -1,3 +1,5 @@
+export const runtime = 'edge';
+
 import ChapterWorkspaceClient from './workspace-client';
 
 interface ChapterWorkspacePageProps {

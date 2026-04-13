@@ -3,7 +3,7 @@
  */
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from '@/lib/api-client';
+import { api } from '@/lib/api-client';
 import {
   VelocityData,
   ProductivityData,
@@ -29,7 +29,7 @@ export function useWritingVelocity(bookId: string | null, days: number = 30) {
   return useQuery<VelocityData>({
     queryKey: ANALYTICS_QUERY_KEYS.velocity(bookId || ''),
     queryFn: async () => {
-      const res = await apiClient.get(`/analytics/books/${bookId}/velocity?days=${days}`);
+      const res = await api.get(`/analytics/books/${bookId}/velocity?days=${days}`);
       return res.data;
     },
     enabled: !!bookId,
@@ -44,7 +44,7 @@ export function useProductivityMetrics(bookId: string | null, days: number = 30)
   return useQuery<ProductivityData>({
     queryKey: ANALYTICS_QUERY_KEYS.productivity(bookId || ''),
     queryFn: async () => {
-      const res = await apiClient.get(`/analytics/books/${bookId}/productivity?days=${days}`);
+      const res = await api.get(`/analytics/books/${bookId}/productivity?days=${days}`);
       return res.data;
     },
     enabled: !!bookId,
@@ -59,7 +59,7 @@ export function usePacingAnalysis(bookId: string | null) {
   return useQuery<PacingData>({
     queryKey: ANALYTICS_QUERY_KEYS.pacing(bookId || ''),
     queryFn: async () => {
-      const res = await apiClient.get(`/analytics/books/${bookId}/pacing`);
+      const res = await api.get(`/analytics/books/${bookId}/pacing`);
       return res.data;
     },
     enabled: !!bookId,
@@ -74,7 +74,7 @@ export function useChapterBreakdown(bookId: string | null) {
   return useQuery<ChapterBreakdownItem[]>({
     queryKey: ANALYTICS_QUERY_KEYS.chapterBreakdown(bookId || ''),
     queryFn: async () => {
-      const res = await apiClient.get(`/analytics/books/${bookId}/chapter-breakdown`);
+      const res = await api.get(`/analytics/books/${bookId}/chapter-breakdown`);
       return res.data;
     },
     enabled: !!bookId,
@@ -89,7 +89,7 @@ export function useFullAnalytics(bookId: string | null, days: number = 30) {
   return useQuery<FullAnalyticsResponse>({
     queryKey: ANALYTICS_QUERY_KEYS.full(bookId || ''),
     queryFn: async () => {
-      const res = await apiClient.get(`/analytics/books/${bookId}/full?days=${days}`);
+      const res = await api.get(`/analytics/books/${bookId}/full?days=${days}`);
       return res.data;
     },
     enabled: !!bookId,

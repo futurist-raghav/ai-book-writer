@@ -20,6 +20,11 @@ security = HTTPBearer()
 # Type alias for database session dependency
 AsyncSessionDep = Annotated[AsyncSession, Depends(get_async_session)]
 
+# Compatibility alias for legacy code
+def get_db():
+    """Legacy compatibility function - returns async session dependency."""
+    return get_async_session()
+
 
 async def get_current_user_id(
     credentials: Annotated[HTTPAuthorizationCredentials, Depends(security)],

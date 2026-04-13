@@ -71,12 +71,13 @@ export function EnhancedFlowDashboard({
     [dependencies, filteredEvents]
   );
 
-  const hasActiveFilters =
+  const hasActiveFilters = Boolean(
     filters.types.length > 0 ||
     filters.statuses.length > 0 ||
     filters.dateRange.start ||
     filters.dateRange.end ||
-    filters.searchQuery.length > 0;
+    filters.searchQuery.length > 0
+  );
 
   return (
     <div className="w-full space-y-6 bg-gray-50 min-h-screen p-6">
@@ -174,7 +175,13 @@ export function EnhancedFlowDashboard({
               events={filteredEvents}
               onBatchStatusChange={onBatchStatusChange}
               onBatchDelete={onBatchDelete}
-              onBatchUpdate={onEventUpdate}
+              onBatchUpdate={
+                onEventUpdate
+                  ? (eventIds, data) => {
+                      eventIds.forEach((eventId) => onEventUpdate(eventId, data));
+                    }
+                  : undefined
+              }
               isLoading={isLoading}
             />
           </div>

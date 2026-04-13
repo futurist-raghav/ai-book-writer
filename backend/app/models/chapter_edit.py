@@ -4,11 +4,13 @@ Chapter Edit History Model
 Tracks every edit to a chapter with author and timestamp.
 """
 
+from typing import TYPE_CHECKING, Optional
+
 from datetime import datetime, timezone
 import uuid
 
-from sqlalchemy import Column, String, Text, UUID, DateTime, Integer, ForeignKey
-from sqlalchemy.orm import relationship
+from sqlalchemy import String, Text, UUID, DateTime, Integer, ForeignKey, Float, Boolean, JSON
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 
@@ -21,26 +23,26 @@ class ChapterEdit(Base):
     
     __tablename__ = "chapter_edits"
     
-    id = Column(UUID, primary_key=True, default=uuid.uuid4)
-    chapter_id = Column(UUID, ForeignKey("chapters.id", ondelete="CASCADE"), nullable=False)
-    author_id = Column(UUID, ForeignKey("users.id"), nullable=False)
+    id: Mapped[uuid.UUID] = mapped_column(UUID, primary_key=True, default=uuid.uuid4)
+    chapter_id: Mapped[uuid.UUID] = mapped_column(UUID, ForeignKey("chapters.id", ondelete="CASCADE"), nullable=False)
+    author_id: Mapped[uuid.UUID] = mapped_column(UUID, ForeignKey("users.id"), nullable=False)
     
     # Content before and after
-    content_before = Column(Text, nullable=True)
-    content_after = Column(Text, nullable=False)
+    content_before: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    content_after: Mapped[str] = mapped_column(Text, nullable=False)
     
     # Edit metadata
-    char_count_before = Column(Integer, default=0)
-    char_count_after = Column(Integer, default=0)
-    word_count_before = Column(Integer, default=0)
-    word_count_after = Column(Integer, default=0)
+    char_count_before: Mapped[int] = mapped_column(Integer, default=0)
+    char_count_after: Mapped[int] = mapped_column(Integer, default=0)
+    word_count_before: Mapped[int] = mapped_column(Integer, default=0)
+    word_count_after: Mapped[int] = mapped_column(Integer, default=0)
     
     # Type of edit
-    edit_type = Column(String(50))  # full_rewrite, partial_edit, grammar_fix, etc.
-    change_description = Column(String(500), nullable=True)  # "Fixed typos", "Rewrote paragraph 3"
+    edit_type: Mapped[str] = mapped_column(String(50)) # full_rewrite, partial_edit, grammar_fix, etc.
+    change_description: Mapped[Optional[str]] = mapped_column(String(500), nullable=True) # "Fixed typos", "Rewrote paragraph 3"
     
     # Timestamp
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
     
     # Relationships
     chapter = relationship("Chapter", foreign_keys=[chapter_id])

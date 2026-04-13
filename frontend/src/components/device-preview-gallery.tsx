@@ -141,7 +141,7 @@ export function DevicePreviewGallery({
 
       {/* Device Categories */}
       <div className="space-y-6">
-        {Object.entries(groupedDevices).map(([category, categoryDevices]) => {
+        {(Object.entries(groupedDevices) as Array<[string, DevicePreset[]]>).map(([category, categoryDevices]) => {
           const categoryInfo = categories[category] || {};
           const isExpanded = expandedCategory === category;
 

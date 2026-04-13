@@ -559,7 +559,7 @@ export default function BooksPage() {
               <div
                 key={collab.id}
                 title={collab.email ? `${collab.name} (${collab.email})` : collab.name}
-                className={`flex items-center justify-center rounded-full border border-white bg-secondary/15 text-secondary font-label font-bold ${
+                className={`flex items-center justify-center rounded-full border border-surface-container-lowest bg-secondary/15 text-secondary font-label font-bold ${
                   compact ? 'h-6 w-6 text-[9px]' : 'h-7 w-7 text-[10px]'
                 }`}
                 style={{ zIndex: visibleCollaborators.length - index }}
@@ -569,7 +569,7 @@ export default function BooksPage() {
             ))}
             {hiddenCount > 0 ? (
               <div
-                className={`flex items-center justify-center rounded-full border border-white bg-surface-container-high text-on-surface-variant font-label font-bold ${
+                className={`flex items-center justify-center rounded-full border border-surface-container-lowest bg-surface-container-high text-on-surface-variant font-label font-bold ${
                   compact ? 'h-6 w-6 text-[9px]' : 'h-7 w-7 text-[10px]'
                 }`}
                 title={`${hiddenCount} more collaborator${hiddenCount === 1 ? '' : 's'}`}
@@ -931,7 +931,7 @@ export default function BooksPage() {
                 const daysAgo = Math.floor((new Date().getTime() - lastEdited.getTime()) / (1000 * 60 * 60 * 24));
 
                 return (
-                  <div key={book.id} className="group relative rounded-2xl overflow-hidden bg-white border border-outline-variant/10 hover:border-secondary/30 shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col h-full">
+                  <div key={book.id} className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-outline-variant/20 bg-surface-container-lowest shadow-sm transition-all duration-300 hover:border-secondary/35 hover:shadow-lg">
                     <div
                       className="h-24 w-full relative overflow-hidden bg-gradient-to-br flex items-center justify-center"
                       style={{
@@ -1057,7 +1057,7 @@ export default function BooksPage() {
                 const lastEdited = book.updated_at ? new Date(book.updated_at) : new Date(book.created_at);
 
                 return (
-                  <div key={book.id} className="rounded-xl border border-outline-variant/15 bg-white p-4 shadow-sm">
+                  <div key={book.id} className="rounded-xl border border-outline-variant/20 bg-surface-container-lowest p-4 shadow-sm">
                     <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
                       <div className="flex min-w-0 flex-1 items-start gap-4">
                         <div

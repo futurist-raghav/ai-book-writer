@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from '@/lib/api-client';
+import { api } from '@/lib/api-client';
 import type {
   Classroom,
   ClassAssignment,
@@ -21,7 +21,7 @@ export const useClassrooms = () => {
   return useQuery({
     queryKey: ['classrooms'],
     queryFn: async () => {
-      const response = await apiClient.get<Classroom[]>('/api/v1/classrooms');
+      const response = await api.get<Classroom[]>('/classrooms');
       return response.data;
     },
   });
@@ -32,7 +32,7 @@ export const useClassroom = (classroomId: string | null) => {
     queryKey: ['classroom', classroomId],
     queryFn: async () => {
       if (!classroomId) return null;
-      const response = await apiClient.get<Classroom>(`/api/v1/classrooms/${classroomId}`);
+      const response = await api.get<Classroom>(`/classrooms/${classroomId}`);
       return response.data;
     },
     enabled: !!classroomId,
@@ -48,7 +48,7 @@ export const useCreateClassroom = () => {
 
   return useMutation({
     mutationFn: async (data: CreateClassroomRequest) => {
-      const response = await apiClient.post<Classroom>('/api/v1/classrooms', data);
+      const response = await api.post<Classroom>('/classrooms', data);
       return response.data;
     },
     onSuccess: () => {
@@ -68,8 +68,8 @@ export const useUpdateClassroom = () => {
       classroomId: string;
       data: Partial<CreateClassroomRequest>;
     }) => {
-      const response = await apiClient.put<Classroom>(
-        `/api/v1/classrooms/${classroomId}`,
+      const response = await api.put<Classroom>(
+        `/classrooms/${classroomId}`,
         data,
       );
       return response.data;
@@ -86,7 +86,7 @@ export const useDeleteClassroom = () => {
 
   return useMutation({
     mutationFn: async (classroomId: string) => {
-      await apiClient.delete(`/api/v1/classrooms/${classroomId}`);
+      await api.delete(`/classrooms/${classroomId}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['classrooms'] });
@@ -105,8 +105,8 @@ export const useJoinClassroom = () => {
       classroomId: string;
       code: string;
     }) => {
-      const response = await apiClient.post(
-        `/api/v1/classrooms/${classroomId}/join?code=${code}`,
+      const response = await api.post(
+        `/classrooms/${classroomId}/join?code=${code}`,
       );
       return response.data;
     },
@@ -125,8 +125,8 @@ export const useAssignments = (classroomId: string | null) => {
     queryKey: ['assignments', classroomId],
     queryFn: async () => {
       if (!classroomId) return [];
-      const response = await apiClient.get<ClassAssignment[]>(
-        `/api/v1/classrooms/${classroomId}/assignments`,
+      const response = await api.get<ClassAssignment[]>(
+        `/classrooms/${classroomId}/assignments`,
       );
       return response.data;
     },
@@ -149,8 +149,8 @@ export const useCreateAssignment = () => {
       classroomId: string;
       data: CreateAssignmentRequest;
     }) => {
-      const response = await apiClient.post<ClassAssignment>(
-        `/api/v1/classrooms/${classroomId}/assignments`,
+      const response = await api.post<ClassAssignment>(
+        `/classrooms/${classroomId}/assignments`,
         data,
       );
       return response.data;
@@ -172,8 +172,8 @@ export const useSubmissions = (classroomId: string | null, assignmentId: string 
     queryKey: ['submissions', classroomId, assignmentId],
     queryFn: async () => {
       if (!classroomId || !assignmentId) return [];
-      const response = await apiClient.get<ClassroomSubmission[]>(
-        `/api/v1/classrooms/${classroomId}/assignments/${assignmentId}/submissions`,
+      const response = await api.get<ClassroomSubmission[]>(
+        `/classrooms/${classroomId}/assignments/${assignmentId}/submissions`,
       );
       return response.data;
     },
@@ -198,8 +198,8 @@ export const useSubmitAssignment = () => {
       assignmentId: string;
       data: SubmitAssignmentRequest;
     }) => {
-      const response = await apiClient.post<ClassroomSubmission>(
-        `/api/v1/classrooms/${classroomId}/assignments/${assignmentId}/submit`,
+      const response = await api.post<ClassroomSubmission>(
+        `/classrooms/${classroomId}/assignments/${assignmentId}/submit`,
         data,
       );
       return response.data;
@@ -229,8 +229,8 @@ export const useGradeSubmission = () => {
       submissionId: string;
       data: GradeSubmissionRequest;
     }) => {
-      const response = await apiClient.post<ClassroomGrade>(
-        `/api/v1/classrooms/${classroomId}/submissions/${submissionId}/grade`,
+      const response = await api.post<ClassroomGrade>(
+        `/classrooms/${classroomId}/submissions/${submissionId}/grade`,
         data,
       );
       return response.data;

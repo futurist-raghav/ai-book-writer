@@ -35,9 +35,12 @@ interface Props {
 }
 
 export function StudentGradingPanel({ assignmentId, rubric }: Props) {
-  const { data: submissions = [], isLoading } = useQuery({
+  const { data: submissions = [], isLoading } = useQuery<Submission[]>({
     queryKey: ['submissions', assignmentId],
-    queryFn: () => apiClient.classroom.listSubmissions(assignmentId),
+    queryFn: async () => {
+      const response = await apiClient.classroom.listSubmissions(assignmentId);
+      return response.data as Submission[];
+    },
   });
 
   const [selectedSubmissionId, setSelectedSubmissionId] = useState<string | null>(null);

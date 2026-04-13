@@ -63,7 +63,7 @@ class PermissionLevelEnum(str, Enum):
 class TeamCreate(BaseModel):
     """Create team."""
     name: str = Field(..., min_length=1, max_length=256)
-    slug: str = Field(..., min_length=1, max_length=256, regex="^[a-z0-9-]+$")
+    slug: str = Field(..., min_length=1, max_length=256, pattern="^[a-z0-9-]+$")
     description: Optional[str] = None
     logo_url: Optional[str] = None
     website_url: Optional[str] = None

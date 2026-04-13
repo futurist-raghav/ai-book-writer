@@ -587,7 +587,7 @@ export default function ProjectSettingsPage() {
 
       {/* Collaborators Section */}
       <div className="mt-8">
-        <CollaboratorManager bookId={project.id} />
+        <CollaboratorManager bookId={project.id} isOwner={Boolean((project as any)?.is_owner ?? true)} />
       </div>
 
       {/* Custom Fields Section */}

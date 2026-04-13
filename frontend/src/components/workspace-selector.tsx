@@ -13,6 +13,10 @@ interface Workspace {
   created_at: string;
 }
 
+interface WorkspaceListResponse {
+  workspaces: Workspace[];
+}
+
 interface WorkspaceSelectorProps {
   currentWorkspaceId?: string;
   onWorkspaceChange?: (workspaceId: string) => void;
@@ -25,12 +29,12 @@ export function WorkspaceSelector({
   const [isOpen, setIsOpen] = useState(false);
 
   // Fetch user workspaces
-  const { data: workspaceResponse, isLoading } = useQuery({
+  const { data: workspaceResponse, isLoading } = useQuery<WorkspaceListResponse>({
     queryKey: ['workspaces-list'],
     queryFn: async () => {
       const response = await fetch('/api/v1/workspaces?limit=50');
       if (!response.ok) throw new Error('Failed to fetch workspaces');
-      return response.json();
+      return (await response.json()) as WorkspaceListResponse;
     },
   });
 

@@ -239,11 +239,7 @@ export const EnhancedFlowDashboardPro: React.FC<EnhancedFlowDashboardProProps> =
       {(viewMode === 'gantt' || viewMode === 'gantt-drag' || viewMode === 'bulk' ||
         viewMode === 'analytics') && (
         <div className="mb-4">
-          <FlowFilter
-            filters={filters}
-            onFilterChange={setFilters}
-            filterInputRef={filterInputRef}
-          />
+          <FlowFilter onFilterChange={setFilters} />
         </div>
       )}
 
@@ -255,6 +251,7 @@ export const EnhancedFlowDashboardPro: React.FC<EnhancedFlowDashboardProProps> =
           </div>
         ) : viewMode === 'overview' ? (
           <FlowDashboard
+            bookId={bookId}
             events={filteredEvents}
             dependencies={dependencies}
             onEventCreate={onEventCreate}
@@ -295,6 +292,7 @@ export const EnhancedFlowDashboardPro: React.FC<EnhancedFlowDashboardProProps> =
           />
         ) : (
           <FlowDashboard
+            bookId={bookId}
             events={filteredEvents}
             dependencies={dependencies}
             onEventCreate={onEventCreate}

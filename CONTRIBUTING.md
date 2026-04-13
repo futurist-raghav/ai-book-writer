@@ -1,6 +1,6 @@
-# Contributing to AI Book Writer
+# Contributing to Scribe House
 
-Thank you for your interest in contributing to AI Book Writer! This document provides guidelines and instructions for contributing.
+Thank you for your interest in contributing to Scribe House! This document provides guidelines and instructions for contributing.
 
 ## Code of Conduct
 

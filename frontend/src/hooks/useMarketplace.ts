@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiClient } from "@/lib/api-client";
+import { api, apiClient } from "@/lib/api-client";
 import {
   MarketplaceTemplate,
   MarketplaceTemplateDetail,
@@ -30,7 +30,7 @@ export function useMarketplaceBrowse(
       if (skip !== undefined) params.append("skip", skip.toString());
       if (limit !== undefined) params.append("limit", limit.toString());
 
-      const response = await apiClient.get<MarketplaceTemplateListResponse>(
+      const response = await api.get<MarketplaceTemplateListResponse>(
         `/templates/marketplace?${params.toString()}`
       );
       return response.data;
@@ -48,7 +48,7 @@ export function useMarketplaceSearch(query: string, category?: string, skip?: nu
       if (skip !== undefined) params.append("skip", skip.toString());
       if (limit !== undefined) params.append("limit", limit.toString());
 
-      const response = await apiClient.get<MarketplaceTemplateListResponse>(
+      const response = await api.get<MarketplaceTemplateListResponse>(
         `/templates/marketplace/search?${params.toString()}`
       );
       return response.data;
@@ -61,7 +61,7 @@ export function useTemplateCategories() {
   return useQuery({
     queryKey: ["marketplace", "categories"],
     queryFn: async () => {
-      const response = await apiClient.get<TemplateCategoryListResponse>(
+      const response = await api.get<TemplateCategoryListResponse>(
         `/templates/marketplace/categories`
       );
       return response.data;
@@ -73,7 +73,7 @@ export function useTemplateDetail(templateId: string) {
   return useQuery({
     queryKey: ["marketplace", "template", templateId],
     queryFn: async () => {
-      const response = await apiClient.get<MarketplaceTemplateDetail>(
+      const response = await api.get<MarketplaceTemplateDetail>(
         `/templates/marketplace/${templateId}`
       );
       return response.data;
@@ -90,7 +90,7 @@ export function useTemplateReviews(templateId: string, skip?: number, limit?: nu
       if (skip !== undefined) params.append("skip", skip.toString());
       if (limit !== undefined) params.append("limit", limit.toString());
 
-      const response = await apiClient.get<TemplateReviewListResponse>(
+      const response = await api.get<TemplateReviewListResponse>(
         `/templates/marketplace/${templateId}/reviews?${params.toString()}`
       );
       return response.data;
@@ -107,7 +107,7 @@ export function useMyTemplates(skip?: number, limit?: number) {
       if (skip !== undefined) params.append("skip", skip.toString());
       if (limit !== undefined) params.append("limit", limit.toString());
 
-      const response = await apiClient.get<MarketplaceTemplateListResponse>(
+      const response = await api.get<MarketplaceTemplateListResponse>(
         `/templates/marketplace/user/my-templates?${params.toString()}`
       );
       return response.data;
@@ -123,7 +123,7 @@ export function useFavoriteTemplates(skip?: number, limit?: number) {
       if (skip !== undefined) params.append("skip", skip.toString());
       if (limit !== undefined) params.append("limit", limit.toString());
 
-      const response = await apiClient.get<MarketplaceTemplateListResponse>(
+      const response = await api.get<MarketplaceTemplateListResponse>(
         `/templates/marketplace/user/favorites?${params.toString()}`
       );
       return response.data;
@@ -136,7 +136,7 @@ export function useFavoriteTemplate() {
 
   return useMutation({
     mutationFn: async (templateId: string) => {
-      await apiClient.post(`/templates/marketplace/${templateId}/favorite`);
+      await api.post(`/templates/marketplace/${templateId}/favorite`);
     },
     onSuccess: (_data, templateId) => {
       queryClient.invalidateQueries({ queryKey: ["marketplace", "template", templateId] });
@@ -150,7 +150,7 @@ export function useUnfavoriteTemplate() {
 
   return useMutation({
     mutationFn: async (templateId: string) => {
-      await apiClient.delete(`/templates/marketplace/${templateId}/favorite`);
+      await api.delete(`/templates/marketplace/${templateId}/favorite`);
     },
     onSuccess: (_data, templateId) => {
       queryClient.invalidateQueries({ queryKey: ["marketplace", "template", templateId] });
@@ -174,7 +174,7 @@ export function useCreateTemplateReview() {
       title?: string;
       content?: string;
     }) => {
-      const response = await apiClient.post(
+      const response = await api.post(
         `/templates/marketplace/${templateId}/reviews`,
         { rating, title, content }
       );
@@ -198,7 +198,7 @@ export function useCreateBookFromTemplate() {
         title: `Book from Template`,
         description: 'Created from marketplace template',
         project_type: 'novel',
-        metadata: { template_id: templateId },
+        project_settings: { template_id: templateId },
       });
       return response;
     },

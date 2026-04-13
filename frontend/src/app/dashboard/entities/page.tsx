@@ -364,26 +364,26 @@ export default function EntitiesPage() {
 
   const saveEntities = useMutation({
     mutationFn: async (updatedEntities: Entity[]) => {
-      const normalizedEntities = updatedEntities
-        .map((entity, index) => {
+      const normalizedEntities = updatedEntities.reduce<Entity[]>((acc, entity, index) => {
           const name = entity.name.trim();
           if (!name) {
-            return null;
+            return acc;
           }
 
           const resolvedSource = entity.source || inferEntitySource(entity.type || 'location');
           const resolvedType = entity.type?.trim() || (resolvedSource === 'character' ? 'character' : 'location');
           const id = entity.id?.trim() || buildFallbackEntityId(resolvedSource, name, index);
 
-          return {
+          acc.push({
             ...entity,
             id,
             name,
             type: resolvedType,
             source: resolvedSource,
-          };
-        })
-        .filter((entity): entity is Entity => Boolean(entity));
+          });
+
+          return acc;
+        }, []);
 
       const unifiedEntities = normalizedEntities.map((entity) => ({ ...entity }));
       const characters = normalizedEntities

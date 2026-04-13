@@ -14,7 +14,7 @@ from sqlalchemy.orm import selectinload
 
 from app.core.dependencies import AsyncSessionDep, CurrentUserIdDep
 from app.models.book import Book
-from app.models.collaborator import Collaborator, CollaboratorRole
+from app.models.collaboration import Collaborator, CollaboratorRole
 from app.models.user import User
 from app.schemas.collaborator import (
     CollaboratorInvite,

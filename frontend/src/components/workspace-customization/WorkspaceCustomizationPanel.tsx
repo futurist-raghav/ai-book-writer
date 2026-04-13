@@ -65,8 +65,10 @@ export function WorkspaceCustomizationPanel({ bookId }: Props) {
   // Fetch workspace customization
   const { data: customization, isLoading, error } = useQuery({
     queryKey: ['workspace-customization', bookId],
-    queryFn: () =>
-      apiClient.workspaceCustomization.get(bookId) as Promise<WorkspaceCustomizationResponse>,
+    queryFn: async () => {
+      const response = await apiClient.workspaceCustomization.get(bookId);
+      return response.data as WorkspaceCustomizationResponse;
+    },
     enabled: !!bookId,
   });
 

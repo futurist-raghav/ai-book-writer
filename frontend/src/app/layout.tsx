@@ -15,11 +15,12 @@ const newsreader = Newsreader({
   subsets: ['latin'],
   variable: '--font-newsreader',
   style: ['normal', 'italic'],
-  weight: ['200', '300', '400', '500', '600', '700', '800'],
+  weight: ['400', '600', '700'],
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
-  title: 'The Editorial Sanctuary - AI Book Writer',
+  title: 'Scribe House - Build Your Story',
   description: 'Transform your voice recordings into professionally formatted books using AI',
   manifest: '/manifest.webmanifest',
 };
@@ -34,7 +35,7 @@ export default function RootLayout({
       <head>
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="manifest" href="/manifest.webmanifest" />
-        <meta name="theme-color" content="#4657d6" />
+        <meta name="theme-color" content="#e7effd" />
         <link
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
           rel="stylesheet"
@@ -42,7 +43,7 @@ export default function RootLayout({
       </head>
       <body
         suppressHydrationWarning
-        className={`${manrope.variable} ${newsreader.variable} font-label bg-surface text-on-surface dark:bg-neutral-950 dark:text-neutral-50 antialiased min-h-screen selection:bg-primary-container selection:text-white`}
+        className={`${manrope.variable} ${newsreader.variable} font-label bg-background text-foreground antialiased min-h-screen`}
       >
         <DarkModeProvider>
           <QueryProvider>

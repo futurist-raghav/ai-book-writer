@@ -1,6 +1,6 @@
-# AI Book Writer - Mobile App
+# Scribe House - Mobile App
 
-React Native mobile application for AI Book Writer built with Expo and TypeScript.
+React Native mobile application for Scribe House built with Expo and TypeScript.
 
 ## Technology Stack
 

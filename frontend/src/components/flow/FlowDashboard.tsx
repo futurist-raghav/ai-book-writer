@@ -240,7 +240,7 @@ export function FlowDashboard({
               {isEditing ? (
                 <div className="border rounded-lg p-6 bg-gray-50">
                   <FlowEventEditor
-                    event={selectedEvent}
+                    event={selectedEvent || undefined}
                     bookId={bookId}
                     onSave={(data) => {
                       if (selectedEvent) {

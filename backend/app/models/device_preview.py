@@ -1,10 +1,10 @@
 """Device preview configuration for different formats and devices."""
 
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from uuid import uuid4
 
-from sqlalchemy import Float, String, Text, UniqueConstraint
+from sqlalchemy import Float, String, Text, UniqueConstraint, Integer, Boolean, JSON
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db import Base

@@ -5,15 +5,16 @@ ORM models for managing project events, timeline visualization, and dependencies
 """
 
 from enum import Enum
-from typing import Optional, List
+from typing import Optional, List, TYPE_CHECKING
+import uuid
 from uuid import UUID
 from datetime import datetime
 from sqlalchemy import (
-    Column, String, Text, Integer, DateTime, ForeignKey, UniqueConstraint,
-    CheckConstraint, func, Index, Table
+    String, Text, Integer, DateTime, ForeignKey, UniqueConstraint,
+    CheckConstraint, func, Index, Table, Float, Boolean
 )
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID, JSONB
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 
 
@@ -53,18 +54,18 @@ class FlowEvent(Base):
 
     __tablename__ = "flow_events"
 
-    id = Column(PG_UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid())
-    book_id = Column(PG_UUID(as_uuid=True), ForeignKey("books.id", ondelete="CASCADE"), nullable=False, index=True)
-    title = Column(String(255), nullable=False)
-    description = Column(Text, nullable=True)
-    event_type = Column(String(50), nullable=False, default=FlowEventType.BEAT.value)
-    timeline_position = Column(Integer, nullable=False, default=0, index=True)
-    duration = Column(Integer, nullable=True)  # days/hours/minutes
-    status = Column(String(50), nullable=False, default=FlowEventStatus.PLANNED.value)
-    order_index = Column(Integer, nullable=False, default=0)
-    event_metadata = Column(JSONB, nullable=True, default={})
-    created_at = Column(DateTime, nullable=False, server_default=func.now(), index=True)
-    updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
+    id: Mapped[uuid.UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid())
+    book_id: Mapped[uuid.UUID] = mapped_column(PG_UUID(as_uuid=True), ForeignKey("books.id", ondelete="CASCADE"), nullable=False, index=True)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    event_type: Mapped[str] = mapped_column(String(50), nullable=False, default=FlowEventType.BEAT.value)
+    timeline_position: Mapped[int] = mapped_column(Integer, nullable=False, default=0, index=True)
+    duration: Mapped[Optional[int]] = mapped_column(Integer, nullable=True) # days/hours/minutes
+    status: Mapped[str] = mapped_column(String(50), nullable=False, default=FlowEventStatus.PLANNED.value)
+    order_index: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    event_metadata: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True, default={})
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now(), index=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
 
     # Relationships
     book = relationship("Book", backref="flow_events")
@@ -105,12 +106,12 @@ class FlowDependency(Base):
 
     __tablename__ = "flow_dependencies"
 
-    id = Column(PG_UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid())
-    from_event_id = Column(PG_UUID(as_uuid=True), ForeignKey("flow_events.id", ondelete="CASCADE"), nullable=False, index=True)
-    to_event_id = Column(PG_UUID(as_uuid=True), ForeignKey("flow_events.id", ondelete="CASCADE"), nullable=False, index=True)
-    dependency_type = Column(String(50), nullable=False, default=FlowDependencyType.BLOCKS.value)
-    dependency_metadata = Column(JSONB, nullable=True, default={})
-    created_at = Column(DateTime, nullable=False, server_default=func.now())
+    id: Mapped[uuid.UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid())
+    from_event_id: Mapped[uuid.UUID] = mapped_column(PG_UUID(as_uuid=True), ForeignKey("flow_events.id", ondelete="CASCADE"), nullable=False, index=True)
+    to_event_id: Mapped[uuid.UUID] = mapped_column(PG_UUID(as_uuid=True), ForeignKey("flow_events.id", ondelete="CASCADE"), nullable=False, index=True)
+    dependency_type: Mapped[str] = mapped_column(String(50), nullable=False, default=FlowDependencyType.BLOCKS.value)
+    dependency_metadata: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True, default={})
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
 
     # Relationships
     from_event = relationship(
@@ -138,10 +139,10 @@ class FlowChapterEvent(Base):
 
     __tablename__ = "flow_chapter_events"
 
-    chapter_id = Column(PG_UUID(as_uuid=True), ForeignKey("chapters.id", ondelete="CASCADE"), nullable=False, index=True, primary_key=True)
-    event_id = Column(PG_UUID(as_uuid=True), ForeignKey("flow_events.id", ondelete="CASCADE"), nullable=False, index=True, primary_key=True)
-    order_index = Column(Integer, nullable=False, default=0)
-    created_at = Column(DateTime, nullable=False, server_default=func.now())
+    chapter_id: Mapped[uuid.UUID] = mapped_column(PG_UUID(as_uuid=True), ForeignKey("chapters.id", ondelete="CASCADE"), nullable=False, index=True, primary_key=True)
+    event_id: Mapped[uuid.UUID] = mapped_column(PG_UUID(as_uuid=True), ForeignKey("flow_events.id", ondelete="CASCADE"), nullable=False, index=True, primary_key=True)
+    order_index: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
 
     # Relationships
     chapter = relationship("Chapter", back_populates="flow_chapter_event_associations")

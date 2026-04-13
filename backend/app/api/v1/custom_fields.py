@@ -5,7 +5,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 
-from app.core.database import get_db
+from app.core.dependencies import get_db
 from app.models.custom_fields import CustomField, CustomFieldValue
 from app.models.book import Book
 from app.schemas.custom_fields import (
@@ -15,7 +15,7 @@ from app.schemas.custom_fields import (
     CustomFieldValueSetRequest,
     CustomFieldValueResponse,
 )
-from app.api.dependencies import get_current_user
+from app.core.dependencies import get_current_user
 from app.models.user import User
 
 

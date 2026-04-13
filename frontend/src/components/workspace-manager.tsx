@@ -19,6 +19,10 @@ interface Workspace {
   status: string;
 }
 
+interface WorkspaceListResponse {
+  workspaces: Workspace[];
+}
+
 export function WorkspaceManager() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newName, setNewName] = useState('');
@@ -26,12 +30,12 @@ export function WorkspaceManager() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   // Fetch workspaces
-  const { data: workspaceResponse, isLoading, refetch } = useQuery({
+  const { data: workspaceResponse, isLoading, refetch } = useQuery<WorkspaceListResponse>({
     queryKey: ['all-workspaces'],
     queryFn: async () => {
       const response = await fetch('/api/v1/workspaces?limit=100');
       if (!response.ok) throw new Error('Failed to fetch workspaces');
-      return response.json();
+      return (await response.json()) as WorkspaceListResponse;
     },
   });
 

@@ -3420,9 +3420,9 @@ async def convert_voice_to_draft(
     transcription_text = request.transcription_text
     if not transcription_text:
         try:
-            from app.services.stt.whisper_service import WhisperService
-            whisper = WhisperService()
-            result = await whisper.transcribe(request.audio_file_path)
+            from app.services.stt.factory import get_stt_service
+            stt_service = get_stt_service()
+            result = await stt_service.transcribe(request.audio_file_path)
             transcription_text = result.text
         except Exception as e:
             raise HTTPException(

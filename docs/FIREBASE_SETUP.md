@@ -28,14 +28,14 @@ curl -X POST http://localhost:8000/api/v1/notifications/send-test \
 
 1. Go to [Firebase Console](https://console.firebase.google.com)
 2. Click "Create Project" and follow the wizard
-3. Project name: "AI Book Writer" (or your preference)
+3. Project name: "Scribe House" (or your preference)
 4. Select "Create project" (default settings are fine)
 
 ### Step 2: Add Android App
 
 1. In Firebase Console, click the Android icon to add an Android app
 2. **Package name**: `com.aiebookwriter.app` (update with your actual package)
-3. **App nickname**: `AI Book Writer Android`
+3. **App nickname**: `Scribe House Android`
 4. Click "Register app"
 5. Download the `google-services.json` file
 6. Store safely (don't commit to git)
@@ -44,7 +44,7 @@ curl -X POST http://localhost:8000/api/v1/notifications/send-test \
 
 1. In Firebase Console, click the iOS icon
 2. **Bundle ID**: `com.aiebookwriter.app` (must match your Expo config)
-3. **App nickname**: `AI Book Writer iOS`
+3. **App nickname**: `Scribe House iOS`
 4. Click "Register app"
 5. Download the `GoogleService-Info.plist` file
 6. Store safely (don't commit to git)

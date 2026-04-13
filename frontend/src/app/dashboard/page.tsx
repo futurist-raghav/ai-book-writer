@@ -182,8 +182,9 @@ export default function ProjectOverviewPage() {
   // Calculate writing stats
   const eventCount = Number((bookDetails as any)?.event_count ?? (book as any)?.event_count ?? 0);
   const totalWordCount = bookDetails?.word_count || book?.word_count || 0;
-  const averageWordsPerChapter = book.chapter_count > 0 ? Math.round((book.word_count || 0) / book.chapter_count) : 0;
-  const averageMinutesPerChapter = book.chapter_count > 0 ? Math.round((Math.ceil(totalWordCount / 200) * 60) / book.chapter_count) : 0;
+  const chapterCount = book?.chapter_count || 0;
+  const averageWordsPerChapter = chapterCount > 0 ? Math.round((book?.word_count || 0) / chapterCount) : 0;
+  const averageMinutesPerChapter = chapterCount > 0 ? Math.round((Math.ceil(totalWordCount / 200) * 60) / chapterCount) : 0;
   const progress = bookDetails?.target_word_count 
     ? Math.round((totalWordCount / bookDetails.target_word_count) * 100)
     : null;
@@ -197,8 +198,8 @@ export default function ProjectOverviewPage() {
     .map((chapter: any) => chapter.updated_at || chapter.created_at)
     .filter((date: any): date is string => Boolean(date));
   const chapterEditTimestamps = chapterEditDates
-    .map((date) => new Date(date).getTime())
-    .filter((value) => Number.isFinite(value));
+    .map((date: string) => new Date(date).getTime())
+    .filter((value: number) => Number.isFinite(value));
   const mostRecentChapterEdit = chapterEditTimestamps.length > 0
     ? new Date(Math.max(...chapterEditTimestamps))
     : null;
@@ -217,15 +218,24 @@ export default function ProjectOverviewPage() {
 
   if (!book) {
     return (
-      <div className="border-2 border-dashed border-outline-variant/30 rounded-2xl p-16 flex flex-col items-center justify-center text-center mt-8">
-        <div className="w-16 h-16 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant mb-6">
+      <div className="elevated-panel mt-8 flex min-h-[320px] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-outline-variant/45 p-10 text-center md:p-16">
+        <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-primary/14 text-primary">
           <span className="material-symbols-outlined text-3xl">book</span>
         </div>
-        <h3 className="font-label text-sm font-bold text-primary uppercase tracking-widest mb-2">No active project selected</h3>
-        <p className="font-label text-xs text-on-surface-variant max-w-sm leading-relaxed mb-8">
+
+        <h3 className="mb-2 font-label text-base font-bold uppercase tracking-widest text-on-surface">
+          No active project selected
+        </h3>
+
+        <p className="mb-8 max-w-lg font-label text-sm leading-relaxed text-on-surface-variant">
           Select an active project from Projects. Drafts and archived items are intentionally excluded from the current manuscript workspace.
         </p>
-        <Link href="/dashboard/books" className="bg-surface-container-lowest border border-outline-variant/20 text-primary px-6 py-3 rounded-lg font-label font-bold text-sm shadow-sm hover:shadow-md transition-all active:scale-95">
+
+        <Link
+          href="/dashboard/books"
+          className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 font-label text-sm font-bold uppercase tracking-wider text-primary-foreground shadow-[0_16px_26px_-18px_hsl(var(--primary))] hover:brightness-110"
+        >
+          <span className="material-symbols-outlined text-base">folder_open</span>
           Select Project
         </Link>
       </div>

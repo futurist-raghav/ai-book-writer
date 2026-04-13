@@ -10,7 +10,7 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { formatDistanceToNow } from 'date-fns'
-import api from '@/lib/api'
+import { api } from '@/lib/api-client'
 
 interface HistoryEdit {
   id: string

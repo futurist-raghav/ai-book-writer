@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.dependencies import AsyncSessionDep, get_current_user
+from app.core.dependencies import AsyncSessionDep, get_current_user
 from app.models.book import Book
 from app.models.matter_config import MatterConfig
 from app.models.user import User

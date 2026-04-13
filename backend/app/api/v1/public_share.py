@@ -7,8 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import func
 import secrets
 from datetime import datetime
-from app.db import get_session
-from app.auth import get_current_user
+from app.core.dependencies import get_db as get_session
+from app.core.dependencies import get_current_user
 from app.models import User, Book, PublicShare, BookFeedback, BookRating
 from app.schemas.public_share_schema import (
     PublicShareCreate,

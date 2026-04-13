@@ -3,7 +3,7 @@
 Allow users to rename sidebar modules and chapter hierarchy terms.
 """
 
-from typing import Optional, Dict
+from typing import Optional, Dict, Any
 from uuid import UUID
 from datetime import datetime
 from pydantic import BaseModel, Field
@@ -35,7 +35,7 @@ class WorkspaceTerminology(BaseModel):
 class WorkspaceCustomizationRequest(BaseModel):
     """Request to update workspace customization"""
     terminology: Optional[WorkspaceTerminology] = None
-    layout_preferences: Optional[Dict[str, any]] = None  # Sidebar collapsed state, panel widths, etc.
+    layout_preferences: Optional[Dict[str, Any]] = None  # Sidebar collapsed state, panel widths, etc.
 
 
 class WorkspaceCustomizationResponse(BaseModel):
@@ -43,7 +43,7 @@ class WorkspaceCustomizationResponse(BaseModel):
     id: UUID
     book_id: UUID
     terminology: WorkspaceTerminology
-    layout_preferences: Optional[Dict[str, any]]
+    layout_preferences: Optional[Dict[str, Any]]
     created_at: datetime
     updated_at: datetime
 

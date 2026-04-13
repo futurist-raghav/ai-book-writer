@@ -10,7 +10,7 @@
 
 ## Summary
 
-Phase 1 Sprint 1 focused on establishing the **Project Type System** as the foundation for the AI Book Writer's universal adaptive writing platform. All 5 core tasks have been completed, enabling users to create and manage projects across 25+ writing formats with type-specific UI adaptations.
+Phase 1 Sprint 1 focused on establishing the **Project Type System** as the foundation for the Scribe House's universal adaptive writing platform. All 5 core tasks have been completed, enabling users to create and manage projects across 25+ writing formats with type-specific UI adaptations.
 
 ---
 

@@ -1,10 +1,10 @@
 """Book metadata configuration for publishing and distribution."""
 
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from uuid import uuid4
 
-from sqlalchemy import String, Text, DateTime, Boolean, Integer
+from sqlalchemy import String, Text, DateTime, Boolean, Integer, Float, JSON
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db import Base

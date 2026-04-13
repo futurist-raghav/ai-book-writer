@@ -1,8 +1,10 @@
 """Classroom and institution models for collaborative learning."""
 
+from typing import TYPE_CHECKING, Optional
+
 from datetime import datetime
-from sqlalchemy import Column, String, DateTime, ForeignKey, Enum, Integer, Boolean, Table, Text
-from sqlalchemy.orm import relationship
+from sqlalchemy import String, DateTime, ForeignKey, Enum, Integer, Boolean, Table, Text, Float, JSON
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 import enum
 from app.db import Base
 
@@ -51,20 +53,20 @@ class Classroom(Base):
     
     __tablename__ = "classrooms"
     
-    id = Column(String(36), primary_key=True, index=True)
-    owner_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
-    title = Column(String(255), nullable=False, index=True)
-    description = Column(Text)
-    school_name = Column(String(255))
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, index=True)
+    owner_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False, index=True)
+    title: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    description: Mapped[str] = mapped_column(Text)
+    school_name: Mapped[str] = mapped_column(String(255))
     
     # Access control
-    code = Column(String(50), unique=True, index=True)  # Join code for students
-    is_public = Column(Boolean, default=False)
+    code: Mapped[str] = mapped_column(String(50), unique=True, index=True) # Join code for students
+    is_public: Mapped[bool] = mapped_column(Boolean, default=False)
     
     # Metadata
-    created_at = Column(DateTime, default=datetime.utcnow, index=True)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    archived_at = Column(DateTime)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    archived_at: Mapped[datetime] = mapped_column(DateTime)
     
     # Relationships
     owner = relationship("User", foreign_keys=[owner_id], back_populates="classrooms_owned")
@@ -78,29 +80,29 @@ class ClassAssignment(Base):
     
     __tablename__ = "class_assignments"
     
-    id = Column(String(36), primary_key=True, index=True)
-    classroom_id = Column(String(36), ForeignKey("classrooms.id"), nullable=False, index=True)
-    creator_id = Column(String(36), ForeignKey("users.id"), nullable=False)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, index=True)
+    classroom_id: Mapped[str] = mapped_column(String(36), ForeignKey("classrooms.id"), nullable=False, index=True)
+    creator_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False)
     
     # Assignment details
-    title = Column(String(255), nullable=False, index=True)
-    description = Column(Text)
-    instructions = Column(Text)
+    title: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    description: Mapped[str] = mapped_column(Text)
+    instructions: Mapped[str] = mapped_column(Text)
     
     # Status and timing
     status = Column(Enum(AssignmentStatus), default=AssignmentStatus.DRAFT)
-    due_date = Column(DateTime)
-    publish_date = Column(DateTime)
+    due_date: Mapped[datetime] = mapped_column(DateTime)
+    publish_date: Mapped[datetime] = mapped_column(DateTime)
     
     # Requirements
-    word_count_min = Column(Integer)  # Minimum word count
-    word_count_max = Column(Integer)  # Maximum word count
-    allow_peer_review = Column(Boolean, default=True)
-    allow_student_upload = Column(Boolean, default=True)
+    word_count_min: Mapped[int] = mapped_column(Integer) # Minimum word count
+    word_count_max: Mapped[int] = mapped_column(Integer) # Maximum word count
+    allow_peer_review: Mapped[bool] = mapped_column(Boolean, default=True)
+    allow_student_upload: Mapped[bool] = mapped_column(Boolean, default=True)
     
     # Metadata
-    created_at = Column(DateTime, default=datetime.utcnow, index=True)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     classroom = relationship("Classroom", back_populates="assignments")
@@ -113,22 +115,22 @@ class ClassroomSubmission(Base):
     
     __tablename__ = "classroom_submissions"
     
-    id = Column(String(36), primary_key=True, index=True)
-    assignment_id = Column(String(36), ForeignKey("class_assignments.id"), nullable=False, index=True)
-    student_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, index=True)
+    assignment_id: Mapped[str] = mapped_column(String(36), ForeignKey("class_assignments.id"), nullable=False, index=True)
+    student_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False, index=True)
     
     # Submission content
-    book_id = Column(String(36), ForeignKey("books.id"))  # Linked book project
-    submission_text = Column(Text)  # Alternative: direct text submission
+    book_id: Mapped[str] = mapped_column(String(36), ForeignKey("books.id")) # Linked book project
+    submission_text: Mapped[str] = mapped_column(Text) # Alternative: direct text submission
     
     # Status and versioning
     status = Column(Enum(SubmissionStatus), default=SubmissionStatus.NOT_STARTED)
-    submitted_at = Column(DateTime)  # When student marked as submitted
-    version = Column(Integer, default=1)  # Revision count
+    submitted_at: Mapped[datetime] = mapped_column(DateTime) # When student marked as submitted
+    version: Mapped[int] = mapped_column(Integer, default=1) # Revision count
     
     # Metadata
-    created_at = Column(DateTime, default=datetime.utcnow, index=True)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     assignment = relationship("ClassAssignment", back_populates="submissions")
@@ -143,23 +145,23 @@ class ClassroomGrade(Base):
     
     __tablename__ = "classroom_grades"
     
-    id = Column(String(36), primary_key=True, index=True)
-    classroom_id = Column(String(36), ForeignKey("classrooms.id"), nullable=False, index=True)
-    submission_id = Column(String(36), ForeignKey("classroom_submissions.id"), nullable=False, index=True)
-    grader_id = Column(String(36), ForeignKey("users.id"), nullable=False)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, index=True)
+    classroom_id: Mapped[str] = mapped_column(String(36), ForeignKey("classrooms.id"), nullable=False, index=True)
+    submission_id: Mapped[str] = mapped_column(String(36), ForeignKey("classroom_submissions.id"), nullable=False, index=True)
+    grader_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False)
     
     # Grading
-    score = Column(Integer)  # 0-100
-    letter_grade = Column(String(2))  # A, B, C, etc.
-    rubric_json = Column(Text)  # JSON of rubric scores
+    score: Mapped[int] = mapped_column(Integer) # 0-100
+    letter_grade: Mapped[str] = mapped_column(String(2)) # A, B, C, etc.
+    rubric_json: Mapped[str] = mapped_column(Text) # JSON of rubric scores
     
     # Feedback
-    feedback_text = Column(Text)
-    graded_at = Column(DateTime, default=datetime.utcnow)
+    feedback_text: Mapped[str] = mapped_column(Text)
+    graded_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     
     # Metadata
-    created_at = Column(DateTime, default=datetime.utcnow, index=True)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     classroom = relationship("Classroom", back_populates="grades")
@@ -172,21 +174,21 @@ class SubmissionFeedback(Base):
     
     __tablename__ = "submission_feedback"
     
-    id = Column(String(36), primary_key=True, index=True)
-    submission_id = Column(String(36), ForeignKey("classroom_submissions.id"), nullable=False, index=True)
-    author_id = Column(String(36), ForeignKey("users.id"), nullable=False)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, index=True)
+    submission_id: Mapped[str] = mapped_column(String(36), ForeignKey("classroom_submissions.id"), nullable=False, index=True)
+    author_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False)
     
     # Feedback content
-    content = Column(Text, nullable=False)
-    feedback_type = Column(String(50))  # 'general', 'grammar', 'structure', 'style', etc.
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    feedback_type: Mapped[str] = mapped_column(String(50)) # 'general', 'grammar', 'structure', 'style', etc.
     
     # Location in text
-    line_number = Column(Integer)  # Optional: specific line reference
+    line_number: Mapped[int] = mapped_column(Integer) # Optional: specific line reference
     
     # Metadata
-    is_resolved = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow, index=True)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    is_resolved: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     submission = relationship("ClassroomSubmission", back_populates="feedback")

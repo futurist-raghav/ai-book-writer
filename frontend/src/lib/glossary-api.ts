@@ -5,7 +5,7 @@
  */
 
 import { GlossaryEntryCreate, GlossaryEntryUpdate, GlossaryExtractionInput } from '@/types/glossary';
-import { apiClient as baseApiClient } from './api-client';
+import { api as baseApiClient } from './api-client';
 
 export const glossaryApiMethods = {
   /**

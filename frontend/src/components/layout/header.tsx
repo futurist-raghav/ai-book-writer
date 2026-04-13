@@ -1,10 +1,12 @@
 'use client';
 
 import { useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { usePathname } from 'next/navigation';
 import { useAuthStore } from '@/stores/auth-store';
 import { useKeyboardShortcutsContext } from '@/stores/keyboard-shortcuts-context';
+import { useDarkMode } from '@/stores/dark-mode-context';
 import { cn } from '@/lib/utils';
 
 const topNav = [
@@ -18,6 +20,7 @@ export function Header() {
   const pathname = usePathname();
   const { logout } = useAuthStore();
   const { openHelp } = useKeyboardShortcutsContext();
+  const { isDark, toggleDarkMode } = useDarkMode();
 
   useEffect(() => {
     const handleAuthExpired = () => {
@@ -35,54 +38,90 @@ export function Header() {
     router.push('/login');
   };
 
+  const iconButtonClass =
+    'inline-flex h-10 w-10 items-center justify-center rounded-full border border-outline-variant/30 bg-surface-container-low text-on-surface-variant hover:text-on-surface hover:border-primary/40 hover:bg-surface-container transition-colors';
+
   return (
-    <header className="fixed top-0 z-50 w-full px-6 md:px-8 h-20 flex justify-between items-center bg-[#f8f9fa]/80 backdrop-blur-md shadow-[0_4px_20px_rgba(25,28,29,0.06)]">
-      <div className="flex items-center gap-6">
-        <div>
-          <span className="text-xs text-slate-600 font-semibold uppercase tracking-widest block mb-0.5">Workspace</span>
-          <h1 className="text-xl font-bold text-slate-800 italic font-headline tracking-tight">The Editorial Sanctuary</h1>
+    <header className="fixed top-0 z-50 w-full border-b border-outline-variant/40 bg-surface/80 backdrop-blur-xl">
+      <div className="mx-auto flex h-20 max-w-[1700px] items-center justify-between gap-4 px-4 md:px-8">
+        <div className="flex min-w-0 items-center gap-3 md:gap-4">
+          <div className="hidden h-10 w-10 items-center justify-center rounded-xl bg-primary/12 text-primary md:flex">
+            <span className="material-symbols-outlined">book_5</span>
+          </div>
+          <div className="min-w-0">
+            <span className="block text-[10px] font-semibold uppercase tracking-[0.2em] text-on-surface-variant">
+              Workspace
+            </span>
+            <h1 className="truncate text-lg font-bold italic font-headline tracking-tight text-on-surface md:text-xl">
+              Scribe House
+            </h1>
+          </div>
         </div>
-      </div>
-      
-      <div className="flex items-center gap-4">
-        <div className="hidden md:flex items-center gap-8 mr-8">
+
+        <nav className="hidden items-center gap-1 rounded-xl border border-outline-variant/35 bg-surface-container-low p-1 lg:flex">
           {topNav.map((item) => {
-            const active = pathname === item.href || (item.href === '/dashboard/books' && pathname === '/dashboard');
+            const active =
+              pathname === item.href ||
+              (item.href === '/dashboard/books' && pathname === '/dashboard');
+
             return (
-              <a
+              <Link
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  'font-label text-sm transition-colors duration-300 pb-1 border-b-2',
+                  'rounded-lg px-4 py-2 text-xs font-bold uppercase tracking-wider transition-colors',
                   active
-                    ? 'text-primary font-bold border-primary'
-                    : 'text-slate-600 hover:text-slate-800 border-transparent'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
                 )}
               >
                 {item.label}
-              </a>
+              </Link>
             );
           })}
+        </nav>
+
+        <div className="flex items-center gap-2 md:gap-3">
+          <button className={iconButtonClass} title="History" aria-label="History">
+            <span className="material-symbols-outlined">history</span>
+          </button>
+
+          <button
+            onClick={openHelp}
+            className={iconButtonClass}
+            title="Help and Keyboard Shortcuts"
+            aria-label="Help and Keyboard Shortcuts"
+          >
+            <span className="material-symbols-outlined">help_outline</span>
+          </button>
+
+          <button
+            onClick={toggleDarkMode}
+            className="theme-chip inline-flex h-10 items-center gap-1.5 rounded-full px-3 text-on-surface hover:border-primary/50"
+            title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+            aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            <span className="material-symbols-outlined text-[18px]">
+              {isDark ? 'light_mode' : 'dark_mode'}
+            </span>
+            <span className="hidden text-[10px] font-bold uppercase tracking-wider xl:inline">
+              {isDark ? 'Light' : 'Dark'}
+            </span>
+          </button>
+
+          <Link href="/dashboard/settings" className={iconButtonClass} title="Settings" aria-label="Settings">
+            <span className="material-symbols-outlined">settings</span>
+          </Link>
+
+          <button
+            onClick={handleLogout}
+            className={iconButtonClass}
+            title="Logout"
+            aria-label="Logout"
+          >
+            <span className="material-symbols-outlined">logout</span>
+          </button>
         </div>
-        
-        <button className="material-symbols-outlined text-primary/70 hover:bg-surface-container-low p-2 rounded-full transition-all" title="History">history</button>
-        <button 
-          onClick={openHelp}
-          className="material-symbols-outlined text-primary/70 hover:bg-surface-container-low p-2 rounded-full transition-all"
-          title="Help & Keyboard Shortcuts (?)"
-        >
-          help_outline
-        </button>
-        <a href="/dashboard/settings" className="material-symbols-outlined text-primary/70 hover:bg-surface-container-low p-2 rounded-full transition-all" title="Settings">
-          settings
-        </a>
-        <button 
-          onClick={handleLogout}
-          className="material-symbols-outlined text-primary/70 hover:bg-surface-container-low p-2 rounded-full transition-all"
-          title="Logout"
-        >
-          logout
-        </button>
       </div>
     </header>
   );

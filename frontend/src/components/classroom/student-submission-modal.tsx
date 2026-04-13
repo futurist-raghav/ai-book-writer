@@ -6,8 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useBooks } from '@/hooks/useBooks';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
 import { toast } from 'sonner';
 import { FileText, BookOpen, Upload } from 'lucide-react';
@@ -27,6 +26,13 @@ interface SubmissionPayload {
   submitted_file?: File;
 }
 
+interface BookOption {
+  id: string;
+  title: string;
+  status?: string;
+  word_count?: number;
+}
+
 export function StudentSubmissionModal({
   isOpen,
   onClose,
@@ -34,7 +40,14 @@ export function StudentSubmissionModal({
   classroomId,
   assignmentTitle = 'Assignment',
 }: StudentSubmissionModalProps) {
-  const { data: books = [] } = useBooks();
+  const { data: books = [] } = useQuery<BookOption[]>({
+    queryKey: ['student-submission-books'],
+    queryFn: async () => {
+      const response = await apiClient.books.list({ limit: 100, page: 1 });
+      const items = response.data?.data?.items || response.data?.items || response.data?.books || [];
+      return items as BookOption[];
+    },
+  });
   const [submissionMode, setSubmissionMode] = useState<'project' | 'text' | 'file'>('project');
   const [selectedBookId, setSelectedBookId] = useState<string>('');
   const [submittedText, setSubmittedText] = useState('');
@@ -113,7 +126,7 @@ export function StudentSubmissionModal({
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs value={submissionMode} onValueChange={(value) => setSubmissionMode(value as 'project' | 'text' | 'file')}>
+        <Tabs value={submissionMode} onValueChange={(value: string) => setSubmissionMode(value as 'project' | 'text' | 'file')}>
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="project" className="flex items-center gap-2">
               <BookOpen className="h-4 w-4" />

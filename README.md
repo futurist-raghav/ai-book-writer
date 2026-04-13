@@ -4,7 +4,7 @@
 
 ## 📖 Overview
 
-AI Book Writer is an intelligent platform that converts voice recordings of life events, stories, and daily experiences into well-structured book content. Whether you're writing your memoir, documenting your journey, or helping other writers streamline their creative process, this tool leverages cutting-edge AI to handle transcription, context management, and narrative formatting.
+Scribe House is an intelligent platform that converts voice recordings of life events, stories, and daily experiences into well-structured book content. Whether you're writing your memoir, documenting your journey, or helping other writers streamline their creative process, this tool leverages cutting-edge AI to handle transcription, context management, and narrative formatting.
 
 ### Key Features
 
@@ -127,8 +127,8 @@ graph TB
 ### Quick Start (Docker)
 ```bash
 # Clone the repo
-git clone https://github.com/futurist-raghav/ai-book-writer.git
-cd ai-book-writer
+git clone https://github.com/futurist-raghav/scribe-house.git
+cd scribe-house
 
 # Copy environment template
 cp .env.example .env
@@ -154,7 +154,48 @@ docker compose exec backend alembic upgrade head
 - **[Implementation Guide](docs/IMPLEMENTATION_GUIDE.md)** - What's built and how to use it
 - **[API Documentation](docs/API.md)** - Complete API reference with AI endpoints
 - **[Setup Guide](docs/SETUP.md)** - Local development setup
-- **[Deployment Guide](docs/DEPLOYMENT.md)** - Production deployment options
+- **[VM Deployment Guide](docs/VM_DEPLOYMENT_GUIDE.md)** - ⭐ Current production setup (single VM with all services)
+- **[Cloud Run Deployment Guide](docs/CLOUD_RUN_DEPLOYMENT_GUIDE.md)** - Alternative: serverless backend
+
+### 🖥️ Production Deployment (Single VM)
+
+For production, all backend services (API, PostgreSQL, Redis, Ollama for Gemma4) run on a single **Google Compute Engine VM**, with the frontend deployed to **Cloudflare Pages**:
+
+```bash
+# Full automated deployment
+make deploy-vm \
+  GCP_PROJECT_ID=ai-book-writer-raghav \
+  VM_IP=35.200.193.248
+
+# If automated deployment fails due to GCP auth issues, use manual steps:
+# See: MANUAL_DEPLOYMENT.md (3 simple steps to deploy)
+```
+
+**Result:**
+```
+Backend API: http://35.200.193.248:8000
+Frontend: https://scribe-house-frontend.pages.dev
+```
+
+#### Deployment Commands
+
+```bash
+# Full deployment (backend + frontend)
+make deploy-vm GCP_PROJECT_ID=ai-book-writer-raghav VM_IP=35.200.193.248
+
+# If automated fails, follow: MANUAL_DEPLOYMENT.md
+#   Step 1: gcloud compute scp ... scribe-house:/tmp/
+#   Step 2: gcloud compute ssh ... then bash deploy-vm.sh
+#   Step 3: make deploy-vm-frontend VM_IP=...
+
+# Monitor backend (after deployment)
+make vm-logs GCP_PROJECT_ID=ai-book-writer-raghav VM_IP=35.200.193.248
+make vm-status GCP_PROJECT_ID=ai-book-writer-raghav VM_IP=35.200.193.248
+```
+
+**Documentation:**
+- **[MANUAL_DEPLOYMENT.md](MANUAL_DEPLOYMENT.md)** ⭐ Start here if automated script fails
+- **[VM_DEPLOYMENT_GUIDE.md](docs/VM_DEPLOYMENT_GUIDE.md)** - Complete reference guide
 
 #### Vector Database
 **Primary: ChromaDB (Self-Hosted)**
@@ -275,8 +316,8 @@ docker compose exec backend alembic upgrade head
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/ai-book-writer.git
-cd ai-book-writer
+git clone https://github.com/yourusername/scribe-house.git
+cd scribe-house
 
 # Backend setup
 cd backend
@@ -356,7 +397,7 @@ ENVIRONMENT=development
 ## 📚 Project Structure
 
 ```
-ai-book-writer/
+scribe-house/
 ├── backend/
 │   ├── app/
 │   │   ├── api/              # API routes
@@ -499,4 +540,4 @@ For questions or support, please open an issue or contact [your-email@example.co
 ---
 
 **Built with ❤️ for writers who prefer to speak their stories**
-# ai-book-writer
+# scribe-house

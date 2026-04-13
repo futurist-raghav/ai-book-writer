@@ -67,7 +67,7 @@ export default function LoginPage() {
             <BookOpen className="h-6 w-6 text-primary" />
           </div>
           <CardTitle>Welcome Back</CardTitle>
-          <CardDescription>Sign in to your AI Book Writer account</CardDescription>
+          <CardDescription>Sign in to your Scribe House account</CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
           <CardContent className="space-y-4">

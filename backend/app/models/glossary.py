@@ -3,9 +3,11 @@
 Provides glossary/term management for P3.8 feature.
 """
 
+from typing import TYPE_CHECKING, Optional
+
 from datetime import datetime
-from sqlalchemy import Column, String, Text, Boolean, Integer, DateTime, ForeignKey, JSON, UniqueConstraint, Index
-from sqlalchemy.orm import relationship
+from sqlalchemy import String, Text, Boolean, Integer, DateTime, ForeignKey, JSON, UniqueConstraint, Index, Float
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 
@@ -19,19 +21,19 @@ class GlossaryEntry(Base):
 
     __tablename__ = 'glossary_entries'
 
-    id = Column(String(36), primary_key=True)
-    book_id = Column(String(36), ForeignKey('books.id', ondelete='CASCADE'), nullable=False)
-    term = Column(String(255), nullable=False)
-    definition = Column(Text, nullable=True)
-    definition_source = Column(String(500), nullable=True)  # "Chapter 5: Summary" or URL for web sources
-    confirmed = Column(Boolean, nullable=False, default=False)
-    part_of_speech = Column(String(50), nullable=True)  # noun, verb, adjective, adverb, proper_noun
-    context = Column(Text, nullable=True)  # sample sentences with term
-    frequency = Column(Integer, nullable=False, default=1)  # total mentions across all chapters
-    chapter_mentions = Column(JSON, nullable=True)  # {"chapter_id": count, ...}
-    user_defined = Column(Boolean, nullable=False, default=False)
-    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
-    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    book_id: Mapped[str] = mapped_column(String(36), ForeignKey('books.id', ondelete='CASCADE'), nullable=False)
+    term: Mapped[str] = mapped_column(String(255), nullable=False)
+    definition: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    definition_source: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)  # "Chapter 5: Summary" or URL for web sources
+    confirmed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    part_of_speech: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)  # noun, verb, adjective, adverb, proper_noun
+    context: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # sample sentences with term
+    frequency: Mapped[int] = mapped_column(Integer, nullable=False, default=1)  # total mentions across all chapters
+    chapter_mentions: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)  # {"chapter_id": count, ...}
+    user_defined: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
     book = relationship('Book', back_populates='glossary_entries')

@@ -23,6 +23,12 @@ interface ReviewLinkManagerProps {
   onClose?: () => void;
 }
 
+interface ReviewFeedback {
+  total_comments: number;
+  reviewer_count: number;
+  feedback_by_type: Record<string, number>;
+}
+
 export function ReviewLinkManager({ bookId, onClose }: ReviewLinkManagerProps) {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [expiresInDays, setExpiresInDays] = useState(30);
@@ -38,11 +44,11 @@ export function ReviewLinkManager({ bookId, onClose }: ReviewLinkManagerProps) {
   });
 
   // Fetch feedback
-  const { data: feedback } = useQuery({
+  const { data: feedback } = useQuery<ReviewFeedback>({
     queryKey: ['reviewFeedback', bookId],
     queryFn: async () => {
       const response = await api.get(`/books/${bookId}/review-feedback`);
-      return response.data;
+      return response.data as ReviewFeedback;
     },
   });
 

@@ -1,7 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useClassrooms, useCreateClassroom, useAssignments, useCreateAssignment } from '@/hooks/useClassroom';import { AssignmentWizard } from '@/components/classroom/assignment-wizard';import { Button } from '@/components/ui/button';
+import { useClassrooms, useCreateClassroom, useAssignments } from '@/hooks/useClassroom';
+import { AssignmentWizard } from '@/components/classroom/assignment-wizard';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { Users, BookOpen, Plus, Copy, Check, AlertCircle } from 'lucide-react';
@@ -53,9 +55,9 @@ export default function ClassroomsPage() {
   const classAssignments = assignments.filter((a) => a.classroom_id === selectedClassroom);
 
   return (
-    <div className="flex-1 flex flex-col min-h-screen">
+    <div className="flex min-h-screen flex-1 flex-col">
       {/* Header */}
-      <div className="border-b border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-950">
+      <div className="border-b border-outline-variant/35 bg-surface-container-lowest/90 px-6 py-4 backdrop-blur-md">
         <div className="mb-4">
           <Breadcrumb>
             <BreadcrumbItem>
@@ -63,37 +65,37 @@ export default function ClassroomsPage() {
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <span className="text-gray-600 dark:text-gray-400">Classrooms</span>
+              <span className="text-on-surface-variant">Classrooms</span>
             </BreadcrumbItem>
           </Breadcrumb>
         </div>
-        <h1 className="flex items-center gap-2 text-3xl font-bold text-gray-900 dark:text-white">
+        <h1 className="flex items-center gap-2 text-3xl font-bold text-on-surface">
           <Users className="h-8 w-8 text-purple-600" />
           Classroom Management
         </h1>
-        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+        <p className="mt-2 text-sm text-on-surface-variant">
           Create and manage classrooms for group writing instruction
         </p>
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-auto bg-gray-50 p-6 dark:bg-gray-900">
+      <div className="flex-1 overflow-auto bg-surface p-6">
         <div className="mx-auto grid max-w-6xl grid-cols-1 gap-6 lg:grid-cols-3">
           {/* Classrooms List */}
           <div className="lg:col-span-1">
-            <div className="rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-950">
-              <div className="border-b border-gray-200 p-4 dark:border-gray-800">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+            <div className="elevated-panel rounded-xl">
+              <div className="border-b border-outline-variant/35 p-4">
+                <h2 className="text-lg font-semibold text-on-surface">
                   My Classrooms
                 </h2>
-                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                <p className="mt-1 text-sm text-on-surface-variant">
                   {classrooms.length} classroom{classrooms.length !== 1 ? 's' : ''}
                 </p>
               </div>
 
               <div className="max-h-96 space-y-2 overflow-y-auto p-4">
                 {classrooms.length === 0 ? (
-                  <p className="text-center text-sm text-gray-500 dark:text-gray-400">
+                  <p className="text-center text-sm text-on-surface-variant">
                     No classrooms yet
                   </p>
                 ) : (
@@ -103,15 +105,15 @@ export default function ClassroomsPage() {
                       onClick={() => setSelectedClassroom(classroom.id)}
                       className={`w-full rounded-lg border p-3 text-left transition-colors ${
                         selectedClassroom === classroom.id
-                          ? 'border-purple-500 bg-purple-50 dark:border-purple-600 dark:bg-purple-900/20'
-                          : 'border-gray-200 bg-gray-50 hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-900 dark:hover:bg-gray-800'
+                          ? 'border-purple-500 bg-purple-50'
+                          : 'border-outline-variant/25 bg-surface-container-low hover:bg-surface-container'
                       }`}
                     >
-                      <p className="font-medium text-gray-900 dark:text-white">
+                      <p className="font-medium text-on-surface">
                         {classroom.title}
                       </p>
                       {classroom.school_name && (
-                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                        <p className="text-xs text-on-surface-variant">
                           {classroom.school_name}
                         </p>
                       )}
@@ -120,7 +122,7 @@ export default function ClassroomsPage() {
                 )}
               </div>
 
-              <div className="border-t border-gray-200 p-4 dark:border-gray-800">
+              <div className="border-t border-outline-variant/35 p-4">
                 <Button
                   onClick={() => setShowCreateForm(!showCreateForm)}
                   className="w-full"
@@ -133,10 +135,10 @@ export default function ClassroomsPage() {
 
               {/* Create Form */}
               {showCreateForm && (
-                <div className="border-t border-gray-200 p-4 dark:border-gray-800">
+                <div className="border-t border-outline-variant/35 p-4">
                   <div className="space-y-3">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      <label className="block text-sm font-medium text-on-surface-variant">
                         Classroom Title
                       </label>
                       <Input
@@ -147,7 +149,7 @@ export default function ClassroomsPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      <label className="block text-sm font-medium text-on-surface-variant">
                         School/Institution (optional)
                       </label>
                       <Input
@@ -184,23 +186,23 @@ export default function ClassroomsPage() {
             {selectedClass ? (
               <div className="space-y-4">
                 {/* Classroom Info */}
-                <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-950">
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                <div className="elevated-panel rounded-xl p-6">
+                  <h2 className="text-2xl font-bold text-on-surface">
                     {selectedClass.title}
                   </h2>
                   {selectedClass.description && (
-                    <p className="mt-2 text-gray-700 dark:text-gray-300">
+                    <p className="mt-2 text-on-surface-variant">
                       {selectedClass.description}
                     </p>
                   )}
 
                   {/* Join Code */}
-                  <div className="mt-4 rounded-lg bg-gray-50 p-4 dark:bg-gray-900">
-                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <div className="mt-4 rounded-lg bg-surface-container-low p-4">
+                    <p className="text-sm font-medium text-on-surface-variant">
                       Student Join Code
                     </p>
                     <div className="mt-2 flex items-center gap-2">
-                      <code className="flex-1 rounded bg-white px-3 py-2 font-mono text-lg font-bold text-purple-600 dark:bg-gray-800">
+                      <code className="flex-1 rounded bg-surface-container-lowest px-3 py-2 font-mono text-lg font-bold text-purple-600">
                         {selectedClass.code}
                       </code>
                       <Button
@@ -215,18 +217,18 @@ export default function ClassroomsPage() {
                         )}
                       </Button>
                     </div>
-                    <p className="mt-2 text-xs text-gray-600 dark:text-gray-400">
+                    <p className="mt-2 text-xs text-on-surface-variant">
                       Share this code with students so they can join the classroom
                     </p>
                   </div>
                 </div>
 
                 {/* Assignments Section */}
-                <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-950">
+                <div className="elevated-panel rounded-xl p-6">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <BookOpen className="h-5 w-5 text-blue-600" />
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                      <h3 className="text-lg font-semibold text-on-surface">
                         Assignments
                       </h3>
                     </div>
@@ -237,9 +239,9 @@ export default function ClassroomsPage() {
                   </div>
 
                   {classAssignments.length === 0 ? (
-                    <div className="mt-4 rounded-lg border border-dashed border-gray-300 p-6 text-center dark:border-gray-700">
-                      <AlertCircle className="mx-auto h-8 w-8 text-gray-400" />
-                      <p className="mt-2 text-gray-600 dark:text-gray-400">
+                    <div className="mt-4 rounded-lg border border-dashed border-outline-variant/35 p-6 text-center">
+                      <AlertCircle className="mx-auto h-8 w-8 text-on-surface-variant" />
+                      <p className="mt-2 text-on-surface-variant">
                         No assignments yet
                       </p>
                     </div>
@@ -248,15 +250,15 @@ export default function ClassroomsPage() {
                       {classAssignments.map((assignment) => (
                         <div
                           key={assignment.id}
-                          className="rounded-lg border border-gray-200 p-3 dark:border-gray-700"
+                          className="rounded-lg border border-outline-variant/30 p-3"
                         >
                           <div className="flex items-start justify-between">
                             <div>
-                              <p className="font-medium text-gray-900 dark:text-white">
+                              <p className="font-medium text-on-surface">
                                 {assignment.title}
                               </p>
                               {assignment.due_date && (
-                                <p className="text-xs text-gray-600 dark:text-gray-400">
+                                <p className="text-xs text-on-surface-variant">
                                   Due:{' '}
                                   {new Date(assignment.due_date).toLocaleDateString()}
                                 </p>
@@ -274,31 +276,31 @@ export default function ClassroomsPage() {
 
                 {/* Quick Stats */}
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-950">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <div className="elevated-panel rounded-lg p-4">
+                    <p className="text-sm text-on-surface-variant">
                       Assignments
                     </p>
-                    <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">
+                    <p className="mt-1 text-2xl font-bold text-on-surface">
                       {classAssignments.length}
                     </p>
                   </div>
-                  <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-950">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <div className="elevated-panel rounded-lg p-4">
+                    <p className="text-sm text-on-surface-variant">
                       Students
                     </p>
-                    <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">
+                    <p className="mt-1 text-2xl font-bold text-on-surface">
                       0
                     </p>
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="rounded-lg border border-dashed border-gray-300 bg-white p-12 text-center dark:border-gray-700 dark:bg-gray-950">
-                <Users className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-4 text-lg font-semibold text-gray-900 dark:text-white">
+              <div className="elevated-panel rounded-xl border border-dashed border-outline-variant/40 p-12 text-center">
+                <Users className="mx-auto h-12 w-12 text-on-surface-variant" />
+                <h3 className="mt-4 text-lg font-semibold text-on-surface">
                   Select a classroom
                 </h3>
-                <p className="mt-2 text-gray-600 dark:text-gray-400">
+                <p className="mt-2 text-on-surface-variant">
                   Create a new classroom or select one from the list to get started
                 </p>
               </div>

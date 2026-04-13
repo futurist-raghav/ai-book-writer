@@ -1,4 +1,4 @@
-# AI Book Writer - Architecture Refactor Implementation Guide
+# Scribe House - Architecture Refactor Implementation Guide
 
 ## What's Been Built ✅
 

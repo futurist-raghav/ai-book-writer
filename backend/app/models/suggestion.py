@@ -10,7 +10,7 @@ from datetime import datetime
 from enum import Enum
 from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, func, Float, JSON
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -110,21 +110,42 @@ class ChapterSuggestion(Base):
         )
 
 
-# Legacy TextSuggestion for backwards compatibility (deprecated)
+class TextSuggestion(Base):
+    """
+    Legacy TextSuggestion for backwards compatibility (deprecated).
     
+    Use ChapterSuggestion for new code.
+    """
+
+    __tablename__ = "text_suggestions"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    chapter_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("chapters.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    author_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
     # Metadata
-    change_type = Column(String(50), default="edit")  # edit, insert, delete
-    confidence_score = Column(Integer, default=100)  # 0-100 AI confidence
-    reason = Column(String(200), nullable=True)  # Why the suggestion was made
+    change_type: Mapped[str] = mapped_column(String(50), default="edit")  # edit, insert, delete
+    confidence_score: Mapped[int] = mapped_column(Integer, default=100)  # 0-100 AI confidence
+    reason: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)  # Why the suggestion was made
     
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
-    
-    # Relationships
-    chapter = relationship("Chapter", foreign_keys=[chapter_id])
-    author = relationship("User", foreign_keys=[author_id])
-    resolver = relationship("User", foreign_keys=[resolved_by])
-    
-    def __repr__(self):
-        status = "accepted" if self.is_accepted else "rejected" if self.is_rejected else "pending"
-        return f"<TextSuggestion({self.id}, {status}, {self.change_type})>"
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, nullable=False, index=True
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
+
+    def __repr__(self) -> str:
+        return f"<TextSuggestion({self.id}, {self.change_type})>"

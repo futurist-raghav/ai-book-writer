@@ -1,7 +1,9 @@
 """Enterprise features: team management, SSO, audit logs, advanced permissions."""
 
-from sqlalchemy import Column, String, Integer, Boolean, DateTime, ForeignKey, Text, Enum as SQLEnum, JSON, ARRAY, Float, Index
-from sqlalchemy.orm import relationship
+from typing import TYPE_CHECKING, Optional
+
+from sqlalchemy import String, Integer, Boolean, DateTime, ForeignKey, Text, Enum as SQLEnum, JSON, ARRAY, Float, Index
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 from datetime import datetime
 import enum
@@ -69,26 +71,26 @@ class Team(Base):
     """Organization/workspace team."""
     __tablename__ = "teams"
 
-    id = Column(String(36), primary_key=True)
-    name = Column(String(256), nullable=False)
-    slug = Column(String(256), nullable=False, unique=True, index=True)
-    description = Column(Text, nullable=True)
-    owner_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    name: Mapped[str] = mapped_column(String(256), nullable=False)
+    slug: Mapped[str] = mapped_column(String(256), nullable=False, unique=True, index=True)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    owner_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     
     # Billing & limits
-    max_members = Column(Integer, default=50, nullable=False)
-    max_books = Column(Integer, default=100, nullable=False)
-    max_api_keys = Column(Integer, default=10, nullable=False)
+    max_members: Mapped[int] = mapped_column(Integer, default=50, nullable=False)
+    max_books: Mapped[int] = mapped_column(Integer, default=100, nullable=False)
+    max_api_keys: Mapped[int] = mapped_column(Integer, default=10, nullable=False)
     
     # Settings
-    settings = Column(JSON, nullable=True)  # { require_sso, sso_provider, allow_public_sharing, invite_domain }
-    logo_url = Column(String(512), nullable=True)
-    website_url = Column(String(512), nullable=True)
+    settings: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True) # { require_sso, sso_provider, allow_public_sharing, invite_domain }
+    logo_url: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    website_url: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
     
     # Metadata
-    is_active = Column(Boolean, default=True, nullable=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    created_at: Mapped[datetime.time] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime.time] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
     
     # Relationships
     members = relationship("TeamMember", back_populates="team", cascade="all, delete-orphan")
@@ -106,25 +108,25 @@ class TeamMember(Base):
     """Team membership."""
     __tablename__ = "team_members"
 
-    id = Column(String(36), primary_key=True)
-    team_id = Column(String(36), ForeignKey("teams.id", ondelete="CASCADE"), nullable=False, index=True)
-    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    team_id: Mapped[str] = mapped_column(String(36), ForeignKey("teams.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     
     # Role & permissions
     role = Column(SQLEnum(TeamMemberRole), default=TeamMemberRole.MEMBER, nullable=False)
-    custom_role_id = Column(String(36), ForeignKey("custom_roles.id", ondelete="SET NULL"), nullable=True)
-    permissions = Column(JSON, nullable=True)  # Override default role permissions
+    custom_role_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("custom_roles.id", ondelete="SET NULL"), nullable=True)
+    permissions: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True) # Override default role permissions
     
     # Status
-    is_active = Column(Boolean, default=True, nullable=False)
-    joined_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    invited_at = Column(DateTime(timezone=True), nullable=True)
-    invited_by = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
-    accepted_at = Column(DateTime(timezone=True), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    joined_at: Mapped[datetime.time] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    invited_at: Mapped[Optional[datetime.time]] = mapped_column(DateTime(timezone=True), nullable=True)
+    invited_by: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    accepted_at: Mapped[Optional[datetime.time]] = mapped_column(DateTime(timezone=True), nullable=True)
     
     # Metadata
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+    created_at: Mapped[datetime.time] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime.time] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
     
     # Relationships
     team = relationship("Team", back_populates="members")
@@ -141,19 +143,19 @@ class CustomRole(Base):
     """Custom team role with fine-grained permissions."""
     __tablename__ = "custom_roles"
 
-    id = Column(String(36), primary_key=True)
-    team_id = Column(String(36), ForeignKey("teams.id", ondelete="CASCADE"), nullable=False, index=True)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    team_id: Mapped[str] = mapped_column(String(36), ForeignKey("teams.id", ondelete="CASCADE"), nullable=False, index=True)
     
-    name = Column(String(100), nullable=False)
-    description = Column(Text, nullable=True)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     
     # Permissions as JSON object: { resource: [actions] }
     # Example: { "books": ["view", "edit"], "chapters": ["view"], "comments": ["view", "create", "delete"] }
-    permissions = Column(JSON, nullable=False)
+    permissions: Mapped[dict] = mapped_column(JSON, nullable=False)
     
-    is_archived = Column(Boolean, default=False, nullable=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+    is_archived: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    created_at: Mapped[datetime.time] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime.time] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
     
     # Relationships
     team = relationship("Team", back_populates="custom_roles")
@@ -169,33 +171,33 @@ class SSOConfig(Base):
     """SSO provider configuration per team."""
     __tablename__ = "sso_configs"
 
-    id = Column(String(36), primary_key=True)
-    team_id = Column(String(36), ForeignKey("teams.id", ondelete="CASCADE"), nullable=False, index=True)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    team_id: Mapped[str] = mapped_column(String(36), ForeignKey("teams.id", ondelete="CASCADE"), nullable=False, index=True)
     
     provider = Column(SQLEnum(SSOProvider), nullable=False)
     
     # Provider-specific config
-    client_id = Column(String(256), nullable=False)
-    client_secret = Column(String(512), nullable=False)  # Encrypted in practice
-    tenant_id = Column(String(256), nullable=True)  # For Azure AD
-    domain = Column(String(256), nullable=True)  # Email domain to enforce (user@domain.com)
+    client_id: Mapped[str] = mapped_column(String(256), nullable=False)
+    client_secret: Mapped[str] = mapped_column(String(512), nullable=False) # Encrypted in practice
+    tenant_id: Mapped[Optional[str]] = mapped_column(String(256), nullable=True) # For Azure AD
+    domain: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)  # Email domain to enforce (user@domain.com)
     
     # SAML-specific
-    entity_id = Column(String(512), nullable=True)
-    sso_url = Column(String(512), nullable=True)
-    certificate = Column(Text, nullable=True)
+    entity_id: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    sso_url: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    certificate: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     
     # Settings
-    auto_provision = Column(Boolean, default=True, nullable=False)  # Auto-create users on first login
-    require_mfa = Column(Boolean, default=False, nullable=False)
-    sync_groups = Column(Boolean, default=False, nullable=False)  # Sync LDAP/AD groups to team roles
+    auto_provision: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False) # Auto-create users on first login
+    require_mfa: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    sync_groups: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False) # Sync LDAP/AD groups to team roles
     
-    is_enabled = Column(Boolean, default=True, nullable=False)
-    is_verified = Column(Boolean, default=False, nullable=False)
-    verified_at = Column(DateTime(timezone=True), nullable=True)
+    is_enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    is_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    verified_at: Mapped[Optional[datetime.time]] = mapped_column(DateTime(timezone=True), nullable=True)
     
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+    created_at: Mapped[datetime.time] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime.time] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
     
     # Relationships
     team = relationship("Team", back_populates="sso_configs")
@@ -212,30 +214,30 @@ class AuditLog(Base):
     """Immutable audit trail of all team events."""
     __tablename__ = "audit_logs"
 
-    id = Column(String(36), primary_key=True)
-    team_id = Column(String(36), ForeignKey("teams.id", ondelete="CASCADE"), nullable=False, index=True)
-    team_member_id = Column(String(36), ForeignKey("team_members.id", ondelete="SET NULL"), nullable=True, index=True)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    team_id: Mapped[str] = mapped_column(String(36), ForeignKey("teams.id", ondelete="CASCADE"), nullable=False, index=True)
+    team_member_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("team_members.id", ondelete="SET NULL"), nullable=True, index=True)
     
     event_type = Column(SQLEnum(AuditEventType), nullable=False, index=True)
-    actor_user_id = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    actor_user_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     
     # What changed
-    resource_type = Column(String(50), nullable=False)  # "user", "book", "chapter", "comment"
-    resource_id = Column(String(36), nullable=False, index=True)
-    action = Column(String(50), nullable=False)  # "create", "update", "delete"
+    resource_type: Mapped[str] = mapped_column(String(50), nullable=False) # "user", "book", "chapter", "comment"
+    resource_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    action: Mapped[str] = mapped_column(String(50), nullable=False) # "create", "update", "delete"
     
     # Changes
-    old_values = Column(JSON, nullable=True)
-    new_values = Column(JSON, nullable=True)
+    old_values: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    new_values: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     
     # Context
-    ip_address = Column(String(45), nullable=True)  # IPv4 or IPv6
-    user_agent = Column(String(512), nullable=True)
-    status = Column(String(20), default="success", nullable=False)  # "success", "failure"
-    error_message = Column(Text, nullable=True)
+    ip_address: Mapped[Optional[str]] = mapped_column(String(45), nullable=True) # IPv4 or IPv6
+    user_agent: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default="success", nullable=False) # "success", "failure"
+    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     
     # Metadata
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    created_at: Mapped[datetime.time] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     
     # Relationships
     team = relationship("Team", back_populates="audit_logs")
@@ -256,23 +258,23 @@ class ResourcePermission(Base):
     """Fine-grained resource-level permissions."""
     __tablename__ = "resource_permissions"
 
-    id = Column(String(36), primary_key=True)
-    team_id = Column(String(36), ForeignKey("teams.id", ondelete="CASCADE"), nullable=False, index=True)
-    team_member_id = Column(String(36), ForeignKey("team_members.id", ondelete="CASCADE"), nullable=False, index=True)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    team_id: Mapped[str] = mapped_column(String(36), ForeignKey("teams.id", ondelete="CASCADE"), nullable=False, index=True)
+    team_member_id: Mapped[str] = mapped_column(String(36), ForeignKey("team_members.id", ondelete="CASCADE"), nullable=False, index=True)
     
     # Resource
-    resource_type = Column(String(50), nullable=False)  # "book", "chapter", "workspace"
-    resource_id = Column(String(36), nullable=False, index=True)
+    resource_type: Mapped[str] = mapped_column(String(50), nullable=False) # "book", "chapter", "workspace"
+    resource_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
     
     # Permission
     permission_level = Column(SQLEnum(PermissionLevel), nullable=False)
     
     # Conditions
-    conditions = Column(JSON, nullable=True)  # { time_limited: true, expires_at: "2025-03-01", ... }
+    conditions: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True) # { time_limited: true, expires_at: "2025-03-01", ... }
     
     # Metadata
-    granted_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    granted_by = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    granted_at: Mapped[datetime.time] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    granted_by: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     
     __table_args__ = (
         Index('idx_resource_perms_team_id', 'team_id'),
@@ -287,20 +289,20 @@ class TeamActivityLog(Base):
     """Team-level activity summary (for analytics dashboards)."""
     __tablename__ = "team_activity_logs"
 
-    id = Column(String(36), primary_key=True)
-    team_id = Column(String(36), ForeignKey("teams.id", ondelete="CASCADE"), nullable=False, index=True)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    team_id: Mapped[str] = mapped_column(String(36), ForeignKey("teams.id", ondelete="CASCADE"), nullable=False, index=True)
     
     # Metrics for a day
-    date = Column(DateTime(timezone=True), nullable=False, index=True)
+    date: Mapped[datetime.time] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
     
-    active_members = Column(Integer, default=0, nullable=False)
-    total_edits = Column(Integer, default=0, nullable=False)
-    total_comments = Column(Integer, default=0, nullable=False)
-    books_created = Column(Integer, default=0, nullable=False)
-    chapters_created = Column(Integer, default=0, nullable=False)
-    ai_calls = Column(Integer, default=0, nullable=False)
+    active_members: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    total_edits: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    total_comments: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    books_created: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    chapters_created: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    ai_calls: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    created_at: Mapped[datetime.time] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     
     __table_args__ = (
         Index('idx_team_activity_logs_team_id', 'team_id'),

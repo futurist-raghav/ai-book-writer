@@ -2,8 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import StreamingResponse
 import asyncio
 import json
-from app.db.database import get_session
-from app.middleware.auth import verify_auth
+from app.core.dependencies import get_db as get_session
 from app.services.ai_agents import (
     research_agent,
     factcheck_agent,

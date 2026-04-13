@@ -111,8 +111,10 @@ export default function CollaborationPage() {
       return;
     }
 
-    const activeBookMatch = activeBookId && availableBooks.find((book) => book.id === activeBookId);
-    setSelectedBookId(activeBookMatch?.id || availableBooks[0].id);
+    const activeBookMatch = activeBookId
+      ? availableBooks.find((book) => book.id === activeBookId)
+      : undefined;
+    setSelectedBookId(activeBookMatch?.id || availableBooks[0]?.id || '');
   }, [activeBookId, availableBooks, selectedBookId]);
 
   // Fetch collaborators
@@ -277,7 +279,7 @@ export default function CollaborationPage() {
         </div>
       </div>
 
-      <div className="mb-8 rounded-lg border border-outline-variant/10 bg-surface-container-lowest p-5">
+      <div className="elevated-panel mb-8 rounded-xl p-5">
         <label
           htmlFor="collaboration-book-scope"
           className="block font-label text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2"
@@ -293,7 +295,7 @@ export default function CollaborationPage() {
             setCommentMode(false);
           }}
           disabled={loadingBooks || availableBooks.length === 0}
-          className="w-full rounded-lg border border-outline-variant/20 bg-surface-container-low px-4 py-2 text-sm font-label"
+          className="w-full rounded-lg border border-outline-variant/20 bg-surface-container-low px-4 py-2 text-sm font-label text-on-surface"
         >
           {availableBooks.map((book) => (
             <option key={book.id} value={book.id}>
@@ -319,7 +321,7 @@ export default function CollaborationPage() {
           <Spinner />
         </div>
       ) : availableBooks.length === 0 ? (
-        <div className="text-center py-14 rounded-lg border border-dashed border-outline-variant/20 bg-surface-container-lowest">
+        <div className="elevated-panel rounded-2xl border border-dashed border-outline-variant/45 py-14 text-center">
           <p className="text-sm text-on-surface-variant">Create a project first to manage collaborators, comments, and activity.</p>
         </div>
       ) : (
@@ -362,10 +364,10 @@ export default function CollaborationPage() {
           {activeTab === 'collaborators' && (
             <div>
               <div className="mb-6 flex justify-between items-center">
-                <h3 className="text-lg font-bold text-primary">Team Members</h3>
+                <h3 className="text-lg font-bold text-on-surface">Team Members</h3>
                 <button
                   onClick={() => setInviteMode(!inviteMode)}
-                  className="flex items-center gap-2 bg-secondary text-white px-4 py-2 rounded-lg font-label font-bold text-sm shadow-sm hover:bg-secondary/90 transition-all"
+                  className="flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 font-label text-sm font-bold text-secondary-foreground shadow-sm transition-all hover:bg-secondary/90"
                 >
                   <span className="material-symbols-outlined">person_add</span>
                   Invite
@@ -373,7 +375,7 @@ export default function CollaborationPage() {
               </div>
 
               {inviteMode && (
-                <div className="bg-surface-container-lowest p-6 rounded-lg border border-outline-variant/10 mb-6">
+                <div className="elevated-panel mb-6 rounded-xl p-6">
                   <div className="grid md:grid-cols-3 gap-4">
                     <div>
                       <label htmlFor="invite-email" className="block font-label text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Email</label>
@@ -383,7 +385,7 @@ export default function CollaborationPage() {
                         placeholder="collaborator@example.com"
                         value={inviteEmail}
                         onChange={(e) => setInviteEmail(e.target.value)}
-                        className="w-full bg-surface-container-low border border-outline-variant/20 rounded-lg px-4 py-2 text-sm font-label"
+                        className="w-full rounded-lg border border-outline-variant/20 bg-surface-container-low px-4 py-2 text-sm font-label text-on-surface"
                       />
                     </div>
                     <div>
@@ -392,7 +394,7 @@ export default function CollaborationPage() {
                         id="invite-role"
                         value={inviteRole}
                         onChange={(e) => setInviteRole(e.target.value as 'editor' | 'reviewer' | 'contributor' | 'viewer')}
-                        className="w-full bg-surface-container-low border border-outline-variant/20 rounded-lg px-4 py-2 text-sm font-label"
+                        className="w-full rounded-lg border border-outline-variant/20 bg-surface-container-low px-4 py-2 text-sm font-label text-on-surface"
                       >
                         <option value="editor">Editor</option>
                         <option value="reviewer">Reviewer</option>
@@ -404,13 +406,13 @@ export default function CollaborationPage() {
                       <button
                         onClick={() => inviteMutation.mutate({ email: inviteEmail, role: inviteRole })}
                         disabled={inviteMutation.isPending || !inviteEmail.trim()}
-                        className="flex-1 bg-primary text-white px-4 py-2 rounded-lg font-label font-bold text-sm hover:bg-primary/90 disabled:opacity-50"
+                        className="flex-1 rounded-lg bg-primary px-4 py-2 font-label text-sm font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                       >
                         Send
                       </button>
                       <button
                         onClick={() => setInviteMode(false)}
-                        className="flex-1 bg-surface-container px-4 py-2 rounded-lg font-label font-bold text-sm text-primary hover:bg-surface-container-high"
+                        className="theme-chip flex-1 rounded-lg px-4 py-2 font-label text-sm font-bold text-on-surface hover:bg-surface-container-high"
                       >
                         Cancel
                       </button>
@@ -429,21 +431,21 @@ export default function CollaborationPage() {
                 ) : loadingCollaborators ? (
                   <div className="flex justify-center py-8"><Spinner /></div>
                 ) : collaborators.length === 0 ? (
-                  <div className="text-center py-12 bg-surface-container-lowest rounded-lg border border-dashed border-outline-variant/20">
+                  <div className="elevated-panel rounded-xl border border-dashed border-outline-variant/40 py-12 text-center">
                     <p className="text-on-surface-variant text-sm">No collaborators yet. Invite team members to get started.</p>
                   </div>
                 ) : (
                   collaborators.map((collab) => (
-                    <div key={collab.id} className="bg-surface-container-lowest border border-outline-variant/10 rounded-lg p-4 flex items-center justify-between">
+                    <div key={collab.id} className="theme-chip flex items-center justify-between rounded-xl p-4">
                       <div className="flex-1">
-                        <p className="font-bold text-sm text-primary">{collab.name}</p>
+                        <p className="font-bold text-sm text-on-surface">{collab.name}</p>
                         <p className="text-xs text-on-surface-variant">{collab.email || 'No email available'}</p>
                         <div className="flex items-center gap-2 mt-2">
-                          <span className="px-2 py-1 bg-secondary/10 text-secondary text-[10px] font-bold rounded uppercase">
+                          <span className="rounded px-2 py-1 text-[10px] font-bold uppercase bg-secondary-container text-on-secondary-container">
                             {collab.role}
                           </span>
                           {collab.is_accepted === false ? (
-                            <span className="px-2 py-1 bg-warning/15 text-warning text-[10px] font-bold rounded uppercase">
+                            <span className="rounded px-2 py-1 text-[10px] font-bold uppercase bg-warning/20 text-warning">
                               pending
                             </span>
                           ) : null}
@@ -455,7 +457,7 @@ export default function CollaborationPage() {
                       {collab.role !== 'owner' && (
                         <button
                           onClick={() => removeCollaboratorMutation.mutate(collab.id)}
-                          className="text-error hover:opacity-70 transition-opacity"
+                          className="theme-chip flex h-9 w-9 items-center justify-center rounded-full text-error hover:bg-error hover:text-on-error"
                         >
                           <span className="material-symbols-outlined">close</span>
                         </button>
@@ -471,10 +473,10 @@ export default function CollaborationPage() {
           {activeTab === 'comments' && (
             <div>
               <div className="mb-6 flex justify-between items-center">
-                <h3 className="text-lg font-bold text-primary">Comments & Feedback</h3>
+                <h3 className="text-lg font-bold text-on-surface">Comments & Feedback</h3>
                 <button
                   onClick={() => setCommentMode(!commentMode)}
-                  className="flex items-center gap-2 bg-secondary text-white px-4 py-2 rounded-lg font-label font-bold text-sm shadow-sm hover:bg-secondary/90 transition-all"
+                  className="flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 font-label text-sm font-bold text-secondary-foreground shadow-sm transition-all hover:bg-secondary/90"
                 >
                   <span className="material-symbols-outlined">add_comment</span>
                   Add
@@ -482,7 +484,7 @@ export default function CollaborationPage() {
               </div>
 
               {commentMode && (
-                <div className="bg-surface-container-lowest p-6 rounded-lg border border-outline-variant/10 mb-6">
+                <div className="elevated-panel mb-6 rounded-xl p-6">
                   <div className="mb-4">
                     <label htmlFor="comment-target" className="block font-label text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Target Chapter/Section (Optional)</label>
                     <input
@@ -491,7 +493,7 @@ export default function CollaborationPage() {
                       placeholder="e.g., Chapter 5"
                       value={selectedChapter}
                       onChange={(e) => setSelectedChapter(e.target.value)}
-                      className="w-full bg-surface-container-low border border-outline-variant/20 rounded-lg px-4 py-2 text-sm font-label"
+                      className="w-full rounded-lg border border-outline-variant/20 bg-surface-container-low px-4 py-2 text-sm font-label text-on-surface"
                     />
                   </div>
                   <div className="mb-4">
@@ -501,7 +503,7 @@ export default function CollaborationPage() {
                       placeholder="Add your feedback or comment..."
                       value={commentText}
                       onChange={(e) => setCommentText(e.target.value)}
-                      className="w-full bg-surface-container-low border border-outline-variant/20 rounded-lg px-4 py-3 text-sm font-label min-h-24 resize-none"
+                      className="min-h-24 w-full resize-none rounded-lg border border-outline-variant/20 bg-surface-container-low px-4 py-3 text-sm font-label text-on-surface"
                     />
                   </div>
                   <div className="flex gap-2">
@@ -514,13 +516,13 @@ export default function CollaborationPage() {
                         })
                       }
                       disabled={addCommentMutation.isPending || !commentText.trim()}
-                      className="bg-primary text-white px-4 py-2 rounded-lg font-label font-bold text-sm hover:bg-primary/90 disabled:opacity-50"
+                      className="rounded-lg bg-primary px-4 py-2 font-label text-sm font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                     >
                       Post
                     </button>
                     <button
                       onClick={() => setCommentMode(false)}
-                      className="bg-surface-container px-4 py-2 rounded-lg font-label font-bold text-sm text-primary hover:bg-surface-container-high"
+                      className="theme-chip rounded-lg px-4 py-2 font-label text-sm font-bold text-on-surface hover:bg-surface-container-high"
                     >
                       Cancel
                     </button>
@@ -538,15 +540,15 @@ export default function CollaborationPage() {
                 ) : loadingComments ? (
                   <div className="flex justify-center py-8"><Spinner /></div>
                 ) : comments.length === 0 ? (
-                  <div className="text-center py-12 bg-surface-container-lowest rounded-lg border border-dashed border-outline-variant/20">
+                  <div className="elevated-panel rounded-xl border border-dashed border-outline-variant/40 py-12 text-center">
                     <p className="text-on-surface-variant text-sm">No comments yet. Start collaborating!</p>
                   </div>
                 ) : (
                   comments.map((comment) => (
-                    <div key={comment.id} className={`bg-surface-container-lowest border ${comment.resolved ? 'border-success/30 opacity-60' : 'border-outline-variant/10'} rounded-lg p-4`}>
+                    <div key={comment.id} className={`theme-chip border rounded-xl p-4 ${comment.resolved ? 'border-success/30 opacity-70' : 'border-outline-variant/20'}`}>
                       <div className="flex items-start justify-between mb-2">
                         <div>
-                          <p className="font-bold text-sm text-primary">{comment.author}</p>
+                          <p className="font-bold text-sm text-on-surface">{comment.author}</p>
                           {comment.chapter ? <p className="text-xs text-on-surface-variant">on {comment.chapter}</p> : null}
                         </div>
                         {comment.resolved ? <span className="text-success text-xs font-bold">RESOLVED</span> : null}
@@ -565,7 +567,7 @@ export default function CollaborationPage() {
           {/* Activity Tab */}
           {activeTab === 'activity' && (
             <div>
-              <h3 className="text-lg font-bold text-primary mb-6">Activity Log</h3>
+              <h3 className="mb-6 text-lg font-bold text-on-surface">Activity Log</h3>
               <div className="space-y-3">
                 {activityError ? (
                   <QueryErrorState
@@ -576,12 +578,12 @@ export default function CollaborationPage() {
                 ) : loadingActivity ? (
                   <div className="flex justify-center py-8"><Spinner /></div>
                 ) : activities.length === 0 ? (
-                  <div className="text-center py-12 bg-surface-container-lowest rounded-lg border border-dashed border-outline-variant/20">
+                  <div className="elevated-panel rounded-xl border border-dashed border-outline-variant/40 py-12 text-center">
                     <p className="text-on-surface-variant text-sm">No activity yet.</p>
                   </div>
                 ) : (
                   activities.map((activity) => (
-                    <div key={activity.id} className="bg-surface-container-lowest border border-outline-variant/10 rounded-lg p-4 flex items-start gap-3">
+                    <div key={activity.id} className="theme-chip flex items-start gap-3 rounded-xl p-4">
                       <span className="material-symbols-outlined text-secondary flex-shrink-0">history</span>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm text-on-surface-variant">

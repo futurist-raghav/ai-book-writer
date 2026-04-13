@@ -29,6 +29,7 @@ from app.models.workspace import Workspace, WorkspaceMember, StyleGuide, Workspa
 from app.models.marketplace_template import MarketplaceTemplate, TemplateReview, TemplateCategory  # noqa: F401
 from app.models.classroom import Classroom, ClassAssignment, ClassroomSubmission, ClassroomGrade, SubmissionFeedback, ClassroomRole, AssignmentStatus, SubmissionStatus  # noqa: F401
 from app.models.public_comments import PublicComment, PublicRating  # noqa: F401
+from app.models.public_share import PublicShare, BookFeedback, BookRating  # noqa: F401
 from app.models.writing_performance import WritingSession, WriterMilestone, WritingStreak, WritingChallenge  # noqa: F401
 from app.models.publishing_pipeline import PublishingProfile, PublishingQueue, PublishingMetrics, IsbnRequest  # noqa: F401
 from app.models.author_community import AuthorProfile, BetaReaderProfile, BetaReaderMatch, WritingGroup, WritingGroupMember, AuthorMessage, PublicAuthorPage, AuthorCollaboration  # noqa: F401

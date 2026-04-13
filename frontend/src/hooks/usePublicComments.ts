@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from '@/lib/api-client';
+import { api } from '@/lib/api-client';
 import type {
   PublicComment,
   PublicRating,
@@ -19,9 +19,7 @@ export const usePublicComments = (shareToken: string | null) => {
     queryKey: ['public-comments', shareToken],
     queryFn: async () => {
       if (!shareToken) return [];
-      const response = await apiClient.get<PublicComment[]>(
-        `/api/v1/public/shares/${shareToken}/comments`,
-      );
+      const response = await api.get<PublicComment[]>(`/public/shares/${shareToken}/comments`);
       return response.data;
     },
     enabled: !!shareToken,
@@ -43,10 +41,7 @@ export const useCreateComment = () => {
       shareToken: string;
       data: CreateCommentRequest;
     }) => {
-      const response = await apiClient.post<PublicComment>(
-        `/api/v1/public/shares/${shareToken}/comments`,
-        data,
-      );
+      const response = await api.post<PublicComment>(`/public/shares/${shareToken}/comments`, data);
       return response.data;
     },
     onSuccess: (_, variables) => {
@@ -66,9 +61,7 @@ export const usePublicRatings = (shareToken: string | null) => {
     queryKey: ['public-ratings', shareToken],
     queryFn: async () => {
       if (!shareToken) return [];
-      const response = await apiClient.get<PublicRating[]>(
-        `/api/v1/public/shares/${shareToken}/ratings`,
-      );
+      const response = await api.get<PublicRating[]>(`/public/shares/${shareToken}/ratings`);
       return response.data;
     },
     enabled: !!shareToken,
@@ -80,9 +73,7 @@ export const useRatingsStats = (shareToken: string | null) => {
     queryKey: ['ratings-stats', shareToken],
     queryFn: async () => {
       if (!shareToken) return null;
-      const response = await apiClient.get<RatingsStats>(
-        `/api/v1/public/shares/${shareToken}/ratings/stats`,
-      );
+      const response = await api.get<RatingsStats>(`/public/shares/${shareToken}/ratings/stats`);
       return response.data;
     },
     enabled: !!shareToken,
@@ -104,10 +95,7 @@ export const useCreateRating = () => {
       shareToken: string;
       data: CreateRatingRequest;
     }) => {
-      const response = await apiClient.post<PublicRating>(
-        `/api/v1/public/shares/${shareToken}/ratings`,
-        data,
-      );
+      const response = await api.post<PublicRating>(`/public/shares/${shareToken}/ratings`, data);
       return response.data;
     },
     onSuccess: (_, variables) => {

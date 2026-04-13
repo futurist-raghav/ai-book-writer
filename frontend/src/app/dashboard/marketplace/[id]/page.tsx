@@ -1,5 +1,7 @@
 'use client';
 
+export const runtime = 'edge';
+
 import React, { useState } from 'react';
 import { useTemplateDetail, useTemplateReviews, useFavoriteTemplate, useUnfavoriteTemplate, useCreateTemplateReview, useCreateBookFromTemplate } from '@/hooks/useMarketplace';
 import { Button } from '@/components/ui/button';
@@ -67,14 +69,14 @@ export default function TemplatePage({ params }: PageProps) {
   if (isTemplateLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="text-gray-500">Loading template...</div>
+        <div className="text-on-surface-variant">Loading template...</div>
       </div>
     );
   }
 
   if (!template) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-surface">
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <Link href="/dashboard/marketplace">
             <Button variant="outline" size="sm" className="mb-6">
@@ -82,9 +84,9 @@ export default function TemplatePage({ params }: PageProps) {
               Back to Marketplace
             </Button>
           </Link>
-          <div className="rounded-lg border border-gray-200 bg-white p-12 text-center">
-            <h2 className="text-lg font-semibold text-gray-900">Template not found</h2>
-            <p className="mt-2 text-gray-600">The template you're looking for doesn't exist.</p>
+          <div className="elevated-panel rounded-xl p-12 text-center">
+            <h2 className="text-lg font-semibold text-on-surface">Template not found</h2>
+            <p className="mt-2 text-on-surface-variant">The template you're looking for doesn't exist.</p>
           </div>
         </div>
       </div>
@@ -92,9 +94,9 @@ export default function TemplatePage({ params }: PageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-surface">
       {/* Header */}
-      <div className="border-b border-gray-200 bg-white">
+      <div className="border-b border-outline-variant/35 bg-surface-container-lowest/90 backdrop-blur-md">
         <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
           <Link href="/dashboard/marketplace">
             <Button variant="outline" size="sm" className="mb-4">
@@ -105,21 +107,21 @@ export default function TemplatePage({ params }: PageProps) {
 
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <h1 className="text-3xl font-bold text-gray-900">{template.name}</h1>
+              <h1 className="text-3xl font-bold text-on-surface">{template.name}</h1>
               {template.is_verified && (
-                <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-green-50 px-3 py-1 text-sm font-medium text-green-700">
+                <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-success-container/60 px-3 py-1 text-sm font-medium text-success">
                   ✓ Verified by moderators
                 </div>
               )}
-              <p className="mt-4 text-gray-600">{template.description}</p>
+              <p className="mt-4 text-on-surface-variant">{template.description}</p>
             </div>
             <button
               onClick={handleFavorite}
               disabled={favoriteMutation.isPending || unfavoriteMutation.isPending}
-              className="flex-shrink-0 rounded-lg p-2 transition-colors hover:bg-red-50 disabled:opacity-50"
+              className="flex-shrink-0 rounded-lg p-2 transition-colors hover:bg-error/10 disabled:opacity-50"
             >
               <Heart
-                className={`h-6 w-6 ${isFavorited ? 'fill-red-500 text-red-500' : 'text-gray-400'}`}
+                className={`h-6 w-6 ${isFavorited ? 'fill-red-500 text-red-500' : 'text-on-surface-variant'}`}
               />
             </button>
           </div>
@@ -133,12 +135,12 @@ export default function TemplatePage({ params }: PageProps) {
             {/* Tags */}
             {template.tags && template.tags.length > 0 && (
               <div className="mb-6">
-                <h3 className="mb-3 font-semibold text-gray-900">Tags</h3>
+                <h3 className="mb-3 font-semibold text-on-surface">Tags</h3>
                 <div className="flex flex-wrap gap-2">
                   {template.tags.map((tag: string) => (
                     <span
                       key={tag}
-                      className="inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-blue-700"
+                      className="inline-flex items-center rounded-full bg-primary-container/55 px-3 py-1 text-sm font-medium text-on-primary-container"
                     >
                       {tag}
                     </span>
@@ -149,9 +151,9 @@ export default function TemplatePage({ params }: PageProps) {
 
             {/* Sample Content */}
             {template.sample_content && (
-              <div className="mb-8 rounded-lg border border-gray-200 bg-white p-6">
-                <h3 className="mb-4 font-semibold text-gray-900">Sample Content</h3>
-                <div className="prose prose-sm max-w-none text-gray-600">
+              <div className="elevated-panel mb-8 rounded-xl p-6">
+                <h3 className="mb-4 font-semibold text-on-surface">Sample Content</h3>
+                <div className="prose prose-sm max-w-none text-on-surface-variant">
                   {template.sample_content}
                 </div>
               </div>
@@ -159,15 +161,15 @@ export default function TemplatePage({ params }: PageProps) {
 
             {/* Reviews Section */}
             <div className="mb-8">
-              <h3 className="mb-6 text-2xl font-bold text-gray-900">Reviews ({totalReviews})</h3>
+              <h3 className="mb-6 text-2xl font-bold text-on-surface">Reviews ({totalReviews})</h3>
 
               {/* New Review Form */}
-              <form onSubmit={handleSubmitReview} className="mb-8 rounded-lg border border-gray-200 bg-white p-6">
-                <h4 className="mb-4 font-semibold text-gray-900">Write a Review</h4>
+              <form onSubmit={handleSubmitReview} className="elevated-panel mb-8 rounded-xl p-6">
+                <h4 className="mb-4 font-semibold text-on-surface">Write a Review</h4>
                 
                 {/* Rating */}
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Rating</label>
+                  <label className="mb-2 block text-sm font-medium text-on-surface-variant">Rating</label>
                   <div className="flex gap-2">
                     {[1, 2, 3, 4, 5].map((rating) => (
                       <button
@@ -180,7 +182,7 @@ export default function TemplatePage({ params }: PageProps) {
                           className={`h-6 w-6 ${
                             rating <= newReviewRating
                               ? 'fill-yellow-400 text-yellow-400'
-                              : 'text-gray-300'
+                              : 'text-outline-variant'
                           }`}
                         />
                       </button>
@@ -190,7 +192,7 @@ export default function TemplatePage({ params }: PageProps) {
 
                 {/* Title */}
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Title (optional)</label>
+                  <label className="mb-2 block text-sm font-medium text-on-surface-variant">Title (optional)</label>
                   <Input
                     type="text"
                     value={newReviewTitle}
@@ -202,7 +204,7 @@ export default function TemplatePage({ params }: PageProps) {
 
                 {/* Content */}
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Review (optional)</label>
+                  <label className="mb-2 block text-sm font-medium text-on-surface-variant">Review (optional)</label>
                   <Textarea
                     value={newReviewContent}
                     onChange={(e) => setNewReviewContent(e.target.value)}
@@ -222,11 +224,11 @@ export default function TemplatePage({ params }: PageProps) {
 
               {/* Reviews List */}
               {isReviewsLoading ? (
-                <div className="text-center py-6 text-gray-500">Loading reviews...</div>
+                <div className="py-6 text-center text-on-surface-variant">Loading reviews...</div>
               ) : reviews.length > 0 ? (
                 <div className="space-y-4">
                   {reviews.map((review: typeof reviews[0]) => (
-                    <div key={review.id} className="rounded-lg border border-gray-200 bg-white p-4">
+                    <div key={review.id} className="theme-chip rounded-lg p-4">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
@@ -237,32 +239,32 @@ export default function TemplatePage({ params }: PageProps) {
                                   className={`h-4 w-4 ${
                                     star <= review.rating
                                       ? 'fill-yellow-400 text-yellow-400'
-                                      : 'text-gray-300'
+                                      : 'text-outline-variant'
                                   }`}
                                 />
                               ))}
                             </div>
-                            <span className="text-sm font-medium text-gray-700">
+                            <span className="text-sm font-medium text-on-surface-variant">
                               {review.reviewer.name}
                             </span>
                           </div>
                           {review.title && (
-                            <h4 className="mt-1 font-semibold text-gray-900">{review.title}</h4>
+                            <h4 className="mt-1 font-semibold text-on-surface">{review.title}</h4>
                           )}
                           {review.content && (
-                            <p className="mt-2 text-gray-600">{review.content}</p>
+                            <p className="mt-2 text-on-surface-variant">{review.content}</p>
                           )}
                         </div>
                       </div>
-                      <div className="mt-3 text-xs text-gray-500">
+                      <div className="mt-3 text-xs text-on-surface-variant">
                         {new Date(review.created_at).toLocaleDateString()}
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="rounded-lg border border-gray-200 bg-white p-6 text-center">
-                  <p className="text-gray-600">No reviews yet. Be the first to review this template!</p>
+                <div className="elevated-panel rounded-lg p-6 text-center">
+                  <p className="text-on-surface-variant">No reviews yet. Be the first to review this template!</p>
                 </div>
               )}
             </div>
@@ -271,42 +273,42 @@ export default function TemplatePage({ params }: PageProps) {
           {/* Sidebar */}
           <div className="md:col-span-1">
             {/* Stats Card */}
-            <div className="rounded-lg border border-gray-200 bg-white p-6">
+            <div className="elevated-panel rounded-xl p-6">
               <div className="space-y-6">
                 {/* Rating */}
                 <div>
                   <div className="flex items-center gap-2">
                     <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                    <span className="text-2xl font-bold text-gray-900">{averageRating.toFixed(1)}</span>
+                    <span className="text-2xl font-bold text-on-surface">{averageRating.toFixed(1)}</span>
                   </div>
-                  <p className="text-sm text-gray-600">({totalReviews} reviews)</p>
+                  <p className="text-sm text-on-surface-variant">({totalReviews} reviews)</p>
                 </div>
 
                 {/* Usage Count */}
                 <div>
-                  <div className="flex items-center gap-2 text-gray-900">
-                    <Eye className="h-5 w-5 text-gray-400" />
+                  <div className="flex items-center gap-2 text-on-surface">
+                    <Eye className="h-5 w-5 text-on-surface-variant" />
                     <span className="text-lg font-semibold">{template.usage_count}</span>
                   </div>
-                  <p className="text-sm text-gray-600">Uses</p>
+                  <p className="text-sm text-on-surface-variant">Uses</p>
                 </div>
 
                 {/* Category */}
                 <div>
-                  <p className="text-sm font-medium text-gray-500">Category</p>
-                  <p className="mt-1 text-gray-900">{template.category}</p>
+                  <p className="text-sm font-medium text-on-surface-variant">Category</p>
+                  <p className="mt-1 text-on-surface">{template.category}</p>
                 </div>
 
                 {/* Creator */}
                 <div>
-                  <p className="text-sm font-medium text-gray-500">Creator</p>
-                  <p className="mt-1 text-gray-900">{template.creator?.name || 'Unknown'}</p>
+                  <p className="text-sm font-medium text-on-surface-variant">Creator</p>
+                  <p className="mt-1 text-on-surface">{template.creator?.name || 'Unknown'}</p>
                 </div>
 
                 {/* Created Date */}
                 <div>
-                  <p className="text-sm font-medium text-gray-500">Created</p>
-                  <p className="mt-1 text-gray-900">
+                  <p className="text-sm font-medium text-on-surface-variant">Created</p>
+                  <p className="mt-1 text-on-surface">
                     {new Date(template.created_at).toLocaleDateString()}
                   </p>
                 </div>

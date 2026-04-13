@@ -65,22 +65,22 @@ export default function ArchivePage() {
       <h2 className="text-5xl md:text-6xl font-light tracking-tighter text-primary font-body mb-2">Archive</h2>
       <p className="font-label text-sm text-on-surface-variant mb-10">Finished or archived projects.</p>
 
-      <div className="bg-surface-container-lowest p-8 rounded-xl border border-outline-variant/10">
+      <div className="elevated-panel rounded-2xl p-8">
         {archived.length === 0 ? (
-          <div className="border-2 border-dashed border-outline-variant/30 rounded-xl p-12 flex flex-col items-center justify-center text-center">
-            <span className="material-symbols-outlined text-4xl text-on-surface-variant mb-4">archive</span>
-            <h3 className="font-label text-sm font-bold text-primary uppercase tracking-widest mb-2">No archived projects</h3>
-            <p className="font-label text-xs text-on-surface-variant max-w-sm leading-relaxed">
+          <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-outline-variant/45 p-12 text-center">
+            <span className="material-symbols-outlined mb-4 text-4xl text-on-surface-variant">archive</span>
+            <h3 className="mb-2 font-label text-sm font-bold uppercase tracking-widest text-on-surface">No archived projects</h3>
+            <p className="max-w-sm font-label text-sm leading-relaxed text-on-surface-variant">
               Archive your finished or inactive projects to keep your workspace organized. Archived projects can be restored anytime.
             </p>
           </div>
         ) : (
           <div className="space-y-3">
             {archived.map((book) => (
-              <div key={book.id} className="rounded-lg p-4 hover:bg-surface-container-low transition-colors border border-transparent hover:border-outline-variant/10">
+              <div key={book.id} className="theme-chip rounded-xl p-4">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                   <div>
-                    <p className="font-body text-2xl italic text-primary">{book.title}</p>
+                    <p className="font-body text-2xl italic text-on-surface">{book.title}</p>
                     <p className="font-label text-[11px] uppercase tracking-wide text-on-surface-variant mt-1">
                       Status: {String(book.status).replace('_', ' ')} • {book.chapter_count || 0} chapters • {book.word_count || 0} words • {formatDate(book.created_at)}
                     </p>
@@ -90,7 +90,7 @@ export default function ArchivePage() {
                     <button
                       onClick={() => restoreMutation.mutate(book.id)}
                       disabled={restoreMutation.isPending}
-                      className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-primary shadow-sm hover:bg-secondary hover:text-white transition-colors disabled:opacity-50"
+                      className="theme-chip flex h-10 w-10 items-center justify-center rounded-full text-primary hover:bg-secondary hover:text-secondary-foreground disabled:opacity-50"
                       title="Restore"
                     >
                       {restoreMutation.isPending && restoreMutation.variables === book.id ? (
@@ -106,7 +106,7 @@ export default function ArchivePage() {
                         }
                       }}
                       disabled={deleteMutation.isPending}
-                      className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-error shadow-sm hover:bg-error hover:text-white transition-colors disabled:opacity-50"
+                      className="theme-chip flex h-10 w-10 items-center justify-center rounded-full text-error hover:bg-error hover:text-on-error disabled:opacity-50"
                       title="Delete"
                     >
                       {deleteMutation.isPending && deleteMutation.variables === book.id ? (

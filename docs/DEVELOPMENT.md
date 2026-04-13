@@ -1,6 +1,6 @@
 # P7.6 Mobile App - Implementation Guide
 
-This guide covers the current state of the AI Book Writer mobile application and how to continue development.
+This guide covers the current state of the Scribe House mobile application and how to continue development.
 
 ## Quick Start
 

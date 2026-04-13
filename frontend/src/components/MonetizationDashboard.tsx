@@ -1,14 +1,13 @@
-"""
+/*
 MonetizationDashboard - Subscription, Royalties, and Earnings Management
-"""
-import React, { useState, useEffect } from 'react';
+*/
+import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useQuery } from '@tanstack/react-query';
-import { api } from '@/lib/api';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { api } from '@/lib/api-client';
+import { formatDate } from '@/lib/utils';
 
 interface Subscription {
   tier: string;
@@ -50,25 +49,40 @@ interface DashboardMetrics {
   beta_readers_engaged: number;
 }
 
-export const MonetizationDashboard: React.FC = () => {
-  const [selectedTier, setSelectedTier] = useState<string>('pro');
+function formatCurrency(value: number): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: 2,
+  }).format(value);
+}
 
+export const MonetizationDashboard: React.FC = () => {
   // Fetch subscription
-  const { data: subscription } = useQuery({
+  const { data: subscription } = useQuery<Subscription>({
     queryKey: ['subscription'],
-    queryFn: () => api.get('/monetization/subscription'),
+    queryFn: async () => {
+      const response = await api.get('/monetization/subscription');
+      return response.data as Subscription;
+    },
   });
 
   // Fetch royalties
   const { data: royalties } = useQuery<Royalty[]>({
     queryKey: ['royalties'],
-    queryFn: () => api.get('/monetization/royalties'),
+    queryFn: async () => {
+      const response = await api.get('/monetization/royalties');
+      return response.data as Royalty[];
+    },
   });
 
   // Fetch dashboard metrics
   const { data: metrics } = useQuery<DashboardMetrics>({
     queryKey: ['monetization-metrics'],
-    queryFn: () => api.get('/monetization/dashboard'),
+    queryFn: async () => {
+      const response = await api.get('/monetization/dashboard');
+      return response.data as DashboardMetrics;
+    },
   });
 
   const handleUpgrade = async (tier: string) => {

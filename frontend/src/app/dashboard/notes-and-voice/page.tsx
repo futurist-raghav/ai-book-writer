@@ -180,8 +180,8 @@ export default function NotesAndVoicePage() {
     try {
       const chapter = await apiClient.chapters.create({
         title: `Draft from: ${note.title}`,
-        content: draftContent,
         chapter_number: 999, // Will be renumbered
+        summary: draftContent.slice(0, 500),
       });
 
       if (chapter.data?.id) {
@@ -238,12 +238,12 @@ export default function NotesAndVoicePage() {
         }
 
         stream.getTracks().forEach((track) => track.stop());
-        setRecording(false);
+        setIsRecording(false);
         setRecordingTime(0);
       };
 
       mediaRecorder.start();
-      setRecording(true);
+      setIsRecording(true);
 
       recordingIntervalRef.current = setInterval(() => {
         setRecordingTime((t) => t + 1);
@@ -502,7 +502,7 @@ export default function NotesAndVoicePage() {
                 {/* Tags */}
                 {(note.tags || []).length > 0 && (
                   <div className="px-4 py-3 bg-surface-container-lowest border-t border-outline-variant/10 flex flex-wrap gap-2">
-                    {note.tags.map((tag) => (
+                    {(note.tags || []).map((tag) => (
                       <span
                         key={tag}
                         className="px-2 py-1 rounded-full bg-tertiary/10 text-tertiary text-[9px] font-bold uppercase tracking-tighter"

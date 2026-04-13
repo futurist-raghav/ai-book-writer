@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
 
-from app.api.dependencies import get_current_user, get_db
+from app.core.dependencies import get_current_user, get_db
 from app.models import Book, AccessibilityScan, AccessibilityRecommendation, User
 from app.schemas.accessibility import (
     AccessibilityScanExecuteRequest,

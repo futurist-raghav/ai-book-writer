@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from app.api.dependencies import get_current_user, get_db
+from app.core.dependencies import get_current_user, get_db
 from app.models import Book, BookMetadata, User
 from app.schemas.book_metadata import BookMetadataResponse, BookMetadataUpdate
 

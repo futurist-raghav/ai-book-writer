@@ -2,7 +2,7 @@
 
 ## Overview
 
-You now have comprehensive testing, documentation, and quality assurance infrastructure for AI Book Writer. This document summarizes what's been created and how to use it.
+You now have comprehensive testing, documentation, and quality assurance infrastructure for Scribe House. This document summarizes what's been created and how to use it.
 
 **Completed:** April 2026  
 **Scope:** Phase 0 Foundation + Roadmap through Phase 4  

@@ -3,7 +3,7 @@
  * Export flow events as CSV, JSON, or generate HTML
  */
 
-import { FlowEvent, FlowDependency } from '@/types/flow';
+import { FlowEvent, FlowDependency } from '@/lib/api-client';
 
 export interface ExportOptions {
   includeMetadata?: boolean;
@@ -56,7 +56,7 @@ export function exportToCSV(
       event.timeline_position,
       event.duration || 1,
       `"${(event.description || '').replace(/"/g, '""')}"`, // Escape quotes
-      event.priority || 'Medium',
+      String(event.metadata?.priority || 'Medium'),
     ];
 
     if (options.includeDependencies) {
@@ -109,7 +109,7 @@ export function exportToHTML(
     planned: '#9CA3AF',
     in_progress: '#3B82F6',
     completed: '#10B981',
-    blocked: '#EF4444',
+    archived: '#6B7280',
   };
 
   const eventTypeColorMap = {

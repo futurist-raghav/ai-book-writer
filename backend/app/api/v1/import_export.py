@@ -7,11 +7,10 @@ import os
 from datetime import datetime
 import tempfile
 
-from app.core.database import get_db
-from app.core.security import get_current_user
+from app.core.dependencies import get_db, get_current_user
 from app.models.user import User
 from app.models.book import Book
-from app.models.chapter import Chapter, Part
+from app.models.chapter import Chapter
 from app.models.import_source import ImportSource, ImportedContent, ImportFormat, ImportStatus
 from app.schemas.import_schemas import (
     ImportFormatEnum,
@@ -35,7 +34,7 @@ from app.services.export_generators import (
 )
 from fastapi.responses import FileResponse, StreamingResponse
 
-router = APIRouter(prefix="/books/{book_id}/import", tags=["import_export"])
+router = APIRouter(tags=["import_export"])
 
 # Storage path for uploads
 UPLOAD_DIR = "/app/storage/imports"
@@ -114,7 +113,7 @@ async def parse_import_file(format: str, file_path: str) -> tuple[dict, List]:
     return structure, sections
 
 
-@router.post("/upload", response_model=ImportSourceResponse)
+@router.post("/{book_id}/import/upload", response_model=ImportSourceResponse)
 async def upload_import(
     book_id: int,
     file: UploadFile = File(...),
@@ -252,7 +251,7 @@ async def get_import_preview(
     )
 
 
-@router.post("/{source_id}/apply", response_model=ImportApplyResponse)
+@router.post("/{book_id}/import/{source_id}/apply", response_model=ImportApplyResponse)
 async def apply_import(
     book_id: int,
     source_id: int,
@@ -440,7 +439,7 @@ async def delete_import_source(
 # EXPORT ENDPOINTS (P2.7 Phase 2)
 # ============================================================================
 
-@router.post("/books/{book_id}/export/markdown")
+@router.post("/{book_id}/export/markdown")
 async def export_to_markdown(
     book_id: int,
     include_metadata: bool = True,
@@ -497,7 +496,7 @@ async def export_to_markdown(
     )
 
 
-@router.post("/books/{book_id}/export/text")
+@router.post("/{book_id}/export/text")
 async def export_to_text(
     book_id: int,
     include_metadata: bool = True,
@@ -554,7 +553,7 @@ async def export_to_text(
     )
 
 
-@router.post("/books/{book_id}/export/docx")
+@router.post("/{book_id}/export/docx")
 async def export_to_docx(
     book_id: int,
     include_metadata: bool = True,

@@ -9,39 +9,41 @@ interface DarkModeContextType {
 }
 
 const DarkModeContext = createContext<DarkModeContextType | undefined>(undefined);
+const THEME_STORAGE_KEY = 'theme-mode';
+const LIGHT_THEME_COLOR = '#e7effd';
+const DARK_THEME_COLOR = '#0f1728';
+
+function applyTheme(dark: boolean) {
+  const html = document.documentElement;
+
+  html.classList.toggle('dark', dark);
+  html.setAttribute('data-theme', dark ? 'dark' : 'light');
+
+  const themeMeta = document.querySelector('meta[name="theme-color"]');
+  if (themeMeta) {
+    themeMeta.setAttribute('content', dark ? DARK_THEME_COLOR : LIGHT_THEME_COLOR);
+  }
+}
 
 export function DarkModeProvider({ children }: { children: ReactNode }) {
   const [isDark, setIsDark] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
 
-  // Hydrate from localStorage on mount
   useEffect(() => {
-    const stored = localStorage.getItem('theme-mode');
-
-    // Keep dashboard visuals predictable across devices by defaulting to light mode
-    // unless the user has explicitly chosen dark mode.
+    const stored = localStorage.getItem(THEME_STORAGE_KEY);
     const shouldBeDark = stored === 'dark';
+
     setIsDark(shouldBeDark);
     applyTheme(shouldBeDark);
     setIsHydrated(true);
   }, []);
 
-  // Update localStorage and DOM when isDark changes
   useEffect(() => {
     if (!isHydrated) return;
-    
-    localStorage.setItem('theme-mode', isDark ? 'dark' : 'light');
+
+    localStorage.setItem(THEME_STORAGE_KEY, isDark ? 'dark' : 'light');
     applyTheme(isDark);
   }, [isDark, isHydrated]);
-
-  const applyTheme = (dark: boolean) => {
-    const html = document.documentElement;
-    if (dark) {
-      html.classList.add('dark');
-    } else {
-      html.classList.remove('dark');
-    }
-  };
 
   const toggleDarkMode = () => setIsDark((prev) => !prev);
   const setDarkMode = (dark: boolean) => setIsDark(dark);

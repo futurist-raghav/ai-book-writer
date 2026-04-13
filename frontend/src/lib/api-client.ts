@@ -3,6 +3,73 @@ import { useAuthStore } from '@/stores/auth-store';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
 
+const VALID_BOOK_STATUSES = new Set([
+  'draft',
+  'in_progress',
+  'review',
+  'archived',
+  'completed',
+  'published',
+]);
+
+function isValidationRequestError(error: unknown): error is AxiosError {
+  if (!axios.isAxiosError(error)) {
+    return false;
+  }
+
+  const statusCode = error.response?.status;
+  return statusCode === 400 || statusCode === 422;
+}
+
+function clampBookListLimit(limit?: number): number {
+  if (!Number.isFinite(limit)) {
+    return 20;
+  }
+
+  const sanitized = Math.floor(Number(limit));
+  if (sanitized < 1) {
+    return 1;
+  }
+  if (sanitized > 100) {
+    return 100;
+  }
+  return sanitized;
+}
+
+function coerceBookStatus(status?: string): string {
+  const normalized = String(status || '').trim().toLowerCase();
+  if (VALID_BOOK_STATUSES.has(normalized)) {
+    return normalized;
+  }
+  return 'in_progress';
+}
+
+function buildFallbackBookCreatePayload(data: {
+  title: string;
+  subtitle?: string;
+  author_name?: string;
+  description?: string;
+  project_context?: string;
+  project_type?: string;
+  book_type?: string;
+  genres?: string[];
+  status?: string;
+}) {
+  const projectType = data.project_type || data.book_type;
+
+  return {
+    title: data.title,
+    subtitle: data.subtitle,
+    author_name: data.author_name,
+    description: data.description,
+    project_context: data.project_context,
+    status: coerceBookStatus(data.status),
+    project_type: projectType,
+    book_type: projectType,
+    genre: Array.isArray(data.genres) && data.genres.length > 0 ? data.genres[0] : undefined,
+  };
+}
+
 function normalizeBookListResponse(payload: any, requestedLimit?: number) {
   const normalizedPayload = payload && typeof payload === 'object' ? payload : {};
   const nestedData = normalizedPayload.data && typeof normalizedPayload.data === 'object'
@@ -414,11 +481,43 @@ export const apiClient = {
       sort_by?: 'updated_at' | 'created_at' | 'title' | 'status';
       sort_order?: 'asc' | 'desc';
     }) => {
-      const response = await api.get('/books', { params });
-      return {
+      const page = Number(params?.page) > 0 ? Number(params?.page) : 1;
+      const limit = clampBookListLimit(params?.limit);
+      const primaryParams = {
+        ...params,
+        page,
+        limit,
+      } as Record<string, unknown>;
+
+      const normalizeResponse = (response: any, requestedLimit: number) => ({
         ...response,
-        data: normalizeBookListResponse(response.data, params?.limit),
-      };
+        data: normalizeBookListResponse(response.data, requestedLimit),
+      });
+
+      try {
+        const response = await api.get('/books', { params: primaryParams });
+        return normalizeResponse(response, limit);
+      } catch (error) {
+        if (!isValidationRequestError(error)) {
+          throw error;
+        }
+
+        try {
+          const response = await api.get('/books', {
+            params: { page, limit },
+          });
+          return normalizeResponse(response, limit);
+        } catch (fallbackError) {
+          if (!isValidationRequestError(fallbackError)) {
+            throw fallbackError;
+          }
+
+          const response = await api.get('/books', {
+            params: { page, page_size: limit },
+          });
+          return normalizeResponse(response, limit);
+        }
+      }
     },
     get: async (id: string) => {
       const response = await api.get(`/books/${id}`);
@@ -450,11 +549,29 @@ export const apiClient = {
       status?: string;
       auto_create_chapters?: number;
     }) => {
-      const response = await api.post('/books', data);
-      return {
-        ...response,
-        data: normalizeBookDetailResponse(response.data),
+      const primaryPayload = {
+        ...data,
+        status: coerceBookStatus(data.status),
       };
+
+      try {
+        const response = await api.post('/books', primaryPayload);
+        return {
+          ...response,
+          data: normalizeBookDetailResponse(response.data),
+        };
+      } catch (error) {
+        if (!isValidationRequestError(error)) {
+          throw error;
+        }
+
+        const fallbackPayload = buildFallbackBookCreatePayload(primaryPayload);
+        const response = await api.post('/books', fallbackPayload);
+        return {
+          ...response,
+          data: normalizeBookDetailResponse(response.data),
+        };
+      }
     },
     update: async (id: string, data: Partial<{ title: string; description?: string; project_context?: string; project_settings?: Record<string, unknown>; project_type?: string; book_type?: string; genres?: string[]; tags?: string[]; labels?: string[]; cover_image_url?: string; cover_color?: string; target_word_count?: number | null; deadline_at?: string | null; is_pinned?: boolean; default_writing_form?: string; default_chapter_tone?: string; ai_enhancement_enabled?: boolean; status?: string }>) =>
       api.put(`/books/${id}`, data),
@@ -805,14 +922,15 @@ export interface FlowEvent {
   book_id: string;
   title: string;
   description?: string;
+  content?: string;
   event_type: string;
   timeline_position: number;
   duration?: number;
-  status: 'planned' | 'in_progress' | 'completed' | 'archived';
+  status: 'planned' | 'in_progress' | 'completed' | 'archived' | 'blocked';
   order_index: number;
   metadata?: Record<string, any>;
-  created_at: string;
-  updated_at: string;
+  created_at: string | Date;
+  updated_at: string | Date;
 }
 
 export interface FlowDependency {
@@ -820,10 +938,10 @@ export interface FlowDependency {
   book_id: string;
   from_event_id: string;
   to_event_id: string;
-  dependency_type?: 'sequence' | 'causality' | 'parallel' | 'optional';
+  dependency_type?: 'sequence' | 'causality' | 'parallel' | 'optional' | 'blocks';
   description?: string;
-  created_at: string;
-  updated_at: string;
+  created_at: string | Date;
+  updated_at: string | Date;
 }
 
 // ============================================================================

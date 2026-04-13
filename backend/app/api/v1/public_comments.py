@@ -4,7 +4,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, desc
-from app.db import get_db
+from app.core.dependencies import get_db
 from app.models import PublicComment, PublicRating, PublicShare
 from pydantic import BaseModel, Field
 from datetime import datetime

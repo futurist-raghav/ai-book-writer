@@ -6,8 +6,10 @@ Combines all API routes into a single router.
 
 from fastapi import APIRouter
 
-from app.api.v1 import ai, audio, auth, books, chapters, chapter_versions, chapter_edits, section_approvals, formatting_themes, matter_config, device_preview, export_bundle, book_metadata, accessibility, collaboration, collaborator_roles, comments, custom_fields, entities, events, export, flow_engine, references, suggestions, transcriptions, bibliography, workspace_customization, import_export, glossary, realtime, workspace, marketplace_template, agents, analytics, public_share, public_comments, classroom, writing_performance, publishing_pipeline, monetization, api_integrations, mobile, enterprise
-from app.routes import marketplace_analytics, publishing_pipeline, author_community, subscriptions, writing_groups, integrations_notion, integrations_google_docs, integrations_zapier, integrations_make
+from app.api.v1 import ai, audio, auth, books, chapters, chapter_versions, chapter_edits, section_approvals, formatting_themes, matter_config, device_preview, export_bundle, book_metadata, accessibility, collaboration, collaborator_roles, comments, custom_fields, entities, events, export, flow_engine, references, suggestions, transcriptions, bibliography, workspace_customization, import_export, glossary, realtime, workspace, marketplace_template, agents, analytics, public_share, public_comments, classroom, writing_performance, publishing_pipeline, monetization, api_integrations, mobile, enterprise, author_community
+
+# Legacy modules not migrated yet to api/v1:
+# writing_groups, subscriptions, marketplace_analytics, integrations_notion, integrations_google_docs, integrations_zapier, integrations_make
 
 api_router = APIRouter()
 
@@ -44,9 +46,9 @@ api_router.include_router(custom_fields.router, tags=["Custom Fields"])
 api_router.include_router(collaboration.router, prefix="", tags=["Collaboration"])
 api_router.include_router(realtime.router, tags=["Real-time Collaboration"])
 api_router.include_router(export.router, prefix="", tags=["Publishing & Exports"])
-api_router.include_router(import_export.router, tags=["Import & Export"])
+api_router.include_router(import_export.router, prefix="/books", tags=["Import & Export"])
 api_router.include_router(marketplace_template.router, tags=["Template Marketplace"])
-api_router.include_router(marketplace_analytics.router, tags=["Template Marketplace"])
+# api_router.include_router(marketplace_analytics.router, tags=["Template Marketplace"])  # Module not migrated to api/v1 yet
 api_router.include_router(publishing_pipeline.router, tags=["Publishing Pipeline"])
 api_router.include_router(agents.router, tags=["AI Agents"])
 api_router.include_router(analytics.router, tags=["Analytics"])
@@ -55,13 +57,13 @@ api_router.include_router(public_comments.router, tags=["Public Comments & Ratin
 api_router.include_router(classroom.router, tags=["Classrooms & Learning"])
 api_router.include_router(writing_performance.router, tags=["Writing Performance"])
 api_router.include_router(author_community.router, tags=["Author Community"])
-api_router.include_router(writing_groups.router, tags=["Writing Groups"])
-api_router.include_router(subscriptions.router, tags=["Subscriptions & Monetization"])
+# api_router.include_router(writing_groups.router, tags=["Writing Groups"])  # Module not migrated to api/v1 yet
+# api_router.include_router(subscriptions.router, tags=["Subscriptions & Monetization"])  # Module not migrated to api/v1 yet
 api_router.include_router(monetization.router, tags=["Monetization"])
 api_router.include_router(api_integrations.router, tags=["Integrations"])
 api_router.include_router(mobile.router, tags=["Mobile Apps"])
 api_router.include_router(enterprise.router, tags=["Enterprise"])
-api_router.include_router(integrations_notion.router, tags=["Notion Integration"])
-api_router.include_router(integrations_google_docs.router, tags=["Google Docs Integration"])
-api_router.include_router(integrations_zapier.router, tags=["Zapier Integration"])
-api_router.include_router(integrations_make.router, tags=["Make.com Integration"])
+# api_router.include_router(integrations_notion.router, tags=["Notion Integration"])  # Module not migrated to api/v1 yet
+# api_router.include_router(integrations_google_docs.router, tags=["Google Docs Integration"])  # Module not migrated to api/v1 yet
+# api_router.include_router(integrations_zapier.router, tags=["Zapier Integration"])  # Module not migrated to api/v1 yet
+# api_router.include_router(integrations_make.router, tags=["Make.com Integration"])  # Module not migrated to api/v1 yet

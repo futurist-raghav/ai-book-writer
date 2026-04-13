@@ -7,8 +7,8 @@
 import React, { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { api } from '@/lib/api';
-import { useAuth } from '@/hooks/useAuth';
+import { api } from '@/lib/api-client';
+import { useAuthStore } from '@/stores/auth-store';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -49,6 +49,10 @@ interface CollaboratorManagerProps {
   isOwner: boolean;
 }
 
+interface CollaboratorsResponse {
+  collaborators: Collaborator[];
+}
+
 /**
  * List and manage collaborators for a book
  */
@@ -56,73 +60,62 @@ export const CollaboratorManager: React.FC<CollaboratorManagerProps> = ({
   bookId,
   isOwner,
 }) => {
-  const { user } = useAuth();
+  const { user } = useAuthStore();
   const queryClient = useQueryClient();
   const [showInviteForm, setShowInviteForm] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<CollaboratorRole>('contributor');
 
   // Fetch collaborators
-  const { data: collaboratorsData, isLoading } = useQuery(
-    ['collaborators', bookId],
-    async () => {
-      const response = await api.get(`/api/v1/books/${bookId}/collaborators`);
-      return response;
+  const { data: collaboratorsData, isLoading } = useQuery<CollaboratorsResponse>({
+    queryKey: ['collaborators', bookId],
+    queryFn: async () => {
+      const response = await api.get(`/books/${bookId}/collaborators`);
+      return response.data as CollaboratorsResponse;
     },
-    { enabled: isOwner }
-  );
+    enabled: isOwner,
+  });
 
   const collaborators = collaboratorsData?.collaborators ?? [];
 
-  const inviteMutation = useMutation(
-    async () => {
-      await api.post(`/api/v1/books/${bookId}/collaborators/invite`, {
+  const inviteMutation = useMutation({
+    mutationFn: async () => {
+      await api.post(`/books/${bookId}/collaborators/invite`, {
         email: inviteEmail,
         role: inviteRole,
       });
     },
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['collaborators', bookId]);
-        setInviteEmail('');
-        setInviteRole('contributor');
-        setShowInviteForm(false);
-      },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['collaborators', bookId] });
+      setInviteEmail('');
+      setInviteRole('contributor');
+      setShowInviteForm(false);
     }
-  );
+  });
 
-  const removeMutation = useMutation(
-    async (collaboratorId: string) => {
-      await api.delete(
-        `/api/v1/books/${bookId}/collaborators/${collaboratorId}`
-      );
+  const removeMutation = useMutation({
+    mutationFn: async (collaboratorId: string) => {
+      await api.delete(`/books/${bookId}/collaborators/${collaboratorId}`);
     },
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['collaborators', bookId]);
-      },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['collaborators', bookId] });
     }
-  );
+  });
 
-  const updateRoleMutation = useMutation(
-    async ({
+  const updateRoleMutation = useMutation({
+    mutationFn: async ({
       collaboratorId,
       role,
     }: {
       collaboratorId: string;
       role: CollaboratorRole;
     }) => {
-      await api.patch(
-        `/api/v1/books/${bookId}/collaborators/${collaboratorId}`,
-        { role }
-      );
+      await api.patch(`/books/${bookId}/collaborators/${collaboratorId}`, { role });
     },
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['collaborators', bookId]);
-      },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['collaborators', bookId] });
     }
-  );
+  });
 
   const handleInvite = useCallback(() => {
     if (inviteEmail.trim()) {

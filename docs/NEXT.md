@@ -354,7 +354,7 @@
 - The sidebar is fixed to 8 items regardless of project type — a quantum computing textbook writer doesn't need "World Building."
 - No notification system, no activity log.
 - No keyboard shortcuts visible anywhere.
-- Branding "The Editorial Sanctuary" is beautiful but the product feels like a personal writing journal, not a professional writing tool.
+- Branding "Scribe House" reflects our professional, writing-focused positioning.
 
 ***
 

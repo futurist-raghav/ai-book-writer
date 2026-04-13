@@ -4,8 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, select
 from datetime import datetime, timedelta
-from app.db import get_db
-from app.middleware.auth import get_current_user
+from app.core.dependencies import get_db
 from app.models.user import User
 from app.models.writing_performance import WritingSession
 from app.schemas.writing_performance import (

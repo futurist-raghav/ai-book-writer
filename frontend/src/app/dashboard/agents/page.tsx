@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useAuthStore } from '@/stores/auth';
+import { useAuthStore } from '@/stores/auth-store';
 import { AgentPanel } from '@/components/agent-panel';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { AlertDescription, Alert } from '@/components/ui/alert';

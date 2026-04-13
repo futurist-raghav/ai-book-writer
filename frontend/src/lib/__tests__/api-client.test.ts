@@ -4,11 +4,19 @@
  * Covers request/response handling, error handling, and auth
  */
 
-import fetch from 'jest-fetch-mock'
 import { apiClient } from '@/lib/api-client'
 
-// Mock the fetch API
-jest.mock('node-fetch', () => fetch)
+const fetch = Object.assign(
+  jest.fn<Promise<Response>, [RequestInfo | URL, RequestInit?]>(),
+  {
+    mockResponseOnce: (body: string, init?: ResponseInit) =>
+      fetch.mockResolvedValueOnce(new Response(body, init)),
+    mockRejectOnce: (error: Error) => fetch.mockRejectedValueOnce(error),
+    resetMocks: () => fetch.mockReset(),
+  }
+)
+
+global.fetch = fetch as unknown as typeof global.fetch
 
 describe('API Client', () => {
   beforeEach(() => {

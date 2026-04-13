@@ -24,17 +24,45 @@ const nextConfig = {
     }
     return config;
   },
-  async rewrites() {
+  async redirects() {
     return [
       {
-        source: '/api/v1/:path*',
-        destination: `${configuredApiBase}/:path*`,
+        source: '/notes-and-voice',
+        destination: '/dashboard/notes-and-voice',
+        permanent: false,
       },
       {
-        source: '/api/:path*',
-        destination: `${configuredApiOrigin}/api/:path*`,
+        source: '/references',
+        destination: '/dashboard/references',
+        permanent: false,
+      },
+      {
+        source: '/entities',
+        destination: '/dashboard/entities',
+        permanent: false,
+      },
+      {
+        source: '/glossary',
+        destination: '/dashboard/glossary',
+        permanent: false,
+      },
+      {
+        source: '/publishing',
+        destination: '/dashboard/publishing',
+        permanent: false,
       },
     ];
+  },
+  async rewrites() {
+    return {
+      beforeFiles: [
+        {
+          source: '/api/v1/:path*',
+          destination: `${configuredApiBase}/:path*`,
+        },
+      ],
+      fallback: [],
+    };
   },
 };
 module.exports = nextConfig;

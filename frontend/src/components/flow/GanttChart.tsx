@@ -291,7 +291,7 @@ export function GanttChart({ events, dependencies = [], onEventClick, isLoading,
           <div>🔵 Planned: {events.filter((e) => e.status === 'planned').length}</div>
           <div>🟡 In Progress: {events.filter((e) => e.status === 'in_progress').length}</div>
           <div>🟢 Completed: {events.filter((e) => e.status === 'completed').length}</div>
-          <div>🔴 Blocked: {events.filter((e) => e.status === 'blocked').length}</div>
+          <div>⚫ Archived: {events.filter((e) => e.status === 'archived').length}</div>
         </div>
       </div>
     </div>

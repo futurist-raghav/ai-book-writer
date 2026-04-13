@@ -37,22 +37,33 @@ services:
     networks:
       - aibook-network
 
-  # ChromaDB Vector Database
-  chromadb:
-    image: chromadb/chroma:latest
-    container_name: aibook-chromadb
-    volumes:
-      - chroma_data:/chroma/chroma
+  # Ollama - Local LLM Inference (for Gemma 4 STT)
+  ollama:
+    image: ollama/ollama:latest
+    container_name: aibook-ollama
     environment:
-      - IS_PERSISTENT=TRUE
-      - ANONYMIZED_TELEMETRY=False
+      OLLAMA_HOST: "0.0.0.0:11434"
+    volumes:
+      - ollama_data:/root/.ollama
     ports:
-      - "8001:8000"
+      - "11434:11434"
     healthcheck:
-      disable: true
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     restart: unless-stopped
     networks:
       - aibook-network
+    # Optional: Limit resources
+    deploy:
+      resources:
+        limits:
+          cpus: "4"
+          memory: 8G
+        reservations:
+          cpus: "2"
+          memory: 4G
 
   # FastAPI Backend
   backend:
@@ -67,6 +78,20 @@ services:
       - REDIS_URL=redis://redis:6379
       - CHROMA_HOST=chromadb
       - CHROMA_PORT=8000
+      # Gemma 4 STT Configuration (Auto-Deployed)
+      - STT_PROVIDER=gemma4
+      - PREFERRED_STT_SERVICE=gemma4
+      - GEMMA4_BASE_URL=http://ollama:11434
+      - GEMMA4_MODEL=gemma4:latest
+      - GEMMA4_AUTO_DEPLOY=true
+      - GEMMA4_AUTO_DEPLOY_WAIT_TIMEOUT=900
+      - GEMMA4_TIMEOUT_SECONDS=600
+      - GEMMA4_TEMPERATURE=0.2
+      - GEMMA4_TOP_P=0.85
+      - GEMMA4_MAX_TOKENS=8192
+      - GEMMA4_AUDIO_SAMPLE_RATE=16000
+      - GEMMA4_AUDIO_CHANNELS=1
+      - GEMMA4_AUDIO_FORMAT=float32
     volumes:
       - ./backend:/app
       - ./storage:/app/storage
@@ -79,7 +104,26 @@ services:
         condition: service_healthy
       chromadb:
         condition: service_started
+      ollama:
+        condition: service_healthy
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    restart: unless-stopped
+    networks:
+      - aibook-network
+
+  # ChromaDB Vector Database
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: aibook-chromadb
+    volumes:
+      - chroma_data:/chroma/chroma
+    environment:
+      - IS_PERSISTENT=TRUE
+      - ANONYMIZED_TELEMETRY=False
+    ports:
+      - "8001:8000"
+    healthcheck:
+      disable: true
     restart: unless-stopped
     networks:
       - aibook-network
@@ -175,6 +219,8 @@ volumes:
   redis_data:
     driver: local
   chroma_data:
+    driver: local
+  ollama_data:
     driver: local
   frontend_node_modules:
     driver: local

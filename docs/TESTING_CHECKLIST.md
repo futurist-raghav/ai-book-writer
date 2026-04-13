@@ -1,6 +1,6 @@
 # Comprehensive Manual Testing Todo List
 
-This is your detailed manual testing checklist for AI Book Writer. Use this to systematically test each feature and ensure quality. Mark items as complete as you test them.
+This is your detailed manual testing checklist for Scribe House. Use this to systematically test each feature and ensure quality. Mark items as complete as you test them.
 
 ## Phase 0: Foundation Testing (Current Release)
 

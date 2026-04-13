@@ -178,7 +178,11 @@ export function BulkOperations({
           <input
             type="checkbox"
             checked={isAllSelected}
-            indeterminate={isIndeterminate}
+            ref={(node) => {
+              if (node) {
+                node.indeterminate = isIndeterminate;
+              }
+            }}
             onChange={handleSelectAll}
             className="w-5 h-5 rounded border-gray-300 text-blue-600 cursor-pointer"
           />

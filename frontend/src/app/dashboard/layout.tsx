@@ -5,7 +5,7 @@ import { DashboardKeyboardShortcuts } from '@/components/dashboard-keyboard-shor
 import { PwaRuntime } from '@/components/pwa/pwa-runtime';
 
 export const metadata: Metadata = {
-  title: 'Dashboard | The Editorial Sanctuary',
+  title: 'Dashboard | Scribe House',
 };
 
 export default function DashboardLayout({
@@ -15,13 +15,13 @@ export default function DashboardLayout({
 }) {
   return (
     <DashboardKeyboardShortcuts>
-      <div className="flex h-screen flex-col overflow-hidden bg-surface">
+      <div className="flex min-h-screen flex-col overflow-hidden bg-surface text-on-surface">
         <Header />
         <PwaRuntime />
         <div className="flex flex-1 overflow-hidden pt-20">
           <Sidebar />
-          <main className="flex-grow overflow-y-auto px-4 py-8 md:px-8 bg-[radial-gradient(circle_at_top_right,_rgba(118,153,206,0.14),transparent_45%),radial-gradient(circle_at_15%_85%,_rgba(71,100,92,0.08),transparent_35%),linear-gradient(180deg,_#f8f9fa_0%,_#f3f5f7_100%)] pb-28 md:pb-8">
-            {children}
+          <main className="app-main scrollbar-sleek flex-grow overflow-y-auto px-4 pb-28 pt-8 md:px-8 md:pb-8 lg:px-10">
+            <div className="animate-rise">{children}</div>
           </main>
         </div>
         <BottomBar />

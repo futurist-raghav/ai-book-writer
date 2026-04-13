@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# AI Book Writer - Quick Start Script
+# Scribe House - Quick Start Script
 # This script helps you get started quickly with the project
 
 set -e
 
 echo "================================================"
-echo "AI Book Writer - Quick Start Setup"
+echo "Scribe House - Quick Start Setup"
 echo "================================================"
 echo ""
 
@@ -96,7 +96,7 @@ docker compose exec -T backend alembic upgrade head
 
 echo ""
 echo "================================================"
-echo "✅ AI Book Writer is ready!"
+echo "✅ Scribe House is ready!"
 echo "================================================"
 echo ""
 echo "🌐 Access the application:"

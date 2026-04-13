@@ -4,6 +4,7 @@ AI Book Writer - FastAPI Application
 Main entry point for the backend API.
 """
 
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -13,6 +14,9 @@ from fastapi.responses import JSONResponse
 from app.api.v1.router import api_router
 from app.core.config import settings
 from app.core.database import close_db, init_db
+from app.services.initialization import initialize_backend
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -23,15 +27,36 @@ async def lifespan(app: FastAPI):
     Handles startup and shutdown events.
     """
     # Startup
+    logger.info("Backend startup sequence initiated")
+    
+    # Initialize database
     if settings.ENVIRONMENT == "development":
         # Only auto-create tables in development
         # Use Alembic migrations in production
         await init_db()
+    
+    # Auto-initialize Ollama and Gemma 4 STT
+    try:
+        logger.info("Starting Gemma 4 STT auto-initialization...")
+        init_result = await initialize_backend()
+        logger.info(f"STT initialization result: {init_result.get('status')}")
+        
+        if init_result.get("status") in ["success", "warning"]:
+            logger.info(f"✓ STT service ready: {init_result.get('message')}")
+        else:
+            logger.warning(f"⚠ STT initialization had issues: {init_result.get('error')}")
+    except Exception as e:
+        logger.error(f"✗ Failed to initialize STT: {e}")
+        # Don't fail startup if STT initialization fails - backend can still run
+    
+    logger.info("Backend startup complete")
 
     yield
 
     # Shutdown
+    logger.info("Backend shutdown sequence initiated")
     await close_db()
+    logger.info("Backend shutdown complete")
 
 
 # Create FastAPI application

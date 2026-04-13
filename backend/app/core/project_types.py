@@ -2,7 +2,7 @@
 Project Type Configuration
 
 Defines all supported writing project types and their configurations.
-This allows The Editorial Sanctuary to adapt to different writing formats,
+This allows Scribe House to adapt to different writing formats,
 from novels to screenplays to academic textbooks.
 """
 

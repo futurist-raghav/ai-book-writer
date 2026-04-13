@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { api } from '@/lib/api';
-import { useAuthStore } from '@/stores/authStore';
+import { api } from '@/lib/api-client';
+import { useAuthStore } from '@/stores/auth-store';
 
 interface WritingStats {
   total_sessions: number;

@@ -2,10 +2,10 @@
 
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from uuid import uuid4
 
-from sqlalchemy import Enum as SQLEnum, String, Text, DateTime, Boolean, Integer, JSON
+from sqlalchemy import Enum as SQLEnum, String, Text, DateTime, Boolean, Integer, JSON, Float
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db import Base

@@ -4,7 +4,7 @@
 
 'use client';
 
-import { useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -69,21 +69,33 @@ export function ImportManager({ onImportComplete }: { onImportComplete?: () => v
   });
 
   // Get preview query
-  const previewQuery = useQuery({
+  const previewQuery = useQuery<ImportPreviewResponse>({
     queryKey: ['import-preview', state.source?.id],
     queryFn: async () => {
       const response = await apiClient.import.getPreview(bookId, state.source!.id);
-      return response.data;
+      return response.data as ImportPreviewResponse;
     },
     enabled: state.step === 'preview' && !!state.source,
-    onSuccess: (preview) => {
-      setState((prev) => ({
+  });
+
+  useEffect(() => {
+    const preview = previewQuery.data;
+    if (!preview) {
+      return;
+    }
+
+    setState((prev) => {
+      if (prev.preview?.source_id === preview.source_id) {
+        return prev;
+      }
+
+      return {
         ...prev,
         preview,
         selectedSections: new Set(preview.sections.map((_, i) => i)),
-      }));
-    },
-  });
+      };
+    });
+  }, [previewQuery.data]);
 
   // Apply import mutation
   const applyMutation = useMutation({

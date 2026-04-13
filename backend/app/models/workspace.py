@@ -1,10 +1,10 @@
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from enum import Enum
-from sqlalchemy import Column, String, Text, DateTime, ForeignKey, Boolean, Enum as SQLEnum
+import uuid
+from sqlalchemy import String, Text, DateTime, ForeignKey, Boolean, Enum as SQLEnum, Float, Integer, JSON, Column
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, relationship
-from uuid import uuid4
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.db import Base
 
@@ -33,28 +33,28 @@ class Workspace(Base):
     """
     __tablename__ = "workspaces"
 
-    id: Mapped[str] = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id: Mapped[str] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     
     # Basic info
-    name: Mapped[str] = Column(String(255), nullable=False, index=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     description: Mapped[Optional[str]] = Column(Text, nullable=True)
     
     # Owner (creator) - user who created the workspace
-    owner_id: Mapped[str] = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    owner_id: Mapped[str] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     owner = relationship("User", foreign_keys=[owner_id], viewonly=True)
     
     # Status
-    status: Mapped[WorkspaceStatus] = Column(SQLEnum(WorkspaceStatus), default=WorkspaceStatus.ACTIVE, index=True)
+    status: Mapped[WorkspaceStatus] = mapped_column(SQLEnum(WorkspaceStatus), default=WorkspaceStatus.ACTIVE, index=True)
     
     # Settings
-    default_role: Mapped[WorkspaceRole] = Column(SQLEnum(WorkspaceRole), default=WorkspaceRole.VIEWER)
-    is_default_workspace: Mapped[bool] = Column(Boolean, default=False)  # User's default workspace
-    allow_public_sharing: Mapped[bool] = Column(Boolean, default=True)  # Allow public book links
-    allow_member_invitations: Mapped[bool] = Column(Boolean, default=True)  # Non-admins can invite
+    default_role: Mapped[WorkspaceRole] = mapped_column(SQLEnum(WorkspaceRole), default=WorkspaceRole.VIEWER)
+    is_default_workspace: Mapped[bool] = mapped_column(Boolean, default=False) # User's default workspace
+    allow_public_sharing: Mapped[bool] = mapped_column(Boolean, default=True) # Allow public book links
+    allow_member_invitations: Mapped[bool] = mapped_column(Boolean, default=True) # Non-admins can invite
     
     # Metadata
-    created_at: Mapped[datetime] = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False, index=True)
-    updated_at: Mapped[datetime] = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False, index=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
     
     # Relationships
     members: Mapped[list["WorkspaceMember"]] = relationship(
@@ -92,11 +92,11 @@ class WorkspaceMember(Base):
     """
     __tablename__ = "workspace_members"
 
-    id: Mapped[str] = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id: Mapped[str] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     
     # Foreign keys
-    workspace_id: Mapped[str] = Column(UUID(as_uuid=True), ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
-    user_id: Mapped[str] = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    workspace_id: Mapped[str] = mapped_column(UUID(as_uuid=True), ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id: Mapped[str] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     invited_by_id: Mapped[Optional[str]] = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     
     # Relationships
@@ -105,13 +105,13 @@ class WorkspaceMember(Base):
     invited_by = relationship("User", foreign_keys=[invited_by_id], viewonly=True)
     
     # Role and permissions
-    role: Mapped[WorkspaceRole] = Column(SQLEnum(WorkspaceRole), default=WorkspaceRole.VIEWER, index=True)
+    role: Mapped[WorkspaceRole] = mapped_column(SQLEnum(WorkspaceRole), default=WorkspaceRole.VIEWER, index=True)
     
     # Metadata
-    joined_at: Mapped[datetime] = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+    joined_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
     invited_at: Mapped[Optional[datetime]] = Column(DateTime(timezone=True), nullable=True)
-    is_pending: Mapped[bool] = Column(Boolean, default=True)  # Pending acceptance
-    is_archived: Mapped[bool] = Column(Boolean, default=False)  # Archived membership (soft delete)
+    is_pending: Mapped[bool] = mapped_column(Boolean, default=True) # Pending acceptance
+    is_archived: Mapped[bool] = mapped_column(Boolean, default=False)  # Archived membership (soft delete)
     
     # Constraints
     __table_args__ = (
@@ -127,18 +127,18 @@ class StyleGuide(Base):
     """
     __tablename__ = "style_guides"
 
-    id: Mapped[str] = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id: Mapped[str] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     
     # Foreign keys
-    workspace_id: Mapped[str] = Column(UUID(as_uuid=True), ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
-    created_by_id: Mapped[str] = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    workspace_id: Mapped[str] = mapped_column(UUID(as_uuid=True), ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
+    created_by_id: Mapped[Optional[str]] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     
     # Relationships
     workspace = relationship("Workspace", back_populates="style_guides")
     created_by = relationship("User", foreign_keys=[created_by_id], viewonly=True)
     
     # Content
-    name: Mapped[str] = Column(String(255), nullable=False)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[Optional[str]] = Column(Text, nullable=True)
     
     # Style guide sections (stored as JSON in migration)
@@ -148,9 +148,9 @@ class StyleGuide(Base):
     content_standards: Mapped[Optional[dict]] = Column(Text, nullable=True)  # JSON: {length, depth, references}
     
     # Metadata
-    is_default: Mapped[bool] = Column(Boolean, default=False)
-    created_at: Mapped[datetime] = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-    updated_at: Mapped[datetime] = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    is_default: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 
 class WorkspaceTemplate(Base):
@@ -160,20 +160,20 @@ class WorkspaceTemplate(Base):
     """
     __tablename__ = "workspace_templates"
 
-    id: Mapped[str] = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id: Mapped[str] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     
     # Foreign keys
-    workspace_id: Mapped[str] = Column(UUID(as_uuid=True), ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
-    created_by_id: Mapped[str] = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    workspace_id: Mapped[str] = mapped_column(UUID(as_uuid=True), ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
+    created_by_id: Mapped[Optional[str]] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     
     # Relationships
     workspace = relationship("Workspace", back_populates="templates")
     created_by = relationship("User", foreign_keys=[created_by_id], viewonly=True)
     
     # Template info
-    name: Mapped[str] = Column(String(255), nullable=False)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[Optional[str]] = Column(Text, nullable=True)
-    category: Mapped[str] = Column(String(100), nullable=False)  # novel, screenplay, academic, guide, etc.
+    category: Mapped[str] = mapped_column(String(100), nullable=False) # novel, screenplay, academic, guide, etc.
     
     # Template structure
     chapter_structure: Mapped[Optional[dict]] = Column(Text, nullable=True)  # JSON: chapter count, names, structure
@@ -182,10 +182,10 @@ class WorkspaceTemplate(Base):
     matter_config: Mapped[Optional[dict]] = Column(Text, nullable=True)  # JSON: front/back matter toggles
     
     # Stats
-    usage_count: Mapped[int] = Column(default=0)  # Times applied
-    is_public: Mapped[bool] = Column(Boolean, default=False)  # Shared with team
-    is_default: Mapped[bool] = Column(Boolean, default=False)  # Default for new books
+    usage_count: Mapped[int] = mapped_column(default=0) # Times applied
+    is_public: Mapped[bool] = mapped_column(Boolean, default=False) # Shared with team
+    is_default: Mapped[bool] = mapped_column(Boolean, default=False) # Default for new books
     
     # Metadata
-    created_at: Mapped[datetime] = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-    updated_at: Mapped[datetime] = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))

@@ -4,7 +4,7 @@
 
 set -e
 
-echo "🧹 AI Book Writer - Test Data Cleanup"
+echo "🚟 Scribe House - Test Data Cleanup"
 echo "===================================="
 echo ""
 
@@ -54,4 +54,4 @@ echo ""
 echo "✅ Cleanup complete!"
 echo ""
 echo "Optional: To completely reset the database:"
-echo "  docker compose down && docker volume rm ai-book-writer_postgres_data && docker compose up -d"
+echo "  docker compose down && docker volume rm scribe-house_postgres_data && docker compose up -d"

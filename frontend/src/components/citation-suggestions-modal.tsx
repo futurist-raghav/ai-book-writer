@@ -47,6 +47,10 @@ export function CitationSuggestionsModal({
   const isLoading = suggestMutation.isPending;
   const hasError = suggestMutation.isError;
 
+  const triggerAnalysis = () => {
+    suggestMutation.mutate();
+  };
+
   const handleSelectAll = () => {
     if (data?.suggestions) {
       setSelectedSuggestions(new Set(data.suggestions.map((_, i) => i)));
@@ -86,7 +90,7 @@ export function CitationSuggestionsModal({
               Analyzing chapter for places where citations would strengthen your writing...
             </p>
             <button
-              onClick={() => suggestMutation.mutate()}
+              onClick={triggerAnalysis}
               disabled={isLoading}
               className="w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-white hover:opacity-90 disabled:opacity-50"
             >
@@ -97,7 +101,7 @@ export function CitationSuggestionsModal({
           <div className="text-center">
             <p className="text-red-600 mb-4">Failed to analyze for citations</p>
             <button
-              onClick={() => suggestMutation.mutate()}
+              onClick={triggerAnalysis}
               className="rounded-lg bg-primary px-4 py-2 text-sm font-bold text-white hover:opacity-90"
             >
               Try Again

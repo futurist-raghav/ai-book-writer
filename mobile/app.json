@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "AI Book Writer",
-    "slug": "ai-book-writer",
+    "name": "Scribe House",
+    "slug": "scribe-house",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -53,7 +53,7 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "ai-book-writer-mobile"
+        "projectId": "scribe-house-mobile"
       },
       "apiUrl": "http://localhost:5000/api/v1"
     }

@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { Extension } from '@tiptap/core';
+import { Node } from '@tiptap/core';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
 
@@ -18,8 +18,11 @@ export interface CitationAttributes {
 /**
  * TipTap Extension for Citations
  */
-export const Citation = Extension.create({
+export const Citation = Node.create({
   name: 'citation',
+  inline: true,
+  group: 'inline',
+  atom: true,
 
   addOptions() {
     return {
@@ -48,7 +51,7 @@ export const Citation = Extension.create({
     return [
       {
         tag: 'span[data-citation]',
-        getAttrs: (dom) => ({
+        getAttrs: (dom: Element) => ({
           citationId: dom.getAttribute('data-citation-id'),
           bibliographyId: dom.getAttribute('data-bibliography-id'),
           format: dom.getAttribute('data-citation-format') || 'superscript',
@@ -58,7 +61,7 @@ export const Citation = Extension.create({
     ];
   },
 
-  renderHTML({ HTMLAttributes }) {
+  renderHTML({ HTMLAttributes }: { HTMLAttributes: Record<string, any> }) {
     return [
       'span',
       {

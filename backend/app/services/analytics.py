@@ -7,7 +7,6 @@ from typing import Optional, Dict, List, Any
 from sqlalchemy import func, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import Book, Chapter, ChapterVersion
-from app.schemas.base import DateTimeEncoder
 import json
 
 

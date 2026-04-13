@@ -23,7 +23,7 @@ interface FormData {
   title: string;
   description: string;
   event_type: string;
-  status: string;
+  status: FlowEvent['status'];
   timeline_position: number;
   duration?: number;
   content?: string;
@@ -57,7 +57,7 @@ export function FlowEventEditor({
   const [step, setStep] = useState(1);
 
   const eventTypes = ['act', 'scene', 'beat', 'milestone', 'subplot', 'chapter'];
-  const statuses = ['planned', 'in_progress', 'completed', 'blocked'];
+  const statuses: FlowEvent['status'][] = ['planned', 'in_progress', 'completed', 'archived'];
 
   // Validation
   const errors: Record<string, string> = {};
@@ -226,7 +226,7 @@ export function FlowEventEditor({
             </label>
             <select
               value={formData.status}
-              onChange={(e) => handleInputChange('status', e.target.value)}
+              onChange={(e) => handleInputChange('status', e.target.value as FlowEvent['status'])}
               className="w-full px-4 py-2 rounded-lg border-2 border-gray-200 bg-white focus:outline-none focus:border-blue-500"
             >
               {statuses.map((status) => (

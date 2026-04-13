@@ -3,10 +3,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from datetime import datetime, timedelta
 
-from app.db.database import get_session
+from app.core.dependencies import get_db as get_session
 from app.models.book import Book
 from app.models.public_share import PublicShare, BookFeedback
-from app.middleware.auth import verify_auth
 
 router = APIRouter(prefix="/analytics", tags=["Analytics"])
 

@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-Based on comprehensive research of 2026 AI models and services, here are the recommended choices for the AI Book Writer project:
+Based on comprehensive research of 2026 AI models and services, here are the recommended choices for the Scribe House project:
 
 ### Primary Recommendations
 

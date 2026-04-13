@@ -3,7 +3,7 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from '@/lib/api-client';
+import { api } from '@/lib/api-client';
 import { PublicShare, BookFeedback, BookRating, PublicShareDetail } from '@/types/public-share';
 import { toast } from 'sonner';
 
@@ -30,7 +30,7 @@ export function useCreatePublicShare() {
       allowComments?: boolean;
       allowRatings?: boolean;
     }) => {
-      const response = await apiClient.post('/public/shares', {
+      const response = await api.post('/public/shares', {
         allow_comments: allowComments,
         allow_ratings: allowRatings,
       });
@@ -55,7 +55,7 @@ export function usePublicShare(bookId: string | null) {
   return useQuery<PublicShare>({
     queryKey: PUBLIC_SHARE_QUERY_KEYS.share(bookId || ''),
     queryFn: async () => {
-      const response = await apiClient.get(`/public/shares/${bookId}`);
+      const response = await api.get(`/public/shares/${bookId}`);
       return response.data;
     },
     enabled: !!bookId,
@@ -79,7 +79,7 @@ export function useUpdatePublicShare() {
       allowComments: boolean;
       allowRatings: boolean;
     }) => {
-      const response = await apiClient.patch(`/public/shares/${bookId}`, {
+      const response = await api.patch(`/public/shares/${bookId}`, {
         is_active: isActive,
         allow_comments: allowComments,
         allow_ratings: allowRatings,
@@ -118,7 +118,7 @@ export function useSubmitFeedback() {
         feedback_type?: string;
       };
     }) => {
-      const response = await apiClient.post(`/public/shares/${shareToken}/feedback`, feedback);
+      const response = await api.post(`/public/shares/${shareToken}/feedback`, feedback);
       return response.data;
     },
     onSuccess: (data, variables) => {
@@ -140,7 +140,7 @@ export function useFeedback(shareToken: string | null) {
   return useQuery<BookFeedback[]>({
     queryKey: PUBLIC_SHARE_QUERY_KEYS.feedback(shareToken || ''),
     queryFn: async () => {
-      const response = await apiClient.get(`/public/shares/${shareToken}/feedback`);
+      const response = await api.get(`/public/shares/${shareToken}/feedback`);
       return response.data;
     },
     enabled: !!shareToken,
@@ -154,7 +154,7 @@ export function usePublicRatings(shareToken: string | null) {
   return useQuery<BookRating>({
     queryKey: PUBLIC_SHARE_QUERY_KEYS.ratings(shareToken || ''),
     queryFn: async () => {
-      const response = await apiClient.get(`/public/shares/${shareToken}/ratings`);
+      const response = await api.get(`/public/shares/${shareToken}/ratings`);
       return response.data;
     },
     enabled: !!shareToken,

@@ -5,10 +5,19 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
 import {
-  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
 } from 'recharts';
-import { TrendingUp, Users, Eye, MessageSquare, Star, Download } from 'lucide-react';
+import { TrendingUp, Eye, MessageSquare, Star, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
 
@@ -90,10 +99,10 @@ export default function GlobalAnalyticsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading analytics...</p>
+          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+          <p className="text-on-surface-variant">Loading analytics...</p>
         </div>
       </div>
     );
@@ -101,23 +110,26 @@ export default function GlobalAnalyticsPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900">Analytics Unavailable</h1>
-          <p className="text-gray-600 mt-2">Unable to load analytics data.</p>
+          <h1 className="text-2xl font-bold text-on-surface">Analytics Unavailable</h1>
+          <p className="mt-2 text-on-surface-variant">Unable to load analytics data.</p>
         </div>
       </div>
     );
   }
 
+  const panelClass = 'elevated-panel rounded-xl p-6';
+  const chartAxisColor = 'hsl(var(--on-surface-variant))';
+
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Global Analytics</h1>
-            <p className="text-gray-600 mt-1">Track all your books and public share performance</p>
+            <h1 className="text-3xl font-bold text-on-surface">Global Analytics</h1>
+            <p className="mt-1 text-on-surface-variant">Track all your books and public share performance</p>
           </div>
           <Button onClick={handleExport} className="gap-2">
             <Download className="h-4 w-4" />
@@ -127,58 +139,58 @@ export default function GlobalAnalyticsPage() {
 
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <div className={panelClass}>
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-gray-600 font-medium">Total Books</p>
+              <p className="text-sm font-medium text-on-surface-variant">Total Books</p>
               <TrendingUp className="h-5 w-5 text-blue-600" />
             </div>
-            <p className="text-3xl font-bold text-gray-900">{data.overview.total_books}</p>
+            <p className="text-3xl font-bold text-on-surface">{data.overview.total_books}</p>
           </div>
 
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <div className={panelClass}>
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-gray-600 font-medium">Public Shares</p>
+              <p className="text-sm font-medium text-on-surface-variant">Public Shares</p>
               <TrendingUp className="h-5 w-5 text-green-600" />
             </div>
-            <p className="text-3xl font-bold text-gray-900">{data.overview.total_shares}</p>
+            <p className="text-3xl font-bold text-on-surface">{data.overview.total_shares}</p>
           </div>
 
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <div className={panelClass}>
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-gray-600 font-medium">Total Views</p>
+              <p className="text-sm font-medium text-on-surface-variant">Total Views</p>
               <Eye className="h-5 w-5 text-purple-600" />
             </div>
-            <p className="text-3xl font-bold text-gray-900">{data.overview.total_views}</p>
+            <p className="text-3xl font-bold text-on-surface">{data.overview.total_views}</p>
           </div>
 
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <div className={panelClass}>
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-gray-600 font-medium">Comments</p>
+              <p className="text-sm font-medium text-on-surface-variant">Comments</p>
               <MessageSquare className="h-5 w-5 text-orange-600" />
             </div>
-            <p className="text-3xl font-bold text-gray-900">{data.overview.total_comments}</p>
+            <p className="text-3xl font-bold text-on-surface">{data.overview.total_comments}</p>
           </div>
 
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <div className={panelClass}>
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-gray-600 font-medium">Avg Rating</p>
+              <p className="text-sm font-medium text-on-surface-variant">Avg Rating</p>
               <Star className="h-5 w-5 text-yellow-600" />
             </div>
-            <p className="text-3xl font-bold text-gray-900">{data.overview.average_rating.toFixed(1)}</p>
+            <p className="text-3xl font-bold text-on-surface">{data.overview.average_rating.toFixed(1)}</p>
           </div>
         </div>
 
         {/* Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           {/* Trends */}
-          <div className="lg:col-span-2 bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Engagement Trends</h2>
+          <div className={`lg:col-span-2 ${panelClass}`}>
+            <h2 className="mb-4 text-lg font-semibold text-on-surface">Engagement Trends</h2>
             {data.trends && data.trends.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={data.trends}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" stroke="#6b7280" />
-                  <YAxis stroke="#6b7280" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--outline-variant))" />
+                  <XAxis dataKey="date" stroke={chartAxisColor} />
+                  <YAxis stroke={chartAxisColor} />
                   <Tooltip />
                   <Legend />
                   <Line type="monotone" dataKey="views" stroke="#3b82f6" strokeWidth={2} />
@@ -187,13 +199,13 @@ export default function GlobalAnalyticsPage() {
                 </LineChart>
               </ResponsiveContainer>
             ) : (
-              <p className="text-gray-500 text-center py-8">No data available</p>
+              <p className="py-8 text-center text-on-surface-variant">No data available</p>
             )}
           </div>
 
           {/* Sentiment */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Comment Sentiment</h2>
+          <div className={panelClass}>
+            <h2 className="mb-4 text-lg font-semibold text-on-surface">Comment Sentiment</h2>
             {data.sentiment && (data.sentiment.positive > 0 || data.sentiment.neutral > 0 || data.sentiment.negative > 0) ? (
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
@@ -217,34 +229,34 @@ export default function GlobalAnalyticsPage() {
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <p className="text-gray-500 text-center py-8">No data available</p>
+              <p className="py-8 text-center text-on-surface-variant">No data available</p>
             )}
           </div>
         </div>
 
         {/* Top Books */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Top Performing Books</h2>
+        <div className={panelClass}>
+          <h2 className="mb-4 text-lg font-semibold text-on-surface">Top Performing Books</h2>
           {data.top_books && data.top_books.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="border-b border-gray-200">
+                <thead className="border-b border-outline-variant/30">
                   <tr>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Title</th>
-                    <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Views</th>
-                    <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Comments</th>
-                    <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Rating</th>
-                    <th className="text-center py-3 px-4 text-sm font-semibold text-gray-700">Action</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-on-surface">Title</th>
+                    <th className="px-4 py-3 text-right text-sm font-semibold text-on-surface">Views</th>
+                    <th className="px-4 py-3 text-right text-sm font-semibold text-on-surface">Comments</th>
+                    <th className="px-4 py-3 text-right text-sm font-semibold text-on-surface">Rating</th>
+                    <th className="px-4 py-3 text-center text-sm font-semibold text-on-surface">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="divide-y divide-outline-variant/25">
                   {data.top_books.map((book) => (
-                    <tr key={book.id} className="hover:bg-gray-50">
-                      <td className="py-3 px-4 text-sm text-gray-900">{book.title}</td>
-                      <td className="py-3 px-4 text-sm text-right text-gray-600">{book.views}</td>
-                      <td className="py-3 px-4 text-sm text-right text-gray-600">{book.comments}</td>
-                      <td className="py-3 px-4 text-sm text-right text-gray-600">{book.rating.toFixed(1)} ⭐</td>
-                      <td className="py-3 px-4 text-center">
+                    <tr key={book.id} className="hover:bg-surface-container-low">
+                      <td className="px-4 py-3 text-sm text-on-surface">{book.title}</td>
+                      <td className="px-4 py-3 text-right text-sm text-on-surface-variant">{book.views}</td>
+                      <td className="px-4 py-3 text-right text-sm text-on-surface-variant">{book.comments}</td>
+                      <td className="px-4 py-3 text-right text-sm text-on-surface-variant">{book.rating.toFixed(1)} ⭐</td>
+                      <td className="px-4 py-3 text-center">
                         <Link href={`/dashboard?book=${book.id}`}>
                           <Button variant="outline" size="sm">View</Button>
                         </Link>
@@ -255,7 +267,7 @@ export default function GlobalAnalyticsPage() {
               </table>
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-8">No book data available</p>
+            <p className="py-8 text-center text-on-surface-variant">No book data available</p>
           )}
         </div>
       </div>

@@ -3,12 +3,14 @@
 Models for managing sources, citations, and bibliography in chapters.
 """
 
-from sqlalchemy import Column, String, Integer, Text, DateTime, Boolean, JSON, ForeignKey, Index, func
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship
-from uuid import uuid4
-from app.core.database import Base
+from typing import TYPE_CHECKING, Optional
+import uuid
 from datetime import datetime
+
+from sqlalchemy import String, Integer, Text, DateTime, Boolean, JSON, ForeignKey, Index, func, Float
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from app.core.database import Base
 
 
 class Bibliography(Base):
@@ -16,18 +18,18 @@ class Bibliography(Base):
 
     __tablename__ = 'bibliography'
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    book_id = Column(UUID(as_uuid=True), ForeignKey('books.id', ondelete='CASCADE'), nullable=False, index=True)
-    title = Column(String(500), nullable=False)
-    authors = Column(JSON(), nullable=True)  # ["Author 1", "Author 2", ...]
-    year = Column(Integer(), nullable=True)
-    source_type = Column(String(50), nullable=True)  # book, article, website, video, etc.
-    source_url = Column(String(2000), nullable=True)
-    citation_formats = Column(JSON(), nullable=True)  # {apa: "Author (Year)...", mla: "...", chicago: "...", ieee: "..."}
-    notes = Column(Text(), nullable=True)
-    is_deleted = Column(Boolean(), nullable=False, default=False)
-    created_at = Column(DateTime(), nullable=False, default=datetime.utcnow)
-    updated_at = Column(DateTime(), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    book_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey('books.id', ondelete='CASCADE'), nullable=False, index=True)
+    title: Mapped[str] = mapped_column(String(500), nullable=False)
+    authors: Mapped[Optional[dict]] = mapped_column(JSON(), nullable=True) # ["Author 1", "Author 2", ...]
+    year: Mapped[Optional[int]] = mapped_column(Integer(), nullable=True)
+    source_type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True) # book, article, website, video, etc.
+    source_url: Mapped[Optional[str]] = mapped_column(String(2000), nullable=True)
+    citation_formats: Mapped[Optional[dict]] = mapped_column(JSON(), nullable=True) # {apa: "Author (Year)...", mla: "...", chicago: "...", ieee: "..."}
+    notes: Mapped[Optional[str]] = mapped_column(Text(), nullable=True)
+    is_deleted: Mapped[bool] = mapped_column(Boolean(), nullable=False, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(), nullable=False, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
     book = relationship('Book', back_populates='bibliography_entries')
@@ -44,15 +46,15 @@ class ChapterCitation(Base):
 
     __tablename__ = 'chapter_citations'
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    chapter_id = Column(UUID(as_uuid=True), ForeignKey('chapters.id', ondelete='CASCADE'), nullable=False, index=True)
-    bibliography_id = Column(UUID(as_uuid=True), ForeignKey('bibliography.id', ondelete='CASCADE'), nullable=False, index=True)
-    page_number = Column(String(50), nullable=True)  # "42" or "42-44" or "p. 42"
-    context_offset = Column(Integer(), nullable=True)  # Position in chapter text where citation appears
-    context_snippet = Column(Text(), nullable=True)  # Surrounding text (100 chars before/after)
-    citation_format = Column(String(20), nullable=False, default='apa')  # apa, mla, chicago, ieee
-    created_at = Column(DateTime(), nullable=False, default=datetime.utcnow)
-    updated_at = Column(DateTime(), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    chapter_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey('chapters.id', ondelete='CASCADE'), nullable=False, index=True)
+    bibliography_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey('bibliography.id', ondelete='CASCADE'), nullable=False, index=True)
+    page_number: Mapped[Optional[str]] = mapped_column(String(50), nullable=True) # "42" or "42-44" or "p. 42"
+    context_offset: Mapped[Optional[int]] = mapped_column(Integer(), nullable=True) # Position in chapter text where citation appears
+    context_snippet: Mapped[Optional[str]] = mapped_column(Text(), nullable=True)  # Surrounding text (100 chars before/after)
+    citation_format: Mapped[str] = mapped_column(String(20), nullable=False, default='apa') # apa, mla, chicago, ieee
+    created_at: Mapped[datetime] = mapped_column(DateTime(), nullable=False, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
     chapter = relationship('Chapter', back_populates='citations')

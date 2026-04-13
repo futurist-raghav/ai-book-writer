@@ -132,7 +132,7 @@ export default function MediaPage() {
     return mockMediaItems.filter((item) => {
       // Search filter
       if (normalizedQuery) {
-        const searchableText = [item.title, item.description, ...item.tags]
+        const searchableText = [item.title, item.description, ...(item.tags || [])]
           .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
           .join(' ')
           .toLowerCase();

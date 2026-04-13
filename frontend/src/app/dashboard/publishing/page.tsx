@@ -1640,9 +1640,14 @@ export default function PublishingPage() {
                   ) : (
                     <RecommendationStateManager
                       recommendations={(accessibilityChecks.recommendations?.recommendations || []).map((rec) => ({
+                        ...(() => {
+                          const priorityValue = String(rec.priority || '').toLowerCase();
+                          const priority: 'low' | 'medium' | 'high' =
+                            priorityValue === 'high' ? 'high' : priorityValue === 'low' ? 'low' : 'medium';
+                          return { priority };
+                        })(),
                         id: rec.id,
                         issue_category: rec.title || 'General',
-                        priority: (rec.priority === 'high' ? 'high' : rec.priority === 'low' ? 'low' : 'medium') as 'low' | 'medium' | 'high',
                         fix_guidance: rec.description || rec.steps_to_fix || 'Apply WCAG guidance',
                         tool_reference: rec.implementation_difficulty ? `${rec.implementation_difficulty} · ${String(rec.estimated_time_minutes)} min` : undefined,
                         wcag_level: rec.severity === 'error' ? 'AA' : rec.severity === 'warning' ? 'A' : undefined,

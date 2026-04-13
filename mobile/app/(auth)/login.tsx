@@ -66,7 +66,7 @@ export default function LoginScreen() {
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>AI Book Writer</Text>
+          <Text style={styles.title}>Scribe House</Text>
           <Text style={styles.subtitle}>Write, Publish, Inspire</Text>
         </View>
 

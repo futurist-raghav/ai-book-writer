@@ -427,7 +427,7 @@ export default function ChaptersPage() {
         </div>
         <button 
           onClick={() => setIsCreating(!isCreating)}
-          className="flex items-center gap-2 bg-gradient-to-r from-primary to-primary-container text-white px-6 py-3 rounded-lg font-label font-bold text-sm shadow-md hover:opacity-90 transition-all active:scale-95"
+          className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-primary to-primary-container px-6 py-3 font-label text-sm font-bold text-primary-foreground shadow-md transition-all hover:opacity-90 active:scale-95"
         >
           <span className="material-symbols-outlined text-sm">{isCreating ? 'close' : 'add'}</span>
           {isCreating ? 'Cancel' : `New ${structureUnitName}`}
@@ -437,7 +437,7 @@ export default function ChaptersPage() {
       <div className="mb-8">
         <label className="block font-label text-[10px] text-on-surface-variant font-bold uppercase tracking-wider mb-2">Selected Project</label>
         <select
-          className="w-full md:w-[420px] bg-surface-container-low border border-outline-variant/20 rounded-lg px-4 py-3 text-sm font-label focus:ring-secondary/50 focus:border-secondary transition-colors"
+          className="w-full rounded-lg border border-outline-variant/20 bg-surface-container-low px-4 py-3 text-sm font-label text-on-surface transition-colors focus:border-secondary focus:ring-secondary/50 md:w-[420px]"
           value={selectedProjectId}
           onChange={(event) => {
             const nextProject = assignableProjects.find((project) => project.id === event.target.value);
@@ -467,7 +467,7 @@ export default function ChaptersPage() {
               placeholder="Search by title, subtitle, or summary..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full md:w-[420px] bg-surface-container-low border border-outline-variant/20 rounded-lg pl-10 pr-4 py-3 text-sm font-label focus:ring-secondary/50 focus:border-secondary transition-colors"
+              className="w-full rounded-lg border border-outline-variant/20 bg-surface-container-low py-3 pl-10 pr-4 text-sm font-label text-on-surface transition-colors focus:border-secondary focus:ring-secondary/50 md:w-[420px]"
             />
           </div>
         </div>
@@ -475,7 +475,7 @@ export default function ChaptersPage() {
 
       <div className="mb-3 flex flex-wrap items-center gap-3">
         <select
-          className="px-3 py-2 rounded-lg bg-surface-container-high text-xs font-label text-primary"
+          className="rounded-lg bg-surface-container-high px-3 py-2 text-xs font-label text-on-surface"
           value={workflowFilter}
           onChange={(event) => setWorkflowFilter(event.target.value)}
         >
@@ -488,7 +488,7 @@ export default function ChaptersPage() {
         </select>
 
         <select
-          className="px-3 py-2 rounded-lg bg-surface-container-high text-xs font-label text-primary"
+          className="rounded-lg bg-surface-container-high px-3 py-2 text-xs font-label text-on-surface"
           value={chapterTypeFilter}
           onChange={(event) => setChapterTypeFilter(event.target.value)}
         >
@@ -502,9 +502,9 @@ export default function ChaptersPage() {
       </div>
 
       {selectedProjectId ? (
-        <div className="mb-8 space-y-3 rounded-xl border border-outline-variant/10 bg-surface-container-lowest p-4">
+        <div className="elevated-panel mb-8 space-y-3 rounded-xl p-4">
           {chaptersApiUnavailable ? (
-            <div className="rounded-lg border border-amber-300/60 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            <div className="rounded-lg border border-warning/40 bg-warning/12 px-3 py-2 text-xs text-on-surface">
               Chapter endpoints are unavailable in the current backend deployment. You can still navigate the dashboard, but chapter editing actions are temporarily disabled.
               {selectedProjectChapterCount > 0 ? ` This project reports ${selectedProjectChapterCount} chapter(s).` : ''}
             </div>
@@ -541,7 +541,7 @@ export default function ChaptersPage() {
             <select
               value={bulkWorkflowStatus}
               onChange={(event) => setBulkWorkflowStatus(event.target.value)}
-              className="rounded-lg bg-surface-container-high px-3 py-2 text-xs font-label text-primary"
+              className="rounded-lg bg-surface-container-high px-3 py-2 text-xs font-label text-on-surface"
             >
               <option value="idea">Bulk workflow: idea</option>
               <option value="outline">Bulk workflow: outline</option>
@@ -553,7 +553,7 @@ export default function ChaptersPage() {
             <select
               value={bulkChapterType}
               onChange={(event) => setBulkChapterType(event.target.value)}
-              className="rounded-lg bg-surface-container-high px-3 py-2 text-xs font-label text-primary"
+              className="rounded-lg bg-surface-container-high px-3 py-2 text-xs font-label text-on-surface"
             >
               <option value="chapter">Bulk type: chapter</option>
               <option value="scene">Bulk type: scene</option>
@@ -565,7 +565,7 @@ export default function ChaptersPage() {
             <button
               onClick={handleBulkApply}
               disabled={chaptersApiUnavailable || bulkUpdateMutation.isPending || selectedChapterIds.length === 0}
-              className="rounded-lg bg-primary px-4 py-2 text-xs font-bold uppercase tracking-wider text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+              className="rounded-lg bg-primary px-4 py-2 text-xs font-bold uppercase tracking-wider text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
             >
               {bulkUpdateMutation.isPending ? 'Applying...' : 'Apply Bulk Edit'}
             </button>
@@ -575,7 +575,7 @@ export default function ChaptersPage() {
 
       {/* Creation Form */}
       {isCreating && (
-        <div className="bg-surface-container-lowest p-8 rounded-xl shadow-[0_4px_20px_rgba(25,28,29,0.04)] border border-outline-variant/10 mb-12 transition-all">
+        <div className="elevated-panel mb-12 rounded-xl p-8 transition-all">
           <div className="mb-6">
             <h3 className="font-label text-sm font-bold text-primary uppercase tracking-widest">Create {structureUnitName}</h3>
             <p className="font-label text-xs text-on-surface-variant mt-1">Create a clean writing workspace under the selected project.</p>
@@ -585,7 +585,7 @@ export default function ChaptersPage() {
             <div>
               <label className="block font-label text-[10px] text-on-surface-variant font-bold uppercase tracking-wider mb-2">Title</label>
               <input
-                className="w-full bg-surface-container-low border border-outline-variant/20 rounded-lg px-4 py-3 text-sm font-label focus:ring-secondary/50 focus:border-secondary transition-colors"
+                className="w-full rounded-lg border border-outline-variant/20 bg-surface-container-low px-4 py-3 text-sm font-label text-on-surface transition-colors focus:border-secondary focus:ring-secondary/50"
                 placeholder={`e.g., ${structureUnitName} Title`}
                 value={newChapterTitle}
                 onChange={(e) => setNewChapterTitle(e.target.value)}
@@ -596,7 +596,7 @@ export default function ChaptersPage() {
             <button 
               onClick={handleCreateChapter} 
               disabled={chaptersApiUnavailable || createMutation.isPending || !newChapterTitle.trim() || !selectedProjectId}
-              className="bg-secondary text-white px-8 py-3 rounded-lg font-label font-bold text-sm shadow-sm hover:bg-secondary/90 transition-all disabled:opacity-50 h-[46px] flex items-center justify-center"
+              className="flex h-[46px] items-center justify-center rounded-lg bg-secondary px-8 py-3 font-label text-sm font-bold text-secondary-foreground shadow-sm transition-all hover:bg-secondary/90 disabled:opacity-50"
             >
               {createMutation.isPending ? <Spinner className="w-4 h-4 mr-2" /> : null}
               Create
@@ -607,33 +607,33 @@ export default function ChaptersPage() {
 
       {/* Chapters List */}
       {!selectedProjectId ? (
-        <div className="border-2 border-dashed border-outline-variant/30 rounded-2xl p-16 flex flex-col items-center justify-center text-center">
-          <div className="w-16 h-16 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant mb-6">
+        <div className="elevated-panel flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-outline-variant/45 p-16 text-center">
+          <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-surface-container-high text-on-surface-variant">
             <span className="material-symbols-outlined text-3xl">folder_open</span>
           </div>
-          <h3 className="font-label text-sm font-bold text-primary uppercase tracking-widest mb-2">Select a project</h3>
-          <p className="font-label text-xs text-on-surface-variant max-w-sm leading-relaxed">
+          <h3 className="mb-2 font-label text-sm font-bold uppercase tracking-widest text-on-surface">Select a project</h3>
+          <p className="max-w-sm font-label text-sm leading-relaxed text-on-surface-variant">
             Chapters are scoped per project. Choose a project first to view and create chapters.
           </p>
         </div>
       ) : projectScopedChapters.length === 0 ? (
-        <div className="border-2 border-dashed border-outline-variant/30 rounded-2xl p-16 flex flex-col items-center justify-center text-center">
-          <div className="w-16 h-16 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant mb-6">
+        <div className="elevated-panel flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-outline-variant/45 p-16 text-center">
+          <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-surface-container-high text-on-surface-variant">
             <span className="material-symbols-outlined text-3xl">layers</span>
           </div>
-          <h3 className="font-label text-sm font-bold text-primary uppercase tracking-widest mb-2">No {structureUnitName.toLowerCase()} yet</h3>
-          <p className="font-label text-xs text-on-surface-variant max-w-sm leading-relaxed mb-8">
+          <h3 className="mb-2 font-label text-sm font-bold uppercase tracking-widest text-on-surface">No {structureUnitName.toLowerCase()} yet</h3>
+          <p className="mb-8 max-w-sm font-label text-sm leading-relaxed text-on-surface-variant">
             Start writing by creating your first {structureUnitName.toLowerCase()}. You can organize and structure your project later.
           </p>
           <button 
             onClick={() => setIsCreating(true)}
-            className="bg-primary text-white px-6 py-3 rounded-lg font-label font-bold text-sm shadow-sm hover:opacity-90 transition-all active:scale-95"
+            className="rounded-lg bg-primary px-6 py-3 font-label text-sm font-bold text-primary-foreground shadow-sm transition-all hover:opacity-90 active:scale-95"
           >
             + Create {structureUnitName}
           </button>
         </div>
       ) : (
-        <div className="bg-surface-container-lowest p-10 rounded-xl shadow-[0_4px_20px_rgba(25,28,29,0.04)] border border-outline-variant/10">
+        <div className="elevated-panel rounded-xl p-10">
           <div className="flex justify-between items-center mb-8">
             <h3 className="font-label text-xs font-extrabold uppercase tracking-[0.2em] text-primary">Project {pluralName}</h3>
             <span className="font-label text-[10px] text-on-surface-variant opacity-60">{projectScopedChapters.length} items</span>
@@ -660,10 +660,10 @@ export default function ChaptersPage() {
                   handleDropOnChapter(chapter.id);
                 }}
                 onDragEnd={() => setDraggingChapterId(null)}
-                className={`group flex flex-col md:flex-row md:items-center justify-between p-6 rounded-lg transition-all border ${
+                className={`theme-chip group flex flex-col justify-between rounded-xl p-6 transition-all md:flex-row md:items-center ${
                   draggingChapterId === chapter.id
-                    ? 'bg-surface-container-high border-secondary/40 opacity-70'
-                    : 'hover:bg-surface-container-low border-transparent hover:border-outline-variant/10'
+                    ? 'border border-secondary/40 opacity-70'
+                    : 'border border-transparent hover:border-outline-variant/30 hover:bg-surface-container-low'
                 }`}
               >
                 <div className="flex items-start md:items-center gap-6">
@@ -707,7 +707,7 @@ export default function ChaptersPage() {
                           value={chapter.workflow_status}
                           onChange={(e) => statusMutation.mutate({ chapterId: chapter.id, workflowStatus: e.target.value })}
                           disabled={statusMutation.isPending}
-                          className="font-label text-[10px] text-on-surface-variant uppercase tracking-widest bg-tertiary-container/50 text-tertiary hover:bg-tertiary-container cursor-pointer px-2 py-0.5 rounded-full disabled:opacity-50 transition-colors"
+                          className="cursor-pointer rounded-full bg-tertiary-container/65 px-2 py-0.5 font-label text-[10px] uppercase tracking-widest text-on-tertiary-container transition-colors hover:bg-tertiary-container disabled:opacity-50"
                           title="Change workflow status"
                         >
                           <option value="idea">Idea</option>
@@ -775,21 +775,21 @@ export default function ChaptersPage() {
                       }
                     }}
                     disabled={chaptersApiUnavailable || povMutation.isPending}
-                    className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-primary shadow-sm hover:bg-primary-container hover:text-white transition-colors disabled:opacity-50"
+                    className="theme-chip flex h-10 w-10 items-center justify-center rounded-full text-primary hover:bg-primary-container hover:text-on-primary-container disabled:opacity-50"
                     title="Set POV"
                   >
                     <span className="material-symbols-outlined text-[20px]">person</span>
                   </button>
 
                   <Link href={`/dashboard/chapters/${chapter.id}`}>
-                    <button className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-primary shadow-sm hover:bg-primary hover:text-white transition-colors" title="Open Workspace">
+                    <button className="theme-chip flex h-10 w-10 items-center justify-center rounded-full text-primary hover:bg-primary hover:text-primary-foreground" title="Open Workspace">
                       <span className="material-symbols-outlined text-[20px]">edit_note</span>
                     </button>
                   </Link>
                   <button
                     onClick={() => compileMutation.mutate(chapter.id)}
                     disabled={chaptersApiUnavailable || compileMutation.isPending}
-                    className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-primary shadow-sm hover:bg-secondary hover:text-white transition-colors disabled:opacity-50"
+                    className="theme-chip flex h-10 w-10 items-center justify-center rounded-full text-primary hover:bg-secondary hover:text-secondary-foreground disabled:opacity-50"
                     title="Compile"
                   >
                     {compileMutation.isPending && compileMutation.variables === chapter.id ? (
@@ -805,7 +805,7 @@ export default function ChaptersPage() {
                       }
                     }}
                     disabled={chaptersApiUnavailable || deleteMutation.isPending}
-                    className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-error shadow-sm hover:bg-error hover:text-white transition-colors disabled:opacity-50"
+                    className="theme-chip flex h-10 w-10 items-center justify-center rounded-full text-error hover:bg-error hover:text-on-error disabled:opacity-50"
                     title="Delete"
                   >
                     {deleteMutation.isPending && deleteMutation.variables === chapter.id ? (

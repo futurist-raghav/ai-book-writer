@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
 
-from app.core.database import get_db
+from app.core.dependencies import get_db
 from app.models.bibliography import Bibliography, ChapterCitation
 from app.models.book import Book
 from app.models.chapter import Chapter
@@ -23,7 +23,7 @@ from app.schemas.bibliography import (
     ChapterCitationsListResponse,
     FormattedCitationResponse,
 )
-from app.api.dependencies import get_current_user
+from app.core.dependencies import get_current_user
 from app.core.citations import format_citation
 from app.models.user import User
 

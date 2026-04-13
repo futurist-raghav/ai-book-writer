@@ -11,7 +11,7 @@ from sqlalchemy import func, select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 import hashlib
 
-from app.api.dependencies import AsyncSessionDep, get_current_user
+from app.core.dependencies import AsyncSessionDep, get_current_user
 from app.models.chapter import Chapter
 from app.models.section_approval import SectionApproval
 from app.models.user import User

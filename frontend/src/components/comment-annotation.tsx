@@ -92,10 +92,10 @@ export function CommentAnnotation({
  */
 export function useCommentAnnotation() {
   return {
-    renderCommentMarks: (text: string, marks: CommentMark[]) => {
+    renderCommentMarks: (text: string, marks: CommentMark[]): Array<string | { type: 'mark'; id: string; text: string; metadata: CommentMark }> => {
       if (!text || marks.length === 0) return [text];
 
-      const elements: React.ReactNode[] = [];
+      const elements: Array<string | { type: 'mark'; id: string; text: string; metadata: CommentMark }> = [];
       let lastPos = 0;
 
       const sortedMarks = [...marks].sort((a, b) => a.startPos - b.startPos);
