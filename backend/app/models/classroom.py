@@ -1,9 +1,10 @@
 """Classroom and institution models for collaborative learning."""
 
 from typing import TYPE_CHECKING, Optional
-
+import uuid
 from datetime import datetime
 from sqlalchemy import String, DateTime, ForeignKey, Enum, Integer, Boolean, Table, Text, Float, JSON, Column
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 import enum
 from app.core.db import Base
@@ -12,16 +13,16 @@ from app.core.db import Base
 classroom_students = Table(
     'classroom_students',
     Base.metadata,
-    Column('classroom_id', String(36), ForeignKey('classrooms.id'), primary_key=True),
-    Column('user_id', String(36), ForeignKey('users.id'), primary_key=True),
+    Column('classroom_id', UUID(as_uuid=True), ForeignKey('classrooms.id'), primary_key=True),
+    Column('user_id', UUID(as_uuid=True), ForeignKey('users.id'), primary_key=True),
 )
 
 # Association table for assignment submissions
 assignment_submissions = Table(
     'assignment_submissions',
     Base.metadata,
-    Column('assignment_id', String(36), ForeignKey('class_assignments.id'), primary_key=True),
-    Column('student_id', String(36), ForeignKey('users.id'), primary_key=True),
+    Column('assignment_id', UUID(as_uuid=True), ForeignKey('class_assignments.id'), primary_key=True),
+    Column('student_id', UUID(as_uuid=True), ForeignKey('users.id'), primary_key=True),
 )
 
 
@@ -53,8 +54,8 @@ class Classroom(Base):
     
     __tablename__ = "classrooms"
     
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, index=True)
-    owner_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False, index=True)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    owner_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
     title: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     description: Mapped[str] = mapped_column(Text)
     school_name: Mapped[str] = mapped_column(String(255))
@@ -81,9 +82,9 @@ class ClassAssignment(Base):
     
     __tablename__ = "class_assignments"
     
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, index=True)
-    classroom_id: Mapped[str] = mapped_column(String(36), ForeignKey("classrooms.id"), nullable=False, index=True)
-    creator_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    classroom_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("classrooms.id"), nullable=False, index=True)
+    creator_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     
     # Assignment details
     title: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
@@ -116,12 +117,12 @@ class ClassroomSubmission(Base):
     
     __tablename__ = "classroom_submissions"
     
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, index=True)
-    assignment_id: Mapped[str] = mapped_column(String(36), ForeignKey("class_assignments.id"), nullable=False, index=True)
-    student_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False, index=True)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    assignment_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("class_assignments.id"), nullable=False, index=True)
+    student_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
     
     # Submission content
-    book_id: Mapped[str] = mapped_column(String(36), ForeignKey("books.id")) # Linked book project
+    book_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("books.id"), nullable=True) # Linked book project
     submission_text: Mapped[str] = mapped_column(Text) # Alternative: direct text submission
     
     # Status and versioning
@@ -146,10 +147,10 @@ class ClassroomGrade(Base):
     
     __tablename__ = "classroom_grades"
     
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, index=True)
-    classroom_id: Mapped[str] = mapped_column(String(36), ForeignKey("classrooms.id"), nullable=False, index=True)
-    submission_id: Mapped[str] = mapped_column(String(36), ForeignKey("classroom_submissions.id"), nullable=False, index=True)
-    grader_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    classroom_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("classrooms.id"), nullable=False, index=True)
+    submission_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("classroom_submissions.id"), nullable=False, index=True)
+    grader_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     
     # Grading
     score: Mapped[int] = mapped_column(Integer) # 0-100
@@ -175,9 +176,9 @@ class SubmissionFeedback(Base):
     
     __tablename__ = "submission_feedback"
     
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, index=True)
-    submission_id: Mapped[str] = mapped_column(String(36), ForeignKey("classroom_submissions.id"), nullable=False, index=True)
-    author_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    submission_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("classroom_submissions.id"), nullable=False, index=True)
+    author_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     
     # Feedback content
     content: Mapped[str] = mapped_column(Text, nullable=False)
