@@ -285,7 +285,7 @@ async def get_make_public_app_info():
         "description": "Automate your writing workflow and publishing process with Make",
         "category": ["Writing", "Productivity", "Publishing"],
         "available": True,
-        "app_url": "https://www.make.com/en/integrations/ai-book-writer",
+        "app_url": "https://www.make.com/en/integrations/scribe-house",
         "total_scenarios": 1200,
         "total_users": 450,
         "triggers": 6,

@@ -289,7 +289,7 @@ async def get_zapier_marketplace_info():
         "description": "Automate your writing workflow with Zapier",
         "category": ["Writing", "Productivity", "Publishing"],
         "available_in_marketplace": True,
-        "marketplace_url": "https://zapier.com/apps/ai-book-writer/integrations",
+        "marketplace_url": "https://zapier.com/apps/scribe-house/integrations",
         "triggers": 6,
         "actions": 0,
         "popular_zap_templates": [
