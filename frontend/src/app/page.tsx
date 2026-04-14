@@ -11,11 +11,11 @@ export default function HomePage() {
         <nav className="flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <Image
-              src="/scribe-house-logo-horizontal.png"
+              src="/logo.png"
               alt="Scribe House Logo"
-              width={180}
-              height={60}
-              className="h-12 w-auto"
+              width={48}
+              height={48}
+              className="h-12 w-12"
             />
           </Link>
           <div className="flex items-center gap-4">

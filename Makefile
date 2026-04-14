@@ -530,11 +530,29 @@ deploy-vm-frontend:
 		echo "ERROR: VM_IP not set. Provide the VM IP for frontend config."; \
 		exit 1; \
 	fi
-	@echo "🌐 Deploying frontend to Cloudflare Pages..."
-	@echo "Backend URL: http://$(VM_IP):8000/api/v1"
-	@echo ""
-	@echo "Updating frontend environment..."
-	@echo "NEXT_PUBLIC_API_URL=http://$(VM_IP):8000/api/v1" > frontend/.env.production
+	@backend_origin="http://$(VM_IP).nip.io:8000"; \
+		echo "🌐 Deploying frontend to Cloudflare Pages..."; \
+		echo "Backend URL (origin): $$backend_origin"; \
+		echo ""; \
+		echo "Deploying HTTPS API proxy worker..."; \
+		printf '%s\n' \
+			'name = "scribe-house-api-proxy"' \
+			'main = "src/_worker.ts"' \
+			'compatibility_date = "2024-04-01"' \
+			'workers_dev = true' \
+			'' \
+			'[vars]' \
+			"BACKEND_URL = \"$$backend_origin\"" > frontend/.wrangler-api.toml; \
+		api_worker_output=$$(cd frontend && npx --yes wrangler deploy --config .wrangler-api.toml 2>&1); \
+		echo "$$api_worker_output"; \
+		api_worker_url=$$(echo "$$api_worker_output" | grep -Eo 'https://[^ ]+\.workers\.dev' | tail -n 1); \
+		if [ -z "$$api_worker_url" ]; then \
+			echo "ERROR: Could not determine API worker URL from wrangler output."; \
+			exit 1; \
+		fi; \
+		echo ""; \
+		echo "Using secure API URL: $$api_worker_url/api/v1"; \
+		echo "NEXT_PUBLIC_API_URL=$$api_worker_url/api/v1" > frontend/.env.production
 	@echo ""
 	@echo "Building frontend..."
 	@npm --prefix frontend run build
@@ -542,6 +560,7 @@ deploy-vm-frontend:
 	@echo "Deploying to Cloudflare Pages..."
 	@(cd frontend && npx --yes @cloudflare/next-on-pages@1)
 	@(cd frontend && npx --yes wrangler pages deploy .vercel/output/static --project-name "$(CF_PAGES_PROJECT)" --branch "$(DEPLOY_BRANCH)")
+	@rm -f frontend/.wrangler-api.toml
 	@echo "✅ Frontend deployment complete"
 
 # View backend logs on VM

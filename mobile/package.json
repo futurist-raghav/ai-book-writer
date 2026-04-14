@@ -1,6 +1,6 @@
 {
   "name": "scribe-house-mobile",,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Scribe House Mobile App - Write on the go with offline support",
   "main": "expo-router/entry",
   "scripts": {

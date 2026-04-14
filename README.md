@@ -150,6 +150,7 @@ docker compose exec backend alembic upgrade head
 ```
 
 ### Documentation
+- **[Documentation Index](docs/README.md)** - Canonical docs map and archive policy
 - **[Architecture Guide](docs/ARCHITECTURE.md)** - Deep dive into the unified context model
 - **[Implementation Guide](docs/IMPLEMENTATION_GUIDE.md)** - What's built and how to use it
 - **[API Documentation](docs/API.md)** - Complete API reference with AI endpoints
@@ -168,7 +169,7 @@ make deploy-vm \
   VM_IP=35.200.193.248
 
 # If automated deployment fails due to GCP auth issues, use manual steps:
-# See: MANUAL_DEPLOYMENT.md (3 simple steps to deploy)
+# See: docs/MANUAL_DEPLOYMENT.md (3 simple steps to deploy)
 ```
 
 **Result:**
@@ -183,7 +184,7 @@ Frontend: https://scribe-house-frontend.pages.dev
 # Full deployment (backend + frontend)
 make deploy-vm GCP_PROJECT_ID=ai-book-writer-raghav VM_IP=35.200.193.248
 
-# If automated fails, follow: MANUAL_DEPLOYMENT.md
+# If automated fails, follow: docs/MANUAL_DEPLOYMENT.md
 #   Step 1: gcloud compute scp ... scribe-house:/tmp/
 #   Step 2: gcloud compute ssh ... then bash deploy-vm.sh
 #   Step 3: make deploy-vm-frontend VM_IP=...
@@ -194,7 +195,7 @@ make vm-status GCP_PROJECT_ID=ai-book-writer-raghav VM_IP=35.200.193.248
 ```
 
 **Documentation:**
-- **[MANUAL_DEPLOYMENT.md](MANUAL_DEPLOYMENT.md)** ⭐ Start here if automated script fails
+- **[MANUAL_DEPLOYMENT.md](docs/MANUAL_DEPLOYMENT.md)** ⭐ Start here if automated script fails
 - **[VM_DEPLOYMENT_GUIDE.md](docs/VM_DEPLOYMENT_GUIDE.md)** - Complete reference guide
 
 #### Vector Database
@@ -424,10 +425,11 @@ scribe-house/
 │   ├── public/
 │   └── package.json
 ├── docs/
+│   ├── README.md             # Documentation index (source-of-truth map)
 │   ├── API.md                # API documentation
 │   ├── ARCHITECTURE.md       # Architecture details
 │   ├── DEPLOYMENT.md         # Deployment guide
-│   └── USER_GUIDE.md         # User documentation
+│   └── archive/              # Historical/superseded docs
 ├── docker/
 │   ├── Dockerfile.backend
 │   ├── Dockerfile.frontend

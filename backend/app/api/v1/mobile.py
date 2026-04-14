@@ -255,9 +255,9 @@ def get_analytics_stats(days: int = 7, db: Session = Depends(get_db), current_us
 def get_app_info():
     """Get current app version and download info."""
     return {
-        "app_version": "1.0.0",
-        "min_version": "1.0.0",
-        "latest_version": "1.0.0",
+        "app_version": "1.1.0",
+        "min_version": "1.1.0",
+        "latest_version": "1.1.0",
         "download_url_ios": "https://apps.apple.com/app/aibook",
         "download_url_android": "https://play.google.com/store/apps/details?id=com.aibook",
         "features": [

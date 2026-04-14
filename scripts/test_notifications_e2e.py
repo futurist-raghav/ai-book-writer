@@ -94,7 +94,7 @@ class NotificationE2ETester:
                 data={
                     'device_token': self.test_device_token,
                     'platform': 'ios',
-                    'app_version': '1.0.0',
+                    'app_version': '1.1.0',
                 },
                 expected_status=201,
             )

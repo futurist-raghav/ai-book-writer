@@ -1,8 +1,7 @@
 /**
  * Cloudflare Worker - API Proxy
- * 
- * This worker proxies all /api/* requests to the Cloud Run backend.
- * Static assets are served by Cloudflare Pages.
+ *
+ * This worker proxies all /api/* requests to the backend over HTTPS entrypoint.
  */
 
 interface Env {
@@ -19,9 +18,8 @@ export default {
       return new Response('Not an API request', { status: 404 });
     }
 
-    // Remove /api prefix and construct backend URL
-    const backendPath = url.pathname.replace(/^\/api/, '');
-    const backendUrl = new URL(backendPath + url.search, env.BACKEND_URL);
+    // Forward full API path so /api/v1/* stays intact at the backend.
+    const backendUrl = new URL(url.pathname + url.search, env.BACKEND_URL);
 
     // Forward CORS headers from frontend
     const corsHeaders = {

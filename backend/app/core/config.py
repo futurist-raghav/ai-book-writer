@@ -23,7 +23,7 @@ class Settings(BaseSettings):
 
     # Application
     APP_NAME: str = "Scribe House"
-    VERSION: str = "1.0.0"
+    VERSION: str = "1.1.0"
     ENVIRONMENT: str = "development"
     DEBUG: bool = True
     SECRET_KEY: str = "your-secret-key-change-in-production"

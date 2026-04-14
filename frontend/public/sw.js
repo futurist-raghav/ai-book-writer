@@ -1,6 +1,6 @@
 const STATIC_CACHE = 'abw-static-v1';
 const DATA_CACHE = 'abw-data-v1';
-const STATIC_ASSETS = ['/', '/dashboard', '/manifest.webmanifest', '/favicon.svg', '/favicon.ico'];
+const STATIC_ASSETS = ['/', '/dashboard', '/manifest.webmanifest', '/logo.png', '/favicon.ico'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
