@@ -11,7 +11,7 @@ export default function HomePage() {
         <nav className="flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <Image
-              src="/scribe-house-logo-horizontal.svg"
+              src="/scribe-house-logo-horizontal.png"
               alt="Scribe House Logo"
               width={180}
               height={60}
