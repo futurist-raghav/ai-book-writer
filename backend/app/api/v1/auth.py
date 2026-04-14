@@ -81,6 +81,11 @@ async def register(
     await db.flush()
     await db.refresh(user)
 
+    # Some legacy databases have nullable users.updated_at; normalize at write-time.
+    if user.updated_at is None:
+        user.updated_at = user.created_at or datetime.now(timezone.utc)
+        await db.flush()
+
     return user
 
 

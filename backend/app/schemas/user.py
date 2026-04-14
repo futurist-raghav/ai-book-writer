@@ -104,6 +104,7 @@ class UserResponse(BaseSchema, IDMixin, TimestampMixin):
     preferred_perspective: Optional[str] = None
     ai_assist_enabled: bool
     last_login: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
 
 class UserProfileResponse(UserResponse):

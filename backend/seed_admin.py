@@ -56,6 +56,8 @@ async def seed_admin(database_url: str):
     print(f"   Email: {ADMIN_EMAIL}")
     print(f"   Database: {database_url.split('@')[1] if '@' in database_url else 'local'}")
     
+    now = datetime.now(timezone.utc)
+
     try:
         # Create async engine with connection pooling for Cloud SQL
         engine = create_async_engine(
@@ -79,7 +81,20 @@ async def seed_admin(database_url: str):
             existing_admin = result.scalar_one_or_none()
             
             if existing_admin:
-                print(f"✅ Admin user already exists!")
+                existing_admin.hashed_password = get_password_hash(ADMIN_PASSWORD)
+                existing_admin.full_name = ADMIN_NAME
+                existing_admin.is_active = True
+                existing_admin.is_verified = True
+                existing_admin.is_superuser = True
+                existing_admin.ai_assist_enabled = True
+                if existing_admin.created_at is None:
+                    existing_admin.created_at = now
+                existing_admin.updated_at = now
+
+                await session.flush()
+                await session.commit()
+
+                print(f"✅ Admin user already existed; credentials refreshed.")
                 print(f"   Email: {ADMIN_EMAIL}")
                 print(f"   Active: {existing_admin.is_active}")
                 print(f"   Superuser: {existing_admin.is_superuser}")
@@ -97,7 +112,8 @@ async def seed_admin(database_url: str):
                 is_verified=True,
                 is_superuser=True,  # Grant superuser privileges
                 ai_assist_enabled=True,
-                created_at=datetime.now(timezone.utc),
+                created_at=now,
+                updated_at=now,
             )
             
             session.add(admin_user)
