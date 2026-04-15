@@ -89,7 +89,16 @@ export default function FlowPage() {
   });
 
   const flows: FlowEvent[] = useMemo(() => {
-    return (eventsData?.data?.items || eventsData?.data || []) as FlowEvent[];
+    const payload = eventsData?.data;
+    const items = Array.isArray(payload?.items)
+      ? payload.items
+      : Array.isArray(payload?.events)
+        ? payload.events
+        : Array.isArray(payload)
+          ? payload
+          : [];
+
+    return items as FlowEvent[];
   }, [eventsData]);
 
   const filteredFlows = useMemo(() => {
@@ -243,7 +252,7 @@ export default function FlowPage() {
 
   if (eventsError) {
     return (
-      <div className="max-w-6xl mx-auto pt-8 pb-24">
+      <div className="dashboard-shell">
         <QueryErrorState
           title="Unable to load flow data"
           error={eventsErrorValue}
@@ -254,7 +263,7 @@ export default function FlowPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto pt-8 pb-24">
+    <div className="dashboard-shell">
       {/* Header */}
       <div className="mb-12 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>

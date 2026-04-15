@@ -27,7 +27,7 @@ def upgrade() -> None:
     entity_type_enum = postgresql.ENUM(
         'character', 'location', 'concept', 'faction', 'item', 'theme', 'custom',
         name='entity_type_enum',
-        create_type=True
+        create_type=False
     )
     entity_type_enum.create(op.get_bind(), checkfirst=True)
 
@@ -35,7 +35,7 @@ def upgrade() -> None:
     op.create_table(
         'entities',
         sa.Column('id', postgresql.UUID(as_uuid=True), primary_key=True, server_default=sa.func.gen_random_uuid()),
-        sa.Column('book_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('books.id', ondelete='CASCADE'), nullable=False, index=True),
+        sa.Column('book_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('books.id', ondelete='CASCADE'), nullable=False),
         sa.Column('type', entity_type_enum, nullable=False, server_default='character'),
         sa.Column('name', sa.String(255), nullable=False),
         sa.Column('description', sa.Text(), nullable=True),

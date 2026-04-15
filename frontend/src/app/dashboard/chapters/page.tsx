@@ -393,7 +393,7 @@ export default function ChaptersPage() {
 
   if (isError) {
     return (
-      <div className="max-w-6xl mx-auto pt-8 pb-24">
+      <div className="dashboard-shell">
         <QueryErrorState
           title="Unable to load chapters"
           error={error}
@@ -405,7 +405,7 @@ export default function ChaptersPage() {
 
   if (booksError) {
     return (
-      <div className="max-w-6xl mx-auto pt-8 pb-24">
+      <div className="dashboard-shell">
         <QueryErrorState
           title="Unable to load projects"
           error={booksErrorValue}
@@ -416,7 +416,7 @@ export default function ChaptersPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto pt-8 pb-24">
+    <div className="dashboard-shell">
       {/* Hero Header */}
       <div className="mb-20 flex justify-between items-end">
         <div>

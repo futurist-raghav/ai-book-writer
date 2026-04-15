@@ -21,6 +21,15 @@ function isValidationRequestError(error: unknown): error is AxiosError {
   return statusCode === 400 || statusCode === 422;
 }
 
+function isMissingRouteError(error: unknown): error is AxiosError {
+  if (!axios.isAxiosError(error)) {
+    return false;
+  }
+
+  const statusCode = error.response?.status;
+  return statusCode === 404 || statusCode === 405 || statusCode === 501;
+}
+
 function clampBookListLimit(limit?: number): number {
   if (!Number.isFinite(limit)) {
     return 20;
@@ -706,9 +715,43 @@ export const apiClient = {
     list: async (
       bookId: string,
       params?: { page?: number; limit?: number; event_type?: string; status?: string }
-    ) => api.get(`/books/${bookId}/flow-events`, { params }),
+    ) => {
+      try {
+        return await api.get(`/books/${bookId}/flow-events`, { params });
+      } catch (error) {
+        if (!isMissingRouteError(error)) {
+          throw error;
+        }
+
+        const legacyResponse = await api.get(`/books/${bookId}/events`, { params });
+        const payload = legacyResponse.data;
+        const legacyEvents = Array.isArray(payload?.events)
+          ? payload.events
+          : Array.isArray(payload?.data?.events)
+            ? payload.data.events
+            : [];
+
+        return {
+          ...legacyResponse,
+          data: {
+            items: legacyEvents,
+            total: Number(payload?.total_count ?? legacyEvents.length),
+            page: Number(payload?.page ?? 1),
+            pages: 1,
+          },
+        };
+      }
+    },
     get: async (bookId: string, eventId: string) =>
-      api.get(`/books/${bookId}/flow-events/${eventId}`),
+      api
+        .get(`/books/${bookId}/flow-events/${eventId}`)
+        .catch((error) => {
+          if (!isMissingRouteError(error)) {
+            throw error;
+          }
+
+          return api.get(`/books/${bookId}/events/${eventId}`);
+        }),
     create: async (
       bookId: string,
       data: {
@@ -720,7 +763,14 @@ export const apiClient = {
         status?: string;
         metadata?: Record<string, unknown>;
       }
-    ) => api.post(`/books/${bookId}/flow-events`, data),
+    ) =>
+      api.post(`/books/${bookId}/flow-events`, data).catch((error) => {
+        if (!isMissingRouteError(error)) {
+          throw error;
+        }
+
+        return api.post(`/books/${bookId}/events`, data);
+      }),
     update: async (
       bookId: string,
       eventId: string,
@@ -733,9 +783,22 @@ export const apiClient = {
         status?: string;
         metadata?: Record<string, unknown>;
       }>
-    ) => api.patch(`/books/${bookId}/flow-events/${eventId}`, data),
+    ) =>
+      api.patch(`/books/${bookId}/flow-events/${eventId}`, data).catch((error) => {
+        if (!isMissingRouteError(error)) {
+          throw error;
+        }
+
+        return api.patch(`/books/${bookId}/events/${eventId}`, data);
+      }),
     delete: async (bookId: string, eventId: string) =>
-      api.delete(`/books/${bookId}/flow-events/${eventId}`),
+      api.delete(`/books/${bookId}/flow-events/${eventId}`).catch((error) => {
+        if (!isMissingRouteError(error)) {
+          throw error;
+        }
+
+        return api.delete(`/books/${bookId}/events/${eventId}`);
+      }),
 
     // Dependencies
     addDependency: async (
@@ -746,17 +809,50 @@ export const apiClient = {
         dependency_type: 'blocks' | 'triggers' | 'follows' | 'required_before';
         metadata?: Record<string, unknown>;
       }
-    ) => api.post(`/books/${bookId}/flow-events/${eventId}/dependencies`, data),
+    ) =>
+      api.post(`/books/${bookId}/flow-events/${eventId}/dependencies`, data).catch((error) => {
+        if (!isMissingRouteError(error)) {
+          throw error;
+        }
+
+        return api.post(`/books/${bookId}/events/${eventId}/dependencies`, data);
+      }),
     getDependencies: async (bookId: string, eventId: string) =>
-      api.get(`/books/${bookId}/flow-events/${eventId}/dependencies`),
+      api.get(`/books/${bookId}/flow-events/${eventId}/dependencies`).catch((error) => {
+        if (!isMissingRouteError(error)) {
+          throw error;
+        }
+
+        return api.get(`/books/${bookId}/events/${eventId}/dependencies`);
+      }),
     removeDependency: async (bookId: string, eventId: string, targetEventId: string) =>
-      api.delete(`/books/${bookId}/flow-events/${eventId}/dependencies/${targetEventId}`),
+      api
+        .delete(`/books/${bookId}/flow-events/${eventId}/dependencies/${targetEventId}`)
+        .catch((error) => {
+          if (!isMissingRouteError(error)) {
+            throw error;
+          }
+
+          return api.delete(`/books/${bookId}/events/${eventId}/dependencies/${targetEventId}`);
+        }),
 
     // Timeline & Queries
     getTimeline: async (bookId: string) =>
-      api.get(`/books/${bookId}/timeline`),
+      api.get(`/books/${bookId}/timeline`).catch((error) => {
+        if (!isMissingRouteError(error)) {
+          throw error;
+        }
+
+        return api.get(`/books/${bookId}/events/timeline`);
+      }),
     getDependencyGraph: async (bookId: string) =>
-      api.get(`/books/${bookId}/dependencies`),
+      api.get(`/books/${bookId}/dependencies`).catch((error) => {
+        if (!isMissingRouteError(error)) {
+          throw error;
+        }
+
+        return Promise.resolve({ data: [] });
+      }),
 
     // Chapter Associations
     linkChapter: async (
@@ -766,9 +862,24 @@ export const apiClient = {
         chapter_id: string;
         order_index?: number;
       }
-    ) => api.post(`/books/${bookId}/flow-events/${eventId}/chapters`, data),
+    ) =>
+      api.post(`/books/${bookId}/flow-events/${eventId}/chapters`, data).catch((error) => {
+        if (!isMissingRouteError(error)) {
+          throw error;
+        }
+
+        return api.post(`/books/${bookId}/events/${eventId}/chapters`, data);
+      }),
     unlinkChapter: async (bookId: string, eventId: string, chapterId: string) =>
-      api.delete(`/books/${bookId}/flow-events/${eventId}/chapters/${chapterId}`),
+      api
+        .delete(`/books/${bookId}/flow-events/${eventId}/chapters/${chapterId}`)
+        .catch((error) => {
+          if (!isMissingRouteError(error)) {
+            throw error;
+          }
+
+          return api.delete(`/books/${bookId}/events/${eventId}/chapters/${chapterId}`);
+        }),
   },
 
   // Bibliography & Citations (P2.4)

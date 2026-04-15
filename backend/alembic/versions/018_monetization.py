@@ -1,7 +1,7 @@
 """Add monetization models.
 
 Revision ID: 018_monetization
-Revises: 017_author_community
+Revises: 017
 Create Date: 2024-01-01
 
 """
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by alembic.
 revision = '018_monetization'
-down_revision = '017_author_community'
+down_revision = '017'
 branch_labels = None
 depends_on = None
 

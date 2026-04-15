@@ -1,7 +1,7 @@
 """P7.6 Mobile Apps - sessions, offline drafts, notifications, voice notes, reading mode, analytics.
 
 Revision ID: 020
-Revises: 019
+Revises: 019_api_integrations
 Create Date: 2024-01-20 00:00:00.000000
 
 """
@@ -13,7 +13,7 @@ from datetime import datetime
 
 # revision identifiers, used by Alembic.
 revision = '020'
-down_revision = '019'
+down_revision = '019_api_integrations'
 branch_labels = None
 depends_on = None
 

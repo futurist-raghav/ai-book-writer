@@ -60,14 +60,23 @@ def upgrade() -> None:
         """
     )
 
+    # Legacy schemas may have a text default that blocks enum conversion.
+    op.execute("ALTER TABLE books ALTER COLUMN project_type DROP DEFAULT")
+
     op.alter_column(
         "books",
         "project_type",
         existing_type=sa.String(length=50),
         type_=project_type_enum,
         nullable=False,
-        server_default=sa.text("'novel'::project_type_enum"),
         postgresql_using="project_type::project_type_enum",
+    )
+
+    op.alter_column(
+        "books",
+        "project_type",
+        existing_type=project_type_enum,
+        server_default=sa.text("'novel'::project_type_enum"),
     )
 
 

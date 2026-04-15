@@ -1,4 +1,9 @@
-export const onRequest: PagesFunction = async (context) => {
+interface ProxyRequestContext {
+  request: Request;
+  next: () => Promise<Response>;
+}
+
+export const onRequest = async (context: ProxyRequestContext): Promise<Response> => {
   const url = new URL(context.request.url);
   
   if (!url.pathname.startsWith('/api/v1/')) {

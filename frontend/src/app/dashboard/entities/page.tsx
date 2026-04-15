@@ -524,7 +524,7 @@ export default function EntitiesPage() {
 
   if (bookError) {
     return (
-      <div className="max-w-6xl mx-auto pt-8 pb-24">
+      <div className="dashboard-shell">
         <QueryErrorState
           title="Unable to load entities"
           error={bookErrorValue}
@@ -536,7 +536,7 @@ export default function EntitiesPage() {
 
   if (discoveredEntitiesError && activeTab === 'discovered' && extractionAnchorChapterId) {
     return (
-      <div className="max-w-6xl mx-auto pt-8 pb-24">
+      <div className="dashboard-shell">
         <QueryErrorState
           title="Unable to load discovered entities"
           error={discoveredEntitiesErrorValue}
@@ -547,7 +547,7 @@ export default function EntitiesPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto pt-8 pb-24">
+    <div className="dashboard-shell">
       {/* Header */}
       <div className="mb-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>

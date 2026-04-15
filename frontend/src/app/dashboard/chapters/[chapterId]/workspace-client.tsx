@@ -272,7 +272,33 @@ export default function ChapterWorkspaceClient({ chapterId }: { chapterId: strin
 
   const workspaceQuery = useQuery({
     queryKey: ['workspace', chapterId],
-    queryFn: () => apiClient.chapters.workspace(chapterId),
+    queryFn: async () => {
+      try {
+        return await apiClient.chapters.workspace(chapterId);
+      } catch (error: any) {
+        const statusCode = error?.response?.status;
+        if (statusCode !== 404 && statusCode !== 405 && statusCode !== 501) {
+          throw error;
+        }
+
+        const chapterResponse = await apiClient.chapters.get(chapterId);
+        const rawChapter = chapterResponse?.data?.data || chapterResponse?.data || {};
+
+        return {
+          ...chapterResponse,
+          data: {
+            ...rawChapter,
+            writing_form: rawChapter?.writing_form || 'memoir',
+            base_context: rawChapter?.base_context || '',
+            recent_chat: Array.isArray(rawChapter?.recent_chat) ? rawChapter.recent_chat : [],
+            assets: Array.isArray(rawChapter?.assets) ? rawChapter.assets : [],
+            events: Array.isArray(rawChapter?.events) ? rawChapter.events : [],
+            effective_ai_enhancement_enabled:
+              rawChapter?.effective_ai_enhancement_enabled ?? rawChapter?.ai_enhancement_enabled ?? true,
+          },
+        };
+      }
+    },
   });
 
   const chapterLookupQuery = useQuery({

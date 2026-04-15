@@ -1,7 +1,7 @@
 """Migration: Add glossary tables for P3.8
 
 Revision ID: 014
-Revises: 013
+Revises: 013_import_sources
 Create Date: 2026-04-10
 """
 
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = '014'
-down_revision = '013'
+down_revision = '013_import_sources'
 branch_labels = None
 depends_on = None
 

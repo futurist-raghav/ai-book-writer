@@ -278,7 +278,7 @@ export default function NotesAndVoicePage() {
 
   if (bookError) {
     return (
-      <div className="max-w-6xl mx-auto pt-8 pb-24">
+      <div className="dashboard-shell">
         <QueryErrorState
           title="Unable to load notes workspace"
           error={bookErrorValue}
@@ -291,7 +291,7 @@ export default function NotesAndVoicePage() {
   const uncategorizedCount = notes.filter((n) => !n.linkedChapterId).length;
 
   return (
-    <div className="max-w-6xl mx-auto pt-8 pb-24">
+    <div className="dashboard-shell">
       {/* Header */}
       <div className="mb-12">
         <p className="font-label text-xs uppercase tracking-[0.2em] text-secondary mb-3">Voice & Writing</p>

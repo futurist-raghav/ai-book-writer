@@ -234,25 +234,43 @@
 
 @layer utilities {
   .app-main {
-    background-image: var(--app-background);
+    background-image:
+      linear-gradient(180deg, hsl(var(--surface) / 0.74) 0%, hsl(var(--surface-dim) / 0.56) 100%),
+      var(--app-background);
+    background-blend-mode: screen, normal;
     background-size: cover;
     background-repeat: no-repeat;
   }
 
+  .dashboard-shell {
+    width: 100%;
+    max-width: 1280px;
+    margin-inline: auto;
+    padding-top: 2rem;
+    padding-bottom: 6rem;
+  }
+
+  @media (min-width: 768px) {
+    .dashboard-shell {
+      padding-top: 2.25rem;
+      padding-bottom: 7rem;
+    }
+  }
+
   .elevated-panel {
-    background: hsl(var(--surface-container-lowest) / 0.9);
-    border: 1px solid hsl(var(--outline-variant) / 0.5);
-    box-shadow: 0 16px 40px -22px hsl(var(--foreground) / 0.25);
-    backdrop-filter: blur(8px);
+    background: hsl(var(--surface-container-lowest) / 0.97);
+    border: 1px solid hsl(var(--outline-variant) / 0.64);
+    box-shadow: 0 20px 44px -26px hsl(var(--foreground) / 0.34);
+    backdrop-filter: blur(6px);
   }
 
   .theme-chip {
     background: linear-gradient(
       145deg,
-      hsl(var(--surface-container-lowest)) 0%,
-      hsl(var(--surface-container-low)) 100%
+      hsl(var(--surface-container-lowest) / 0.98) 0%,
+      hsl(var(--surface-container-low) / 0.95) 100%
     );
-    border: 1px solid hsl(var(--outline-variant) / 0.45);
+    border: 1px solid hsl(var(--outline-variant) / 0.58);
   }
 
   .animate-rise {

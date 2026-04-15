@@ -202,6 +202,17 @@ interface SidebarProps {
   projectType?: ProjectType | null;
 }
 
+function dedupeNavItems(items: NavItem[]): NavItem[] {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    if (seen.has(item.href)) {
+      return false;
+    }
+    seen.add(item.href);
+    return true;
+  });
+}
+
 /**
  * Get adaptive sidebar items based on project type and terminology
  */
@@ -211,7 +222,7 @@ function getAdaptiveSidebarItems(
 ): NavItem[] {
   if (!projectType) {
     // Fallback to default items if no project type
-    return [
+    return dedupeNavItems([
       MODULE_NAV_MAP.overview,
       MODULE_NAV_MAP.structure,
       MODULE_NAV_MAP.entities,
@@ -225,7 +236,7 @@ function getAdaptiveSidebarItems(
       MODULE_NAV_MAP.writing_goals,
       ...GLOBAL_ITEMS,
       ...FIXED_ITEMS,
-    ];
+    ]);
   }
 
   const config = ProjectTypeConfigService.getConfig(projectType as ProjectType);
@@ -244,7 +255,7 @@ function getAdaptiveSidebarItems(
     }
   }
 
-  return [...items, ...GLOBAL_ITEMS, ...FIXED_ITEMS];
+  return dedupeNavItems([...items, ...GLOBAL_ITEMS, ...FIXED_ITEMS]);
 }
 
 /**

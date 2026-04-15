@@ -1,7 +1,7 @@
 """Add missing user account columns
 
 Revision ID: 022_user_account_columns
-Revises: 021_enterprise
+Revises: 021
 Create Date: 2026-04-14
 
 """
@@ -13,7 +13,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision: str = "022_user_account_columns"
-down_revision: Union[str, None] = "021_enterprise"
+down_revision: Union[str, None] = "021"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

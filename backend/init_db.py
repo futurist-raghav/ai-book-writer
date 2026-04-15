@@ -33,7 +33,7 @@ from app.models import (
     import_source, marketplace_template, mobile,
     monetization, publishing_pipeline, review_link,
     section_approval, workspace, workspace_customization,
-    drafts, drm_models, author_community, public_share,
+    drm_models, author_community, public_share,
     writing_performance, agent_usage, accessibility,
     bibliography, chapter_edit, classroom, comment,
     formatting_theme, matter_config, suggestion

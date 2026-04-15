@@ -159,7 +159,7 @@ export default function MediaPage() {
   }, [mockMediaItems]);
 
   return (
-    <div className="space-y-6">
+    <div className="dashboard-shell space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

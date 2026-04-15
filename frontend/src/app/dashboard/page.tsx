@@ -137,7 +137,7 @@ export default function ProjectOverviewPage() {
 
   if (booksError) {
     return (
-      <div className="max-w-6xl mx-auto pt-8 pb-24">
+      <div className="dashboard-shell">
         <QueryErrorState
           title="Unable to load projects"
           error={booksErrorValue}
@@ -244,7 +244,7 @@ export default function ProjectOverviewPage() {
 
   if (bookDetailsError) {
     return (
-      <div className="max-w-6xl mx-auto pt-8 pb-24">
+      <div className="dashboard-shell">
         <QueryErrorState
           title="Unable to load project details"
           error={bookDetailsErrorValue}
@@ -255,7 +255,7 @@ export default function ProjectOverviewPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto pt-8 pb-24">
+    <div className="dashboard-shell">
       {/* Hero Title Area (Asymmetric Layout) */}
       <div className="mb-20 grid grid-cols-1 md:grid-cols-12 gap-8 items-end">
         <div className="md:col-span-8">

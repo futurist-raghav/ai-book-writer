@@ -26,8 +26,8 @@ def upgrade() -> None:
     op.create_table(
         'entity_references',
         sa.Column('id', postgresql.UUID(as_uuid=True), primary_key=True, server_default=sa.func.gen_random_uuid()),
-        sa.Column('entity_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('entities.id', ondelete='CASCADE'), nullable=False, index=True),
-        sa.Column('chapter_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('chapters.id', ondelete='CASCADE'), nullable=False, index=True),
+        sa.Column('entity_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('entities.id', ondelete='CASCADE'), nullable=False),
+        sa.Column('chapter_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('chapters.id', ondelete='CASCADE'), nullable=False),
         sa.Column('mention_count', sa.Integer(), default=1, nullable=False),
         sa.Column('first_mention_position', sa.Integer(), nullable=True, doc="Character position of first mention in chapter"),
         sa.Column('context_snippet', sa.Text(), nullable=True, doc="Text snippet showing entity mention context"),
@@ -35,9 +35,8 @@ def upgrade() -> None:
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now()),
         sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.func.now(), onupdate=sa.func.now()),
     )
-    
-    # Create composite index for entity + chapter lookups
-    op.create_index('ix_entity_references_entity_chapter', 'entity_references', ['entity_id', 'chapter_id'], unique=True)
+
+    # Create indexes for common lookup patterns
     op.create_index('ix_entity_references_entity_id', 'entity_references', ['entity_id'])
     op.create_index('ix_entity_references_chapter_id', 'entity_references', ['chapter_id'])
     
@@ -53,5 +52,4 @@ def downgrade() -> None:
     op.drop_constraint('uq_entity_references_entity_chapter', 'entity_references')
     op.drop_index('ix_entity_references_chapter_id')
     op.drop_index('ix_entity_references_entity_id')
-    op.drop_index('ix_entity_references_entity_chapter')
     op.drop_table('entity_references')

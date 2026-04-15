@@ -63,9 +63,10 @@ pip install -r requirements.txt
 # Run database migrations
 echo -e "${YELLOW}Step 5: Running database migrations...${NC}"
 if command -v alembic &> /dev/null; then
-    alembic upgrade head || echo -e "${YELLOW}⚠️  Migration warning - check DB connection${NC}"
+    alembic upgrade head
 else
-    echo -e "${YELLOW}⚠️  alembic not found, skipping migrations${NC}"
+    echo -e "${RED}❌ alembic not found in virtual environment; aborting deployment${NC}"
+    exit 1
 fi
 
 # Ensure admin credentials exist and are current after deployment.
